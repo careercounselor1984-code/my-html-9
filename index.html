@@ -165,9 +165,10 @@ body:not(.cloud-ready) main.wrap{display:none}
 .cloud-area{background:#eff7f4;border:1px solid #bddbcf;border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 15px;margin-bottom:10px;flex-wrap:wrap}.cloud-area>div:first-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.cloud-area span{font-size:12px;color:#2b765b}.cloud-area span.error{color:#b23b40}.cloud-actions{display:flex;gap:6px}.cloud-actions button{font-size:12px;padding:7px 9px}
 @media(max-width:550px){.cloud-login-panel{padding:22px}.cloud-area{flex-direction:column;align-items:stretch}.cloud-actions button{flex:1}}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
-.special-work-summary{margin:12px 0}.special-work-summary .entries{display:flex;flex-wrap:wrap;gap:7px}.special-work-summary button{background:#fff4df;border-color:#dbb77e;font-size:12px}</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
+.special-work-summary{margin:12px 0}.special-work-summary .entries{display:flex;flex-wrap:wrap;gap:7px}.special-work-summary button{background:#fff4df;border-color:#dbb77e;font-size:12px}.team-status-dialog{border:0;border-radius:15px;padding:0;max-width:calc(100vw - 16px);box-shadow:0 20px 50px #1236}.team-status-dialog::backdrop{background:#132b4577}.status-modal{width:min(680px,calc(100vw - 25px));padding:18px;max-height:83dvh;overflow-y:auto}.status-modal header{display:flex;align-items:center;justify-content:space-between;gap:14px}.status-modal h2{margin:0;font-size:20px}.status-modal p,#presenceFeedback,#messageFeedback{font-size:12px;color:#68778c;line-height:1.55}.status-actions{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:12px 0}.status-actions label{flex:1}.status-actions select{padding:10px;width:100%}.status-panel{padding:10px;margin:9px 0;background:#f5f8fc;border:1px solid #dce4ec;border-radius:9px}.status-panel h3{margin:0 0 6px;font-size:15px}.status-person{display:inline-block;background:white;padding:5px 8px;border:1px solid #dbe3ee;border-radius:8px;margin:3px;font-size:12px}.status-person small{color:#627589}#messageForm{display:grid;gap:8px}#messageForm label{display:grid;gap:4px}#messageForm select,#messageForm textarea{width:100%;padding:9px}.message-item{background:#f6f8fb;border:1px solid #dce3ed;border-radius:9px;padding:10px;margin:8px 0;font-size:12px}.message-item strong{display:block}.message-item p{white-space:pre-wrap;overflow-wrap:anywhere;color:#1d3049}
+</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v18 · 근무 예외 등록</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v18.1 · 특별근무·근무현황·쪽지</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -176,7 +177,7 @@ body:not(.cloud-ready) main.wrap{display:none}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
   <section class="panel no-print">
     <div class="context">
       <label class="control"><span>센터</span><select id="center"></select></label>
@@ -197,6 +198,8 @@ body:not(.cloud-ready) main.wrap{display:none}
     <div class="scroll"><div id="calendar"></div></div><p id="summary" class="summary no-print"></p><div id="specialWorkSummary" class="special-work-summary no-print"></div>
   </section>
 </main>
+<dialog id="presenceDlg" class="team-status-dialog"><section class="status-modal"><header><h2>센터별 오늘 근무현황</h2><button type="button" id="presenceClose">닫기</button></header><p>직원 본인이 표시한 상태만 보여요. 미확인은 결근이 아니며 실제 출퇴근 인증도 아니야.</p><div class="status-actions"><label>내 상태 <select id="myPresence"><option value="">미확인</option><option value="출근">출근</option><option value="외근">외근</option><option value="퇴근">퇴근</option><option value="휴무">휴무</option></select></label><button class="primary" id="presenceSave" type="button">상태 저장</button><button id="presenceRefresh" type="button">새로고침</button></div><div id="presenceFeedback"></div><div id="presenceList"></div></section></dialog>
+<dialog id="messageDlg" class="team-status-dialog"><section class="status-modal"><header><h2>상담사 쪽지</h2><button type="button" id="messageClose">닫기</button></header><p>500자 이하 텍스트만 보낼 수 있어. 내담자 이름·연락처 등 개인정보는 적지 마세요.</p><form id="messageForm"><label>받는 직원 <select id="messageTo" required></select></label><label>쪽지 <textarea id="messageText" rows="3" maxlength="500" required></textarea></label><div class="status-actions"><button type="submit" class="primary" id="messageSend">보내기</button><button id="messageRefresh" type="button">새로고침</button></div></form><div id="messageFeedback"></div><div id="messageList"></div></section></dialog>
 <dialog id="dlg"><form class="modal" id="editor"><div class="modal-head"><div><h2 id="editTitle">일정 등록</h2><span class="modal-sub">상담 예약과 개인 근무 일정을 별도로 등록해요</span></div><button id="closeModal" type="button" aria-label="닫기">✕</button></div>
   <div class="entry-mode-picker" id="entryModePicker" role="group" aria-label="등록할 일정 종류">
     <button type="button" class="entry-mode is-active" data-entry-mode="consult"><span class="entry-mode-icon">👤</span><span><strong>내담자 상담</strong><small>초기·해석·IAP 등 / 30분 고정</small></span></button>
@@ -374,11 +377,75 @@ async function cloudStartSession(){
  await cloudReload();
  }catch(err){cloud.active=false;document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';cloudStatus('로그인 확인 실패',true)}
 }
+
+const sharedTeam={directory:[],messages:[],presence:[]};
+async function loadStaffDirectory(){
+ const {data,error}=await cloud.client.rpc('schedule_staff_directory');
+ if(error)throw error;
+ sharedTeam.directory=Array.isArray(data)?data:[];
+}
+async function refreshPresence(){
+ $('presenceFeedback').textContent='근무현황을 조회하는 중…';
+ const date=dateKey(new Date());
+ const {data,error}=await cloud.client.rpc('schedule_today_presence',{p_date:date});
+ if(error){$('presenceFeedback').textContent='조회 오류: '+error.message;return}
+ sharedTeam.presence=Array.isArray(data)?data:[];
+ const me=sharedTeam.presence.find(x=>x.center===cloud.identity.center&&x.name===cloud.identity.name);
+ $('myPresence').value=me&&me.status!=='미확인'?me.status:'';
+ const centers=[...new Set(sharedTeam.presence.map(x=>x.center))];
+ $('presenceList').innerHTML=centers.map(c=>'<div class="status-panel"><h3>'+escapeHtml(c)+'</h3>'+
+ sharedTeam.presence.filter(x=>x.center===c).map(x=>'<span class="status-person">'+escapeHtml(x.name)+' · <b>'+escapeHtml(x.status)+'</b> <small>'+escapeHtml(x.status==='미확인'?'':x.time||'')+'</small></span>').join('')+'</div>').join('');
+ $('presenceFeedback').textContent='직원 본인이 입력한 상태 기준 · '+date;
+}
+async function savePresence(){
+ const status=$('myPresence').value;
+ if(!status){$('presenceFeedback').textContent='상태를 선택해 주세요.';return}
+ const {error}=await cloud.client.from('schedule_presence').upsert({staff_id:cloud.identity.id,work_date:dateKey(new Date()),status},{onConflict:'staff_id,work_date'});
+ if(error){$('presenceFeedback').textContent='저장 오류: '+error.message;return}
+ await refreshPresence();
+}
+async function refreshMessages(){
+ if(!sharedTeam.directory.length)await loadStaffDirectory();
+ const me=cloud.identity.id;
+ const to=$('messageTo'),selected=to.value;
+ to.innerHTML='<option value="">받는 직원 선택</option>'+sharedTeam.directory.filter(x=>x.id!==me).map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.center+' · '+x.name)+'</option>').join('');
+ if(selected)to.value=selected;
+ const {data,error}=await cloud.client.from('schedule_messages').select('id,sender_id,recipient_id,content,created_at,read_at').order('created_at',{ascending:false}).limit(80);
+ if(error){$('messageFeedback').textContent='쪽지 조회 실패: '+error.message;return}
+ sharedTeam.messages=Array.isArray(data)?data:[];
+ const person=id=>{const x=sharedTeam.directory.find(e=>e.id===id);return x?x.center+' · '+x.name:'직원'};
+ $('messageList').innerHTML=sharedTeam.messages.map(e=>{
+ const incoming=e.recipient_id===me,other=incoming?e.sender_id:e.recipient_id;
+ return '<div class="message-item"><strong>'+escapeHtml(incoming?'받은 쪽지 · ':'보낸 쪽지 · ')+escapeHtml(person(other))+'</strong><small>'+escapeHtml(new Date(e.created_at).toLocaleString('ko-KR'))+'</small><p>'+escapeHtml(e.content)+'</p></div>';
+ }).join('')||'<p>쪽지가 없어.</p>';
+ const unread=sharedTeam.messages.filter(x=>x.recipient_id===me&&!x.read_at);
+ $('messageFeedback').textContent='최근 쪽지 최대 80개 표시 · 개인정보 전송 금지';
+ if(unread.length)await cloud.client.from('schedule_messages').update({read_at:new Date().toISOString()}).eq('recipient_id',me).is('read_at',null);
+}
+async function sendMessage(event){
+ event.preventDefault();
+ const recipient_id=$('messageTo').value,content=$('messageText').value.trim();
+ if(!recipient_id||!content||content.length>500){$('messageFeedback').textContent='받는 직원과 500자 이하 내용을 입력해 줘.';return}
+ $('messageSend').disabled=true;
+ const {error}=await cloud.client.from('schedule_messages').insert({sender_id:cloud.identity.id,recipient_id,content});
+ $('messageSend').disabled=false;
+ if(error){$('messageFeedback').textContent='쪽지 전송 실패: '+error.message;return}
+ $('messageText').value='';await refreshMessages();$('messageFeedback').textContent='쪽지를 보냈어.';
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
+ $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
+ $('presenceClose').onclick=()=>$('presenceDlg').close();
+ $('presenceRefresh').onclick=refreshPresence;
+ $('presenceSave').onclick=savePresence;
+ $('messageBtn').onclick=async()=>{if(!cloud.active)return;$('messageDlg').showModal();try{await refreshMessages()}catch(e){$('messageFeedback').textContent='쪽지 조회 오류: '+e.message}};
+ $('messageClose').onclick=()=>$('messageDlg').close();
+ $('messageRefresh').onclick=refreshMessages;
+ $('messageForm').onsubmit=sendMessage;
  $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
