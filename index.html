@@ -624,7 +624,16 @@ async function cloudBoot(){
   finally{$('cloudMagic').disabled=false}
  };
  $('cloudAdminShortcut').onclick=openStaffAdmin;
- $('staffAdminClose').onclick=()=>$('staffAdminDlg').close();
+ $('staffAdminClose').onclick=()=>{
+  if(staffAdmin.working){alert('계정 작업이 진행 중입니다. 완료된 후 닫아 주세요.');return}
+  if(staffAdmin.credentials.length&&!confirm('이번에 발급한 임시 비밀번호를 직원별로 전달하거나 복사했나요? 닫으면 화면에서 지워집니다.'))return;
+  $('staffAdminDlg').close();
+ };
+ $('staffAdminDlg').addEventListener('cancel',e=>{
+  if(staffAdmin.working){e.preventDefault();return}
+  if(staffAdmin.credentials.length&&!confirm('닫으면 이번에 발급한 임시 비밀번호가 화면에서 지워집니다. 닫을까요?'))e.preventDefault();
+ });
+ $('staffAdminDlg').addEventListener('close',()=>{staffAdmin.credentials=[];staffAdminCredentialsRender();staffAdminResetEditor()});
  $('staffAdminRefresh').onclick=async()=>{try{await staffAdminRefresh()}catch(e){$('staffAdminSummary').textContent=e.message}};
  $('staffAdminBulk').onclick=staffAdminBulkIssue;
  $('staffAdminCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('staffAdminCredentialText').textContent);alert('이번에 발급된 계정 목록을 복사했어. 안전하게 보관해 줘.')}catch{alert('복사할 수 없어요. 화면에서 직접 선택해 복사해 주세요.')}};
