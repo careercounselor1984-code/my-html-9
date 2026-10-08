@@ -161,18 +161,18 @@ body:not(.cloud-ready) main.wrap{display:none}
 .cloud-gate{min-height:calc(100dvh - 66px);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(155deg,#f0f6ff,#f9fbfe)}
 .cloud-login-panel{width:min(460px,100%);background:white;border-radius:18px;padding:32px;box-shadow:0 14px 50px #1f446025;border:1px solid #d9e5f1}
 .cloud-login-mark{font-size:36px}.cloud-login-panel h2{margin:10px 0}.cloud-login-panel p{color:#52677e;line-height:1.6}.cloud-login-panel form{display:flex;flex-direction:column;gap:11px;margin:22px 0}.cloud-login-panel input,.cloud-login-panel button{min-height:48px;padding:12px}.cloud-login-panel small{color:#718298;line-height:1.4}
- .cloud-login-panel .cloud-reveal{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:13px;color:#51657d;cursor:pointer}.cloud-login-panel .cloud-reveal input{width:auto;flex:none;min-width:17px;height:17px}.cloud-login-panel .cloud-magic{margin-top:16px;border-top:1px solid #d9e3ee;padding-top:14px}.cloud-magic summary{cursor:pointer;color:#506a88;font-size:13px}.cloud-magic button{width:100%;margin-top:12px}.cloud-login-panel input{width:100%}.cloud-help{font-size:13px;color:#52677e;line-height:1.5}.cloud-feedback{min-height:24px}.password-dialog{border:none;border-radius:18px;width:min(420px,calc(100vw - 24px));padding:24px;box-shadow:0 18px 60px #1b304c55}.password-dialog::backdrop{background:#1d2e4570}.password-dialog form{display:flex;flex-direction:column;gap:12px}.password-dialog h2{margin:0}.password-dialog p{margin:0;color:#52677e;font-size:13px;line-height:1.5}.password-dialog input{width:100%;padding:12px;min-height:44px}.password-actions{display:flex;gap:8px;justify-content:flex-end}.password-actions button{flex:1}.password-actions button.primary{background:#2366b4;color:white}
+ .cloud-login-panel .cloud-reveal{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:13px;color:#51657d;cursor:pointer}.cloud-login-panel .cloud-reveal input{width:auto;flex:none;min-width:17px;height:17px}.cloud-extra-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 0 4px}.cloud-login-panel .cloud-remember{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#435972;cursor:pointer}.cloud-login-panel .cloud-remember input{width:auto;height:18px;min-height:18px;min-width:18px;margin:0;flex:0 0 auto}.cloud-login-panel .cloud-forgot{border:0;background:none;padding:2px 0;font-size:13px;color:#2366b4;min-height:auto;text-decoration:underline;text-underline-offset:3px}.cloud-login-panel .cloud-forgot:hover{background:none;color:#164a84}.cloud-login-panel .cloud-magic{margin-top:16px;border-top:1px solid #d9e3ee;padding-top:14px}.cloud-magic summary{cursor:pointer;color:#506a88;font-size:13px}.cloud-magic button{width:100%;margin-top:12px}.cloud-login-panel input{width:100%}.cloud-help{font-size:13px;color:#52677e;line-height:1.5}.cloud-feedback{min-height:24px}.password-dialog{border:none;border-radius:18px;width:min(420px,calc(100vw - 24px));padding:24px;box-shadow:0 18px 60px #1b304c55}.password-dialog::backdrop{background:#1d2e4570}.password-dialog form{display:flex;flex-direction:column;gap:12px}.password-dialog h2{margin:0}.password-dialog p{margin:0;color:#52677e;font-size:13px;line-height:1.5}.password-dialog input{width:100%;padding:12px;min-height:44px}.password-actions{display:flex;gap:8px;justify-content:flex-end}.password-actions button{flex:1}.password-actions button.primary{background:#2366b4;color:white}
 .cloud-area{background:#eff7f4;border:1px solid #bddbcf;border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 15px;margin-bottom:10px;flex-wrap:wrap}.cloud-area>div:first-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.cloud-area span{font-size:12px;color:#2b765b}.cloud-area span.error{color:#b23b40}.cloud-actions{display:flex;gap:6px}.cloud-actions button{font-size:12px;padding:7px 9px}
 @media(max-width:550px){.cloud-login-panel{padding:22px}.cloud-area{flex-direction:column;align-items:stretch}.cloud-actions button{flex:1}}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v16.2 · 로그인 오류 안내 개선</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v17 · 자동 로그인·비밀번호 찾기</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
- <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
  <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">직원 전용 계정으로 로그인해 주세요. 기존 PC에서 로그인 중이라면 로그인 후 비밀번호를 설정할 수 있습니다.</p>
- <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>비밀번호는 Supabase 인증 서버에서 검증되며 일정 데이터나 GitHub 소스에 저장되지 않습니다. 신규 직원 계정은 관리자가 생성합니다.</small></div>
+ <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>공용 PC에서는 ‘로그인 상태 유지’를 해제해 주세요. 비밀번호는 기기에 저장하지 않으며, 신규 직원 계정은 관리자가 생성합니다. 비밀번호 찾기는 메일 발송 제한이 적용될 수 있어요.</small></div>
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
@@ -263,7 +263,24 @@ body:not(.cloud-ready) main.wrap{display:none}
 const KEY='standalone_schedule_v2',PREF='standalone_schedule_v5_pref';
 const CLOUD_URL='https://hnhccnyitrlzqprnredi.supabase.co';
 const CLOUD_KEY='sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds';
-const cloud={client:null,identity:null,active:false,base:null,timer:null,busy:false,needsSave:false};
+const CLOUD_AUTH_STORAGE_KEY='sb-hnhccnyitrlzqprnredi-auth-token';
+const CLOUD_REMEMBER_PREF='goodjob_schedule_remember_v1';
+function cloudRemember(){try{return localStorage.getItem(CLOUD_REMEMBER_PREF)!=='0';}catch{return true;}}
+const cloudAuthStorage={
+ getItem(key){try{return (cloudRemember()?localStorage:sessionStorage).getItem(key);}catch{return null;}},
+ setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
+ removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
+};
+const cloud={client:null,identity:null,active:false,base:null,timer:null,busy:false,needsSave:false,recovering:false};
+function cloudOpenRecoveryDialog(){
+ const dlg=$('cloudPasswordDialog');
+ if(!dlg||dlg.open)return;
+ cloud.recovering=true;
+ dlg.querySelector('h2').textContent='새 비밀번호 설정';
+ $('cloudPasswordForm').reset();
+ $('cloudPasswordFeedback').textContent='재설정 링크를 확인했어요. 새 비밀번호를 8자 이상으로 입력해 주세요.';
+ dlg.showModal();
+}
 const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}};
 function cloudOwnRows(list){return list.filter(v=>!v.readonly&&v.center===cloud.identity.center&&v.owner===cloud.identity.name)}
 function cloudMap(rows){return new Map(rows.map(x=>[x.id,JSON.stringify(x)]))}
@@ -358,11 +375,19 @@ async function cloudStartSession(){
 }
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
- cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
+ cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
+ $('cloudRemember').checked=cloudRemember();
  $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
   if(!email||password.length<8)return;
+  const remember=$('cloudRemember').checked;
+  try{
+   localStorage.setItem(CLOUD_REMEMBER_PREF,remember?'1':'0');
+   if(remember)sessionStorage.removeItem(CLOUD_AUTH_STORAGE_KEY);
+   else localStorage.removeItem(CLOUD_AUTH_STORAGE_KEY);
+  }catch{}
   $('cloudSend').disabled=true;$('cloudAuthMessage').textContent='로그인 확인 중…';
   try{
    const {error}=await cloud.client.auth.signInWithPassword({email,password});
@@ -393,6 +418,28 @@ async function cloudBoot(){
   }
   finally{$('cloudSend').disabled=false}
  });
+ $('cloudForgot').onclick=async()=>{
+  const email=$('cloudEmail').value.trim().toLowerCase();
+  if(!email||!$('cloudEmail').checkValidity()){
+   $('cloudAuthMessage').textContent='비밀번호 재설정 메일을 받을 회사 이메일을 먼저 입력해 주세요.';
+   $('cloudEmail').focus();return;
+  }
+  $('cloudForgot').disabled=true;
+  $('cloudAuthMessage').textContent='비밀번호 재설정 메일을 요청 중…';
+  try{
+   const {error}=await cloud.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+   if(error)throw error;
+   $('cloudAuthMessage').textContent='메일을 보낼 수 있는 계정이라면 재설정 링크가 도착합니다. 메일에서 가장 최근 링크를 열어 새 비밀번호를 입력하세요.';
+  }catch(err){
+   const code=String(err?.code||'').toLowerCase();
+   const msg=String(err?.message||'').toLowerCase();
+   $('cloudAuthMessage').textContent=code.includes('rate_limit')||msg.includes('rate limit')?
+     '이메일 발송 한도에 도달했어요. 발송 제한이 풀린 뒤 다시 시도하거나 관리자에게 문의해 주세요.':
+     code==='email_address_not_authorized'||msg.includes('not authorized')?
+     '기본 이메일 서비스가 이 주소로 메일을 발송할 수 없어요. 관리자에게 비밀번호 재설정을 요청해 주세요.':
+     '재설정 메일 요청에 실패했어요. 이메일 주소와 발송 설정을 확인하거나 관리자에게 문의해 주세요.';
+  }finally{$('cloudForgot').disabled=false;}
+ };
  $('cloudMagic').onclick=async()=>{
   const email=$('cloudEmail').value.trim().toLowerCase();
   if(!email||!$('cloudEmail').checkValidity()){$('cloudAuthMessage').textContent='먼저 회사 이메일을 정확히 입력해 주세요.';return;}
@@ -408,6 +455,8 @@ async function cloudBoot(){
   finally{$('cloudMagic').disabled=false}
  };
  $('cloudSetPassword').onclick=()=>{
+  cloud.recovering=false;
+  $('cloudPasswordDialog').querySelector('h2').textContent='내 비밀번호 설정·변경';
   $('cloudPasswordForm').reset();$('cloudPasswordFeedback').textContent='';$('cloudPasswordDialog').showModal();
  };
  $('cloudPassCancel').onclick=()=>{$('cloudPasswordForm').reset();$('cloudPasswordDialog').close();};
@@ -422,6 +471,7 @@ async function cloudBoot(){
    const {error}=await cloud.client.auth.updateUser({password:newPassword});
    if(error)throw error;
    $('cloudPasswordForm').reset();$('cloudPasswordDialog').close();
+   cloud.recovering=false;
    cloudStatus('비밀번호 설정 완료 · 다른 기기에서도 로그인 가능 ✓');
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
@@ -429,8 +479,15 @@ async function cloudBoot(){
  $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}await cloud.client.auth.signOut();cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>cloudCommit();
  $('cloudRefresh').onclick=()=>cloudReload();
- cloud.client.auth.onAuthStateChange((_event,session)=>{if(session&&!cloud.active)setTimeout(cloudStartSession,100)});
+ cloud.client.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY')setTimeout(cloudOpenRecoveryDialog,100);
+  if(session&&!cloud.active)setTimeout(cloudStartSession,100);
+ });
  await cloudStartSession();
+ if(incomingRecovery){
+  const {data}=await cloud.client.auth.getSession();
+  if(data?.session)setTimeout(cloudOpenRecoveryDialog,100);
+ }
  setInterval(()=>{if(cloud.active&&document.visibilityState==='visible'&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
