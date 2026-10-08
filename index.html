@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+:root{--navy:#17324f;--ink:#1e2e42;--muted:#68778c;--border:#d9e3ee;--blue:#2366b4;--pale:#f4f7fb;--white:#fff;--radius:12px;font-family:Pretendard,'Malgun Gothic',system-ui,sans-serif;color:var(--ink)}*{box-sizing:border-box}body{margin:0;background:var(--pale)}button,input,select,textarea{font:inherit;color:inherit}button,select,input,textarea{border:1px solid #c9d7e5;background:white;border-radius:9px}button{padding:9px 13px;cursor:pointer;font-weight:650}button:hover{background:#edf3fa}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #b1cdf7;outline-offset:1px}button.primary{background:var(--blue);border-color:var(--blue);color:white}button.primary:hover{background:#17569d}button.danger{color:#b63744;border-color:#efc4c9}.headbar{background:linear-gradient(110deg,#15304b,#285477);color:white;padding:17px max(18px,calc((100vw - 1440px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}.brand h1{font-size:21px;letter-spacing:-.025em;margin:0}.brand p{font-size:12px;color:#d8e7f6;margin:5px 0 0}.version{background:#ffffff18;border:1px solid #ffffff55;border-radius:20px;padding:5px 10px;font-size:12px}.wrap{max-width:1480px;padding:18px;margin:auto}.panel,.sheet{background:white;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px #233e5810}.panel{padding:14px 17px;margin-bottom:13px}.context{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.control{display:flex;flex-direction:column;gap:6px;min-width:185px}.control span{font-size:12px;font-weight:750;color:#455d74}.control select{min-width:190px;height:40px;padding:6px 10px}.context-note{font-size:12px;color:var(--muted);flex:1;min-width:210px;align-self:center}.viewbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.viewgroup{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:12px;background:#f5f8fc;flex-wrap:wrap}.viewgroup strong{font-size:11px;color:#64778a;padding:0 6px;white-space:nowrap}.viewtab{background:transparent;border:0;padding:9px 13px;font-size:13px;white-space:nowrap}.viewtab.active{color:#0e4f98;background:white;box-shadow:0 1px 6px #2a517b25}.navline,.toolline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.navline button{padding:7px 12px}.navline strong{font-size:16px;min-width:200px}.navline input[type=date]{height:36px;padding:6px 10px}.toolline button{font-size:13px}.toolline .push{margin-left:auto}.quick-active{background:#fce8ef!important;border-color:#d95d84!important;color:#a02b59}.helper{margin:0 0 10px;color:#5e7083;font-size:12px;line-height:1.5}.sheet{padding:16px}.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.sheet-title{margin:0;font-size:18px}.sheet-meta{font-size:11px;color:#667d93}.legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:11px;color:#51667a;margin:8px 0 13px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}.scroll{overflow:auto}.timetable{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:700px}.timetable th,.timetable td{border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:5px 7px;vertical-align:top}.timetable th:first-child,.timetable td:first-child{border-left:1px solid #e2e8f0}.timetable thead th{background:#eaf1f9;text-align:center;padding:10px 4px;font-size:13px;border-top:1px solid #d6e1eb;white-space:normal}.timetable thead th:first-child{width:72px}.timetable .time{width:72px;background:#f6f9fc;text-align:center;font-size:12px;color:#5b6b7a;font-weight:650;vertical-align:middle}.timetable .slot{height:44px;cursor:pointer;position:relative}.timetable .slot:hover{background:#edf6ff}.timetable .blocked{background:repeating-linear-gradient(135deg,#f7eff0,#f7eff0 7px,#f1e5e7 7px,#f1e5e7 14px);color:#936973;cursor:not-allowed}.timetable .dayoff{background:#fff4f3}.timetable .leave-selected{box-shadow:inset 0 0 0 2px #e9adc2}.timetable .hint-cell{font-size:10px;color:#a37f85;text-align:center}.thead-alert{display:block;font-size:10px;color:#bc4a55;margin-top:3px}.thead-note{display:block;font-size:10px;color:#53728d;margin-top:3px}.entry{border-left:3px solid #4e8ac0;border-radius:5px;padding:5px 6px;margin:2px 0;background:#e8f3fe;line-height:1.3;font-size:11px;cursor:pointer;overflow-wrap:anywhere}.entry strong{font-size:11px}.entry small{display:block;color:#60758a;font-size:10px;margin-top:3px}.entry .pilltype{font-size:10px;font-weight:750;margin-left:4px;white-space:nowrap}.entry-iap{background:#dff3e9;border-color:#279067}.entry-service{background:#e6f1fd;border-color:#4387c2}.entry-leave{background:#fce5ee;border-color:#d56388}.entry-trip{background:#e9e0ff;border-color:#8660ca}.entry-training{background:#fff0d3;border-color:#cd943c}.entry-field{background:#fff4de;border-color:#de9c43}.entry-other{background:#eff1f5;border-color:#8b98aa}.entry-note{background:#fce5e6;border-color:#bc4556}.entry.gap{opacity:.45}.monthgrid{display:grid;grid-template-columns:repeat(7,minmax(112px,1fr));gap:5px;min-width:850px}.monthgrid .monthhead{background:#eaf1f9;text-align:center;padding:10px 2px;border-radius:5px;font-size:12px;font-weight:750}.monthday{border:1px solid #dce5ed;border-radius:8px;min-height:129px;padding:7px;cursor:pointer}.monthday:hover{border-color:#93b8e6;background:#fafdff}.monthday.dim{opacity:.38}.monthday.holiday{background:#fff7f6}.monthday .dayno{font-size:13px;font-weight:800}.monthday .dayno.red{color:#c14b55}.monthday .tag{display:inline-block;font-size:10px;color:#b84656;background:#fce9e9;padding:2px 4px;border-radius:4px;margin-left:4px}.monthday .entry{padding:3px 5px;margin-top:4px;font-size:10px}.monthday .entry strong{font-size:10px}.monthday .entry small{font-size:9px}.monthday .more{color:#64748b;font-size:10px}.summary{font-size:12px;color:#5b7189;margin-top:11px}.tipline{font-size:12px;color:#9d395c;font-weight:700}.hide{display:none!important}.screen-only{display:inline}.print-only{display:none}dialog{width:min(690px,calc(100vw - 24px));border:0;border-radius:16px;padding:0;max-height:95vh;overflow:auto;box-shadow:0 30px 90px #152a46a1}dialog::backdrop{background:#0d1e36aa}.modal{padding:24px}.modal h2{margin:0;font-size:20px}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px}.modal-sub{font-size:12px;color:#788596}.form-layout{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px}.field{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:750;color:#3b4e62}.field input,.field select,.field textarea{padding:10px 11px;min-height:43px;width:100%;font-size:14px;font-weight:450}.field textarea{min-height:85px;resize:vertical}.field .hint{font-size:11px;line-height:1.4;color:#667991;font-weight:400}.field.full{grid-column:1/-1}.form-separator{grid-column:1/-1;height:1px;background:#ecf0f4;margin:1px 0}.choice-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-column:1/-1}.check-card{display:flex;align-items:center;gap:10px;border:1px solid #d7e2ed;border-radius:10px;background:#f8fbfe;padding:12px;cursor:pointer}.check-card input{flex:none;width:18px;height:18px;accent-color:#2366b4}.check-card .txt{font-size:13px;font-weight:750}.check-card .desc{display:block;font-size:11px;color:#718297;margin-top:2px;font-weight:400}.check-card.trip-check{background:#f9f6ff;border-color:#e2d7fa}.check-card.trip-check input{accent-color:#7952bc}.actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:20px}.actions .left{margin-right:auto}.notice{background:#fff9ed;border:1px solid #f0dfb9;padding:11px 13px;font-size:12px;border-radius:9px;line-height:1.5;margin-bottom:14px}.manage-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px}.manage-row>*{min-width:0}.manage-row select,.manage-row input{padding:9px}.member{display:inline-flex;align-items:center;gap:5px;font-size:12px;border-radius:16px;background:#eff4fa;margin:3px;padding:4px 7px}.member button{padding:0 5px;border:0;background:transparent}.minirow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #eef2f6;gap:8px;font-size:12px}.modal-footnote{color:#67798c;font-size:11px;margin-top:12px}.empty{color:#708298;font-size:13px;padding:20px;text-align:center}
+
+/* v6: compact summaries, weekday-only calendars and comfortable action dialog */
+.monthgrid{grid-template-columns:repeat(5,minmax(140px,1fr));min-width:760px;gap:7px}
+.monthday{min-height:122px;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,background .15s}
+.monthday.dim{opacity:1;background:#f7f9fc;border-color:#eef2f6;cursor:default}
+.monthday .daytop{display:flex;gap:4px;align-items:center;flex-wrap:wrap;min-height:20px}
+.monthday .tag{margin-left:0;max-width:100%;overflow-wrap:anywhere}
+.monthday .metric{border-radius:6px;font-size:12px;font-weight:800;padding:7px 8px;display:flex;justify-content:space-between;gap:8px}
+.monthday .metric .count{font-weight:750}
+.metric-consult{background:#eaf2fe;color:#255b92}
+.metric-leave{background:#fae8ef;color:#a6385f}
+.monthday .mini-detail{font-size:11px;color:#526781;background:#f1f5f9;border-radius:5px;padding:4px 6px;overflow-wrap:anywhere}
+.monthday .empty-hint{font-size:11px;color:#a0adbd;margin-top:10px}
+.monthday .team-person{display:flex;align-items:baseline;gap:4px;border-radius:5px;padding:4px 5px;font-size:11px;line-height:1.3;background:#f1f5fa;overflow-wrap:anywhere}
+.monthday .team-person b{flex-shrink:0;font-weight:800}
+.monthday .team-person.leave{background:#fce5ee;color:#8e3456}
+.monthday .team-person.training{background:#fff2d8;color:#956416}
+.monthday .team-person.field{background:#fff0da;color:#8b5c14}
+.monthday .team-person.trip{background:#ebe4fa;color:#6640ac}
+.monthday .team-person.other{background:#eff2f6;color:#46596d}
+.monthday .team-person .duration-note{font-weight:500;white-space:nowrap}
+.monthday .overflow-label{font-size:10px;color:#64748b}
+.timetable .slot.paint-preview{background:#ffd6e4!important;box-shadow:inset 0 0 0 2px #d75f91}
+body.painting .timetable .slot{user-select:none;touch-action:none}
+.quick-modal{max-width:580px}.quick-instruction{font-size:13px;color:#667c90;margin:14px 0 12px}
+.quick-day-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.quick-day-grid button{display:flex;align-items:flex-start;flex-direction:column;gap:3px;padding:16px;border:1px solid #dce6f0;border-radius:12px;text-align:left;background:#f9fbfe;min-height:104px}
+.quick-day-grid button:hover{border-color:#7aade8;background:#ecf4ff}
+.quick-day-grid button:nth-child(1){background:#fdf0f4}.quick-day-grid button:nth-child(2){background:#fff7e7}
+.quick-day-grid button:nth-child(3){background:#fff5e7}.quick-day-grid button:nth-child(4){background:#f1f5f9}
+.quick-day-grid button strong{font-size:15px}.quick-day-grid button small{font-size:11px;color:#687b90;font-weight:400}
+.quick-day-grid .quick-icon{font-size:18px;color:#4b6a88;margin-bottom:3px}
+.quick-existing{border-top:1px solid #e4eaf2;margin-top:18px;padding-top:11px}
+.quick-existing h3{font-size:12px;margin:0 0 8px;color:#526a80}
+.quick-existing .rowitem{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;padding:7px 8px;background:#f5f8fb;border-radius:7px;margin:5px 0}
+.quick-existing button{font-size:11px;padding:4px 7px}
+@media(max-width:570px){.quick-day-grid{gap:7px}.quick-day-grid button{padding:12px}.monthgrid{min-width:735px}}
+
+
+/* v7: privacy-conscious recent participant autocomplete. */
+.person-field{position:relative}.person-field>label{font-weight:750}.person-popover{position:absolute;top:calc(100% - 31px);left:0;right:0;z-index:30;background:#fff;border:1px solid #a9c3de;border-radius:10px;box-shadow:0 10px 30px #203b5d30;max-height:245px;overflow:auto;padding:5px}.person-popover button{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;border:0;background:white;border-radius:7px;font-size:13px;font-weight:700;padding:9px 10px;gap:10px}.person-popover button:hover,.person-popover button.is-active{background:#eaf2fd}.person-popover button small{color:#6d8094;font-weight:400;font-size:11px}.person-inline{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;min-height:22px}.person-inline button{font-size:11px;padding:4px 8px;color:#1c5b9a;background:#eff5fc;border-color:#d8e7f7}.person-status{color:#58738e;font-size:11px;font-weight:500}.person-status.selected{color:#15734b}.person-note{padding:9px 11px;background:#f4f8fd;border:1px solid #dae8f5;border-radius:8px;color:#64778f;font-size:11px;line-height:1.5}.people-search{padding:10px;width:100%;margin-bottom:8px}.people-list{max-height:360px;overflow:auto}.people-list .minirow span small{display:block;color:#8290a0;font-size:10px;margin-top:3px}.people-list .minirow button{color:#ad3445;border-color:#e8c5cf;font-size:11px;padding:5px 9px;flex-shrink:0}
+@media print{.person-popover,.person-status,#personNew,.people-list{display:none!important}}
+
+@media(max-width:790px){.headbar{padding:14px}.headbar h1{font-size:18px}.wrap{padding:11px}.panel{padding:12px}.viewgroup{width:100%}.viewtab{flex:1;padding:9px 8px;font-size:12px}.viewgroup strong{width:100%;padding:3px}.context{align-items:start}.context-note{min-width:100%}.navline strong{min-width:150px}.toolline .push{margin-left:0}.sheet{padding:10px}.timetable{min-width:760px}.monthgrid{min-width:770px}.form-layout{grid-template-columns:1fr 1fr}}
+@media(max-width:470px){.control{min-width:calc(50% - 8px);flex:1}.control select{min-width:0;width:100%}.choice-row{grid-template-columns:1fr}.form-layout{gap:12px}.modal{padding:18px}.sheet-title{font-size:16px}.viewtab{font-size:11px;padding:8px 6px}.toolline button{font-size:11px;padding:9px}}
+@media print{@page{size:A4 landscape;margin:8mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:white;color:#111;font-size:10px}.headbar,.panel,.navline,.toolline,.helper,.legend,dialog,.summary,.no-print{display:none!important}.wrap{max-width:none;padding:0;margin:0}.sheet{border:0;box-shadow:none;padding:0}.sheet-head{margin-bottom:5px}.sheet-title{font-size:16px}.sheet-meta{font-size:10px}.scroll{overflow:visible}.timetable{min-width:0;table-layout:fixed}.timetable thead th{font-size:10px;padding:4px 1px}.timetable thead th:first-child{width:48px}.timetable .time{font-size:9px;width:48px}.timetable th,.timetable td{padding:1px 2px}.timetable .slot{height:25px}.entry{font-size:9px;line-height:1.15;margin:0;padding:2px 3px;break-inside:avoid}.entry strong{font-size:9px}.entry .pilltype{font-size:9px}.entry small{display:none}.monthgrid{min-width:0;gap:2px}.monthday{min-height:87px;padding:3px;break-inside:avoid}.monthgrid .monthhead{padding:3px}.monthday .entry{padding:2px;font-size:8px}.monthday .entry strong{font-size:8px}.print-only{display:inline!important}.screen-only{display:none!important}.headbar{display:none}.tipline{display:none}.timetable .slot:hover{background:initial}
+body[data-view="teamDay"] .timetable{height:178mm;width:100%;table-layout:fixed}
+body[data-view="teamDay"] .timetable thead tr{height:9mm}
+body[data-view="teamDay"] .timetable tbody tr{height:10.2mm}
+body[data-view="teamDay"] .timetable .slot{height:auto;vertical-align:middle}
+body[data-view="teamDay"] .sheet-head{min-height:10mm}
+body[data-view="teamLeave"] .monthgrid,body[data-view="personalMonth"] .monthgrid{height:174mm;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:8mm repeat(var(--weekcount,5),minmax(0,1fr));gap:1.5mm;min-width:0}
+body[data-view="teamLeave"] .monthday,body[data-view="personalMonth"] .monthday{min-height:0;height:auto;padding:2mm;gap:1.4mm;overflow:hidden}
+.monthday .metric{font-size:10px;padding:3px 5px}
+.monthday .team-person{font-size:9px;padding:2px 3px}
+.monthday .mini-detail{font-size:9px;padding:2px 3px}
+.monthday .daytop{min-height:0}
+body[data-view="personalWeek"] .timetable{height:178mm}
+body[data-view="personalWeek"] .timetable tbody tr{height:10.2mm}
+body[data-view="personalWeek"] .timetable .slot{height:auto}
+}
+
+
+/* v8: personal-only editing; shared calendars are for viewing and center closures. */
+.personal-quick-note{border:1px solid #d7e8f7;background:#f3f8fd;border-radius:9px;padding:11px 13px;color:#4b667c;font-size:12px;line-height:1.6}
+.team-summary-modal{max-width:610px}
+.team-summary-hint{border:1px solid #d6e5f2;background:#f3f7fc;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.6;color:#48617a;margin-bottom:15px}
+.team-summary-list{max-height:57vh;overflow:auto;display:flex;flex-direction:column;gap:9px}
+.summary-person-card{border:1px solid #dfE7f0;border-radius:10px;background:white;padding:12px 14px;display:flex;align-items:center;gap:14px}
+.summary-person-name{min-width:70px;font-size:14px;font-weight:850;color:#213b56}
+.summary-chips{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.summary-chip{font-size:12px;padding:6px 9px;border-radius:7px;border-left-width:3px;border-left-style:solid;font-weight:650}
+.summary-holidays{font-size:12px;color:#b14a50;background:#fff5f3;border:1px solid #f2d3d1;border-radius:8px;padding:10px 12px;margin-bottom:4px}
+.monthday .team-person.summarized{display:flex;align-items:flex-start;gap:4px;line-height:1.35}
+.monthday .team-person.summarized span{min-width:0;overflow-wrap:anywhere}
+body[data-view="teamDay"] .timetable .slot,body[data-view="teamDay"] .entry{cursor:default}
+body[data-view="teamDay"] .timetable .slot:hover{background:inherit}
+@media(max-width:570px){.summary-person-card{align-items:flex-start;flex-direction:column;gap:6px}}
+
+/* v9 shared center memo events do not block personal appointments */
+.shared-notes{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px;padding:7px 9px;background:#fffbea;border:1px solid #ebdcaf;border-radius:8px}
+.shared-note-chip{font-size:11px;line-height:1.4;color:#6f531d}
+.shared-note-chip+.shared-note-chip:before{content:'|';padding:0 7px;color:#b4a375}
+.monthday .month-note{font-size:10px;line-height:1.4;color:#6f531d;background:#fff4d6;border-radius:5px;margin:4px 0;padding:3px 5px;border-left:2px solid #d1a553;overflow-wrap:anywhere}
+.thead-note.noted{color:#916319;font-weight:600}
+.note-summary{font-size:12px;background:#fff9e8;border:1px solid #edd8a2;border-radius:9px;padding:10px 11px;margin:5px 0;color:#76561b}
+.note-saved-wrap{margin-top:14px;border-top:1px solid #e4eaf0;padding-top:12px}
+.note-saved-wrap h3{font-size:13px;color:#39536b}
+.notes-modal .actions{margin-top:0}
+.notes-modal .minirow span{min-width:0;overflow-wrap:anywhere}
+.notes-modal .minirow small{display:block;font-size:10px;color:#77879a}
+@media print{.shared-notes{break-inside:avoid;margin:0 0 3mm;padding:1mm 2mm;border:1px solid #eee4cb}.shared-note-chip{font-size:9px}.monthday .month-note{font-size:8px;padding:2px}.monthday .month-note{margin:2px 0}body[data-view="teamDay"] .timetable{height:170mm}}
+/* v10: nonworking days cannot accept consultations or personal absence entries. */
+.monthday.closed-day{cursor:not-allowed;background:#fff1f1;border-color:#eccbcc}
+.monthday.closed-day:hover{background:#fff1f1;border-color:#eccbcc}
+.monthday .closed-hint{display:block;color:#b04a55;font-size:11px;font-weight:650;margin:14px 1px 2px}
+.timetable .slot.blocked{cursor:not-allowed}
+.timetable .slot.blocked:hover{background:repeating-linear-gradient(135deg,#f7eff0,#f7eff0 7px,#f1e5e7 7px,#f1e5e7 14px)}
+@media print{.monthday .closed-hint{font-size:9px;margin-top:6px}}
+
+/* v11 · Separate consultation appointments from personal working schedules. */
+.work-add{background:#f6f0fd;border-color:#d8c8ed;color:#6a439b}
+.work-add:hover{background:#ede3fa}
+.entry-mode-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}
+.entry-mode{border:1px solid #dae5f0;background:#f7f9fc;border-radius:12px;padding:12px 13px;display:flex;align-items:center;gap:10px;text-align:left;min-width:0;box-shadow:none}
+.entry-mode .entry-mode-icon{font-size:18px;line-height:1;flex-shrink:0}
+.entry-mode span:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.entry-mode strong{font-size:14px;color:#26445f}
+.entry-mode small{font-size:11px;font-weight:450;color:#718398;line-height:1.3}
+.entry-mode.is-active{border-color:#2e72bf;background:#eff6ff;box-shadow:inset 0 0 0 1px #2e72bf}
+.entry-mode[data-entry-mode="work"].is-active{border-color:#8560bd;background:#f5efff;box-shadow:inset 0 0 0 1px #8560bd}
+.entry-mode[disabled]{opacity:.45;cursor:default}
+.entry-mode-help{background:#f5f8fc;border-radius:8px;padding:9px 11px;margin:0 0 13px;font-size:12px;color:#526c85;line-height:1.45}
+.fixed-time{padding:11px 13px;border:1px solid #d6e2ef;border-radius:9px;background:#f2f7fc;color:#34608a;font-size:13px;font-weight:650}
+@media(max-width:500px){.entry-mode-picker{gap:7px}.entry-mode{padding:10px 8px;gap:6px}.entry-mode strong{font-size:12px}.entry-mode small{font-size:10px}.entry-mode .entry-mode-icon{font-size:15px}}
+
+/* v13: handheld agenda, thumb-friendly controls, improved accessibility */
+.mobile-banner{display:none;align-items:flex-start;gap:10px;background:#ecf4ff;border:1px solid #bcd5f5;border-radius:12px;padding:12px 14px;color:#244769;font-size:13px;line-height:1.5;margin:6px 0 13px}.mobile-banner-icon{font-size:18px;line-height:1.2}
+.day-agenda{max-width:770px;margin:0 auto;padding:6px 8px 18px}.agenda-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 2px 15px;border-bottom:1px solid #dfe7f2}.agenda-head strong{font-size:20px;display:block}.agenda-head small{display:block;color:#65788d;padding-top:5px}.agenda-today{color:#225891;border-color:#bcd2ec;flex-shrink:0}.agenda-stats{display:flex;gap:9px;flex-wrap:wrap;padding:12px 0}.agenda-stats>span{flex:1;border:1px solid #dce6ef;border-radius:10px;padding:10px;background:#f6f9fd;white-space:nowrap;text-align:center;font-size:12px;color:#5a6c81}.agenda-stats b{color:#184c80}.agenda-line{display:flex;gap:8px;align-items:stretch;border-bottom:1px solid #eaf0f6;padding:5px 0;min-height:57px}.agenda-time{font-size:12px;font-weight:800;color:#607083;width:56px;padding:16px 4px 0 1px;flex-shrink:0;font-variant-numeric:tabular-nums}.agenda-actions{flex:1;display:flex;gap:6px;flex-direction:column;min-width:0}.agenda-event{display:flex;flex-direction:column;gap:4px;text-align:left;padding:9px 12px;border-radius:10px;border:1px solid #cedef0;background:#edf5ff;color:#1c527e;max-width:100%;min-height:48px}.agenda-event small{font-weight:650;opacity:.8}.agenda-event b{font-size:13px;white-space:normal;overflow-wrap:anywhere}.agenda-leave{background:#fbe9ef;border-color:#f5c7d8;color:#8c3159}.agenda-trip{background:#eee8ff;border-color:#d7c7fa;color:#69459b}.agenda-edu{background:#fff6e6;border-color:#f2dcae;color:#876019}.agenda-iap{background:#e5f6ee;border-color:#b6e3ca;color:#186a48}.agenda-empty{width:100%;min-height:44px;border:1px dashed #b7cbe0;background:white;color:#507da8;text-align:left;padding:8px 12px;font-size:12px;font-weight:650}.agenda-empty:hover{background:#eff7ff}.agenda-continue{font-size:12px;color:#8895a4;background:#f6f8fa;padding:9px 12px;border-radius:9px}.agenda-closed{padding:18px 12px;color:#98434b;background:#fff0f0;border:1px solid #f3c5c8;border-radius:12px;margin:12px 0}
+@media(max-width:760px){
+ .mobile-banner{display:flex}.headbar{position:relative;padding:11px 13px;box-shadow:0 1px 8px #12294828}.headbar .version{font-size:10px;white-space:nowrap;padding:5px 8px}.brand h1{font-size:16px}.brand p{font-size:10px}.wrap{padding:8px}.panel{padding:10px;margin-bottom:8px}.context-note{display:none}.context{gap:8px}.control{min-width:calc(50% - 4px);flex:1}.control select{min-width:0;width:100%;font-size:14px}.viewbar{flex-direction:column;gap:8px}.viewgroup{overflow-x:auto;display:flex;flex-wrap:nowrap;width:100%;-webkit-overflow-scrolling:touch;gap:4px;padding:4px}.viewgroup strong{min-width:max-content;width:auto;padding:0 6px}.viewtab{min-width:max-content;flex:none;padding:9px 10px;font-size:12px}.navline{gap:7px;flex-wrap:wrap}.navline button{min-width:43px;min-height:43px}.navline strong{flex:1;font-size:13px;min-width:auto}.toolline{gap:6px}.toolline button{min-height:44px;font-size:12px;padding:9px 12px}.sheet{padding:10px}.sheet-head{padding-bottom:6px}.sheet-title{font-size:16px}.scroll{max-height:none}.agenda-stats>span{min-width:30%}.modal{max-height:92dvh;overflow-y:auto;padding:15px}.modal-head{position:sticky;top:-15px;background:white;z-index:3;padding:4px 0 10px}.form-layout{grid-template-columns:1fr 1fr;gap:10px}.modal .field input,.modal .field select,.modal .field textarea{min-height:44px;font-size:16px}.choice-row{grid-template-columns:1fr}.entry-mode{min-height:60px}
+}
+@media(max-width:420px){.form-layout{grid-template-columns:1fr}.form-layout .field.full{grid-column:auto}.entry-mode{padding:9px 6px}.entry-mode small{line-height:1.3}.agenda-stats>span{font-size:11px;padding:9px 5px}.agenda-head strong{font-size:17px}.toolline{display:grid;grid-template-columns:1fr 1fr}.toolline button{width:100%;font-size:11px}.toolline #print,.toolline #export,.toolline #import{grid-column:auto}.context{flex-wrap:nowrap}.context .control{min-width:0}.context .control span{font-size:11px}.context .control select{font-size:13px}}
+@media print{.mobile-banner{display:none!important}.day-agenda{max-width:none}.agenda-empty{display:none}.agenda-stats{display:flex}.agenda-line{break-inside:avoid}.agenda-head{padding:5px 0}.agenda-today{display:none}.agenda-event{break-inside:avoid}.agenda-line{min-height:34px;padding:2px 0}.agenda-time{padding:5px 2px 0;font-size:10px}.agenda-continue{padding:3px;font-size:10px}}
+
+/* v15: legible A4 team daily schedule, room-filling grid, 30-minute offsite consultations. */
+.consult-trip-row{margin-top:-2px}
+.consult-trip{background:#f3edff;border-color:#bca6e5;padding:12px 14px;max-width:none}
+.consult-trip input{accent-color:#7545b8}
+.consult-trip .txt{color:#53318c}
+#proxyHint{display:block;line-height:1.45;min-height:1em}
+body[data-view="teamDay"] .timetable thead th{font-size:16px;font-weight:800}
+body[data-view="teamDay"] .timetable .entry{font-size:13px;line-height:1.34;overflow-wrap:anywhere}
+body[data-view="teamDay"] .timetable .entry strong,body[data-view="teamDay"] .timetable .entry .pilltype{font-size:13px}
+@media print{
+ body[data-view="teamDay"] .sheet-head{min-height:11mm;margin-bottom:2mm}
+ body[data-view="teamDay"] .sheet-title{font-size:20px}
+ body[data-view="teamDay"] .sheet-meta{font-size:12px}
+ body[data-view="teamDay"] .timetable{height:171mm;min-width:0!important;width:100%;table-layout:fixed}
+ body[data-view="teamDay"] .timetable thead tr{height:10mm}
+ body[data-view="teamDay"] .timetable tbody tr{height:10.05mm}
+ body[data-view="teamDay"] .timetable thead th{font-size:clamp(12px,calc(19px - .5px * var(--staff-count,6)),17px);line-height:1.15;padding:2mm .7mm;vertical-align:middle;word-break:keep-all}
+ body[data-view="teamDay"] .timetable thead th:first-child{width:16mm}
+ body[data-view="teamDay"] .timetable .time{width:16mm;font-size:13px;font-weight:800}
+ body[data-view="teamDay"] .timetable .slot{vertical-align:middle;padding:1mm 1.3mm}
+ body[data-view="teamDay"] .timetable .entry{font-size:clamp(10px,calc(17px - .5px * var(--staff-count,6)),15px);line-height:1.28;padding:1.4mm 1.6mm;margin:0;white-space:normal}
+ body[data-view="teamDay"] .timetable .entry strong,body[data-view="teamDay"] .timetable .entry .pilltype{font-size:inherit;font-weight:800;white-space:normal}
+ body[data-view="teamDay"] .timetable .entry.gap{min-height:3mm;max-height:4mm;overflow:hidden}
+}
+</style>
+<style>
+body:not(.cloud-ready) main.wrap{display:none}
+.cloud-gate{min-height:calc(100dvh - 66px);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(155deg,#f0f6ff,#f9fbfe)}
+.cloud-login-panel{width:min(460px,100%);background:white;border-radius:18px;padding:32px;box-shadow:0 14px 50px #1f446025;border:1px solid #d9e5f1}
+.cloud-login-mark{font-size:36px}.cloud-login-panel h2{margin:10px 0}.cloud-login-panel p{color:#52677e;line-height:1.6}.cloud-login-panel form{display:flex;flex-direction:column;gap:11px;margin:22px 0}.cloud-login-panel input,.cloud-login-panel button{min-height:48px;padding:12px}.cloud-login-panel small{color:#718298;line-height:1.4}
+.cloud-area{background:#eff7f4;border:1px solid #bddbcf;border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 15px;margin-bottom:10px;flex-wrap:wrap}.cloud-area>div:first-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.cloud-area span{font-size:12px;color:#2b765b}.cloud-area span.error{color:#b23b40}.cloud-actions{display:flex;gap:6px}.cloud-actions button{font-size:12px;padding:7px 9px}
+@media(max-width:550px){.cloud-login-panel{padding:22px}.cloud-area{flex-direction:column;align-items:stretch}.cloud-actions button{flex:1}}
+@media print{.cloud-area,.cloud-gate{display:none!important}}
+</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
+<body>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v15 · 출력 개선·출장상담</span></header>
+<section id="cloudGate" class="cloud-gate">
+ <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="email" required><button class="primary" id="cloudSend" type="submit">이메일 로그인 링크 받기</button></form>
+ <p id="cloudAuthMessage" role="status">메일 링크로 로그인 후 본인 일정이 자동으로 연결돼요.</p><small>비밀번호를 별도로 만들 필요가 없어요. 직원 명단에 없는 주소는 일정 데이터를 볼 수 없습니다.</small></div>
+</section>
+<main class="wrap">
+<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
+  <section class="panel no-print">
+    <div class="context">
+      <label class="control"><span>센터</span><select id="center"></select></label>
+      <label class="control"><span>상담사</span><select id="owner"></select></label>
+      <div class="context-note">직원 연락망(2026.09.14) 기준으로 미리 등록했어. 로그인 연동 전에는 여기서 선택하며, 이후 개인 로그인 정보로 자동 지정할 수 있도록 분리해 둔 구조야.</div>
+    </div>
+  </section>
+  <section class="panel no-print"><div class="viewbar">
+    <div class="viewgroup"><strong>나의 일정</strong><button class="viewtab" data-view="personalDay">오늘 일정</button><button class="viewtab active" data-view="personalWeek">주간 상담표</button><button class="viewtab" data-view="personalMonth">월간 요약표</button></div>
+    <div class="viewgroup"><strong>센터 전체 보기</strong><button class="viewtab" data-view="teamLeave">직원 연차·교육 월간표</button><button class="viewtab" data-view="teamDay">일일 상담표 · 출력</button></div>
+  </div></section>
+  <div class="navline no-print"><button id="prev" type="button" title="이전 기간">◀</button><button id="today" type="button">오늘</button><button id="next" type="button" title="다음 기간">▶</button><strong id="period"></strong><label id="datePickerWrap" class="hide">날짜 선택 <input type="date" id="datePicker"></label></div>
+  <div class="toolline no-print"><button class="primary" id="addConsult" type="button">＋ 내담자 상담 등록 · 대신 예약</button><button id="addWork" type="button" class="work-add">＋ 내 근무·외부 일정</button><button id="quickLeave" type="button">연차 칸 선택 OFF</button><button id="dayoff" type="button">＋ 센터 자체 휴무 등록</button><button id="noteBtn" type="button">＋ 공통 비고·행사</button><button id="staff" type="button">직원 목록 관리</button><button id="print" type="button" class="push">인쇄 / PDF</button><button id="export" type="button">백업</button><button id="import" type="button">복원</button><input type="file" accept=".json,application/json" id="file" hidden></div>
+  <div class="mobile-banner no-print" role="note"><span class="mobile-banner-icon">📱</span><span>모바일에서도 일정 조회·등록이 가능해요. 저장 상태를 꼭 확인하세요.</span></div><p class="helper no-print" id="helpText">상담은 선택한 시간에 30분으로 자동 등록돼. 연차는 '연차 칸 선택'을 켠 후 칸을 클릭하거나 마우스로 드래그해 한 번에 지정할 수 있어. 금요일은 12:00까지만 근무하고 공휴일·대체공휴일·센터 휴무일은 등록할 수 없어.</p>
+  <section class="sheet"><div class="sheet-head"><div><h2 class="sheet-title" id="reportTitle">일정표</h2><div class="sheet-meta" id="reportMeta"></div></div><span class="tipline no-print" id="modeTip"></span></div>
+    <div id="sharedNotes" class="shared-notes" aria-label="센터 공통 행사 및 비고"></div>
+    <div class="legend no-print"><span><i style="background:#4387c2"></i>상담</span><span><i style="background:#279067"></i>IAP</span><span><i style="background:#d56388"></i>연차</span><span><i style="background:#8660ca"></i>출장</span><span><i style="background:#cd943c"></i>교육·외근</span><span><i style="background:#bc4556"></i>공휴일·센터 휴무</span></div>
+    <div class="scroll"><div id="calendar"></div></div><p id="summary" class="summary no-print"></p>
+  </section>
+</main>
+<dialog id="dlg"><form class="modal" id="editor"><div class="modal-head"><div><h2 id="editTitle">일정 등록</h2><span class="modal-sub">상담 예약과 개인 근무 일정을 별도로 등록해요</span></div><button id="closeModal" type="button" aria-label="닫기">✕</button></div>
+  <div class="entry-mode-picker" id="entryModePicker" role="group" aria-label="등록할 일정 종류">
+    <button type="button" class="entry-mode is-active" data-entry-mode="consult"><span class="entry-mode-icon">👤</span><span><strong>내담자 상담</strong><small>초기·해석·IAP 등 / 30분 고정</small></span></button>
+    <button type="button" class="entry-mode" data-entry-mode="work"><span class="entry-mode-icon">📅</span><span><strong>내 근무·외부 일정</strong><small>연차·교육·출장·외부홍보 등</small></span></button>
+  </div>
+  <p id="entryModeHelp" class="entry-mode-help">내담자 이름과 상담 종류만 입력하세요. 상담 시간은 자동으로 30분 등록돼요.</p>
+  <div class="form-layout">
+    <label class="field">센터<select id="fcenter" name="center" required></select></label>
+    <label class="field">담당 상담사<select id="fowner" name="owner" required></select><span class="hint" id="proxyHint">본인 상담을 등록합니다.</span></label>
+    <label class="field">날짜<input name="date" type="date" required></label>
+    <label class="field" id="ftimeWrap"><span id="timeLabel">상담 시간 (30분 단위)</span><select name="time" id="ftime"></select></label>
+    <div class="form-separator"></div>
+    <div class="field person-field"><label for="fperson" id="entryTitleLabel">내담자 이름</label><input id="fperson" name="title" maxlength="100" placeholder="예: 홍길동" autocomplete="off" required><div id="personSuggestions" class="person-popover hide" role="listbox" aria-label="기억된 참여자"></div><div class="person-inline" id="personInline"><span id="personStatus" class="person-status">이름을 입력하면 이전 상담자 중 최대 6명 추천</span><button type="button" id="personNew" class="hide">＋ 동명이인 별도 등록</button></div><span class="hint" id="personPrintHint">출력 시 상담 참여자명만 홍*동으로 가려져.</span></div>
+    <label class="field"><span id="entryTypeLabel">상담 구분</span><select name="type" id="ftype"></select><span class="hint" id="typeHelp">초기 / 해석 / IAP / 컨설팅 등 선택</span></label>
+    <div class="field full consult-trip-row" id="consultTripRow"><label class="check-card consult-trip"><input type="checkbox" id="consultTrip"><span><span class="txt">출장 상담</span><span class="desc">체크하면 상담은 30분 그대로, 일정표에는 보라색 출장상담으로 표시돼요.</span></span></label></div>
+    <label class="field full hide custom-type-field" id="customTypeWrap"><span id="customTypeLabel">직접 입력할 상담 구분</span><input id="customType" type="text" maxlength="40" autocomplete="off" placeholder="예: 사후관리" aria-label="직접 입력할 일정 구분"><span class="hint">새 구분을 입력하면 일정표와 인쇄물에 동일하게 표시돼요.</span></label>
+    <label class="field full hide" id="personTagBox">동명이인 구분표시 (내부 확인용)<input id="personTag" maxlength="24" placeholder="예: A, 10월 신규 (생년월일·전화번호 입력 금지)"><span class="hint">동명이인을 새로 등록할 때만 사용하며, 출력물에는 나오지 않아.</span></label>
+    <div class="choice-row hide" id="workChoices"><label class="check-card"><input type="checkbox" id="allDay" name="allDay"><span><span class="txt">하루 전체</span><span class="desc">연차·교육 등을 종일 처리</span></span></label>
+    <label class="check-card trip-check"><input type="checkbox" id="ftrip" name="trip"><span><span class="txt">출장으로 표시</span><span class="desc">보라색으로 구분</span></span></label></div>
+    <label class="field hide" id="durationBox">일정 길이<select id="duration"><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간 (4칸)</option><option value="180">3시간 (6칸)</option><option value="240">4시간 (8칸)</option><option value="480">8시간 (종일에 가까움)</option></select></label>
+    <div id="fixedDuration" class="field"><span>상담 소요시간</span><div class="fixed-time">30분 자동 지정 · 시작 시간을 선택하면 완료</div></div>
+    <div class="field full" id="personManageWrap"><div class="person-note">이전 상담자 추천은 <b>현재 센터·담당 상담사</b> 기준이야. 전체 명단을 펼치지 않고 입력한 이름만 검색해. 공용 PC라면 실명 저장과 백업 파일 취급에 유의해. <button type="button" id="personManage" style="float:right;padding:3px 8px;font-size:11px">기억된 이름 관리</button></div></div>
+    <label class="field full"><span id="memoLabel">상담 메모 (선택)</span><textarea name="memo" maxlength="600" placeholder="필요한 내용만 입력 (선택)"></textarea></label>
+  </div>
+  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
+</form></dialog>
+
+<dialog id="quickDayDlg"><div class="modal quick-modal">
+  <div class="modal-head"><div><h2 id="quickDateLabel">하루 전체 일정</h2><span class="modal-sub">나의 일정에만 종일 연차·교육 등을 간편 등록해요</span></div><button type="button" id="quickDayClose" aria-label="닫기">✕</button></div>
+  <div class="personal-quick-note">선택한 <strong>내 일정</strong>에만 등록돼요. 다른 직원의 연차·교육은 각자의 나의 일정에서 입력해 주세요.</div>
+  <p class="quick-instruction">하루 전체 일정으로 처리할 항목을 선택하세요.</p>
+  <div class="quick-day-grid">
+    <button type="button" data-quick-type="연차"><span class="quick-icon">◷</span><strong>전체 연차</strong><small>하루 전체</small></button>
+    <button type="button" data-quick-type="외부교육"><span class="quick-icon">▤</span><strong>전체 외부교육</strong><small>하루 전체</small></button>
+    <button type="button" data-quick-type="외부홍보"><span class="quick-icon">◇</span><strong>외부 홍보일정</strong><small>하루 전체</small></button>
+    <button type="button" data-quick-type="기타"><span class="quick-icon">＋</span><strong>기타</strong><small>하루 전체</small></button>
+  </div>
+  <div id="quickExisting" class="quick-existing"></div>
+  <div class="actions"><button type="button" id="quickAdvanced">상세 일정 등록</button><button type="button" id="quickDone" class="primary">닫기</button></div>
+</div></dialog>
+<dialog id="teamSummaryDlg"><div class="modal team-summary-modal">
+  <div class="modal-head"><div><h2 id="teamSummaryDate">센터 직원 일정 요약</h2><span class="modal-sub">직원별로 연차·교육·출장 등만 합산하여 표시해요.</span></div><button type="button" id="teamSummaryClose" aria-label="닫기">✕</button></div>
+  <p class="team-summary-hint">조회 전용 화면이에요. 직원 개별 일정 등록·수정은 <strong>나의 일정</strong>에서, 센터 문을 닫는 공동 휴무 등록은 <strong>＋ 센터 자체 휴무 등록</strong>에서 해주세요.</p>
+  <div id="teamSummaryList" class="team-summary-list"></div>
+  <div class="actions"><button type="button" id="teamSummaryDone" class="primary">확인</button></div>
+</div></dialog>
+<dialog id="notesDlg"><div class="modal notes-modal">
+ <div class="modal-head"><div><h2>공통 비고 · 회사 행사</h2><span class="modal-sub">회식·워크숍·행사 등은 상담시간을 막지 않고 일정표에 안내로 표시해요.</span></div><button type="button" id="notesClose">✕</button></div>
+ <form id="notesForm" class="form-layout">
+  <label class="field">날짜<input id="noteDate" name="date" type="date" required></label>
+  <label class="field">구분<select name="type" id="noteType"><option value="회식">회식</option><option value="회사행사">회사행사</option><option value="워크숍">워크숍</option><option value="회의">회의</option><option value="기타">기타</option></select></label>
+  <label class="field">적용 대상<select id="noteCenter" name="center"></select></label>
+  <label class="field">행사명 또는 비고<input name="title" maxlength="80" placeholder="예: 전체 직원 회식" required></label>
+  <label class="field full">추가 설명 (선택)<textarea name="memo" maxlength="240" placeholder="예: 18:30, 장소 별도 안내"></textarea></label>
+  <div class="actions field full"><button type="submit" class="primary">비고 등록</button></div>
+ </form>
+ <div class="note-saved-wrap"><h3>등록된 행사·비고</h3><div id="notesList"></div></div>
+</div></dialog>
+<dialog id="offDlg"><form class="modal" id="offForm"><div class="modal-head"><h2>공동 휴무일 등록</h2><button type="button" id="offCancel">✕</button></div><p class="notice">공휴일 외에 센터 운영이 중단되는 날만 등록해 주세요. <strong>개인 연차·외부교육·출장은 여기서 등록하지 않습니다.</strong> 전체 센터 또는 해당 센터에 적용할 수 있어요.</p><div class="form-layout"><label class="field">시작 날짜<input type="date" name="start" required></label><label class="field">종료 날짜<input type="date" name="end" required></label><label class="field">적용 센터<select name="center" id="offCenter"></select></label><label class="field">휴무명<input name="title" value="센터 휴무" required></label></div><div class="actions"><button class="primary" type="submit">휴무 등록</button></div><div id="offs" style="margin-top:16px"></div></form></dialog>
+<dialog id="staffDlg"><div class="modal"><div class="modal-head"><h2>센터별 직원 목록</h2><button id="staffClose" type="button">✕</button></div><p class="notice">직원 연락망을 기본 목록으로 등록했어. 새 직원 추가 또는 목록에서 제외할 수 있어. 일정이 등록된 직원은 목록 제외 후에도 기존 일정이 남아 있어.</p><div class="manage-row"><select id="staffCenter"></select><input id="staffName" placeholder="추가할 직원명" maxlength="30"><button id="staffAdd" class="primary" type="button">직원 추가</button></div><div id="staffList"></div></div></dialog>
+<dialog id="peopleDlg"><div class="modal"><div class="modal-head"><div><h2>기억된 참여자 관리</h2><span class="modal-sub" id="peopleScope"></span></div><button type="button" id="peopleClose" aria-label="닫기">✕</button></div><p class="notice">자동완성 명단에서만 삭제해. 이미 등록된 상담 일정은 그대로 유지돼. 구분표시에는 생년월일이나 연락처를 쓰지 않는 것을 권장해.</p><input id="peopleSearch" class="people-search" placeholder="이름 또는 구분표시로 검색"><div class="people-list" id="peopleList"></div></div></dialog>
+<script>
+(()=>{'use strict';
+const KEY='standalone_schedule_v2',PREF='standalone_schedule_v5_pref';
+const CLOUD_URL='https://hnhccnyitrlzqprnredi.supabase.co';
+const CLOUD_KEY='sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds';
+const cloud={client:null,identity:null,active:false,base:null,timer:null,busy:false,needsSave:false};
+const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}};
+function cloudOwnRows(list){return list.filter(v=>!v.readonly&&v.center===cloud.identity.center&&v.owner===cloud.identity.name)}
+function cloudMap(rows){return new Map(rows.map(x=>[x.id,JSON.stringify(x)]))}
+function cloudClean(x){const c={...x};delete c.readonly;return c}
+function cloudBaseline(){return {
+ events:cloudMap(cloudOwnRows(model.events).map(cloudClean)),
+ people:cloudMap(model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name)),
+ offs:cloudMap(model.offs.filter(x=>!x.readonly)),
+ notices:cloudMap(model.notices.filter(x=>!x.readonly))};}
+function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
+function cloudQueue(){if(!cloud.active)return;cloud.needsSave=true;
+ try{localStorage.setItem(cloudDraftKey(),JSON.stringify({events:cloudOwnRows(model.events),participants:model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),offs:model.offs.filter(o=>!o.readonly),notices:model.notices.filter(n=>!n.readonly)}))}catch{}
+ cloudStatus('변경사항 저장 중…');clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),700)}
+async function cloudSyncList(kind,rows,base,table,makeRow){
+ const current=cloudMap(rows.map(cloudClean));
+ const changed=rows.filter(v=>current.get(v.id)!==base.get(v.id));
+ const deleted=[...base.keys()].filter(k=>!current.has(k));
+ if(changed.length){const {error}=await cloud.client.from(table).upsert(changed.map(makeRow),{onConflict:'id'});if(error)throw Error(kind+' 저장 실패: '+error.message)}
+ if(deleted.length){const {error}=await cloud.client.from(table).delete().in('id',deleted);if(error)throw Error(kind+' 삭제 실패: '+error.message)}
+ return changed.length+deleted.length;
+}
+async function cloudCommit(){
+ if(!cloud.active||cloud.busy||!cloud.needsSave)return;
+ cloud.busy=true;cloud.needsSave=false;
+ try{
+ const staff=cloud.identity.id;
+ await cloudSyncList('일정',cloudOwnRows(model.events),cloud.base.events,'schedule_events',e=>({id:e.id,staff_id:staff,event_date:e.date,payload:cloudClean(e)}));
+ await cloudSyncList('참여자',model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),cloud.base.people,'schedule_participants',p=>({id:p.id,staff_id:staff,payload:cloudClean(p)}));
+ if(['manager','director'].includes(cloud.identity.role)){
+  await cloudSyncList('휴무',model.offs.filter(o=>!o.readonly),cloud.base.offs,'schedule_closures',o=>({id:o.id,center:o.center,created_by:staff,payload:cloudClean(o)}));
+  await cloudSyncList('공통 행사',model.notices.filter(n=>!n.readonly),cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
+ }
+ cloud.base=cloudBaseline();try{localStorage.removeItem(cloudDraftKey())}catch{}cloudStatus('서버 저장 완료 ✓');
+ }catch(err){cloud.needsSave=true;cloudStatus('저장 실패 · 재시도 필요: '+err.message,true);}
+ finally{cloud.busy=false;if(cloud.needsSave){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
+}
+async function cloudReload(){
+ if(!cloud.active||cloud.busy||cloud.needsSave)return;
+ try{
+ const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(error)throw error;
+ cloud.identity=data.identity;
+ // Personal data is full. Other employees' consultation names come from server already masked.
+ model.events=Array.isArray(data.events)?data.events:[];
+ model.participants=Array.isArray(data.participants)?data.participants:[];
+ model.offs=Array.isArray(data.offs)?data.offs:[];
+ model.notices=Array.isArray(data.notices)?data.notices:[];
+ model.staff=Object.fromEntries(CENTERS.map(c=>[c,[]]));
+ for(const s of data.staff||[])if(model.staff[s.center]&&!model.staff[s.center].includes(s.name))model.staff[s.center].push(s.name);
+ // On the server, account identity—not the browser select—determines whose calendar may be edited.
+ if(CENTERS.includes(cloud.identity.center)){$('center').value=cloud.identity.center;refreshEmployees(cloud.identity.name);$('owner').value=cloud.identity.name;}
+ else if(cloud.identity.role==='director'){$('center').value='남부본사';refreshEmployees();changeView('teamLeave');}
+ $('center').disabled=cloud.identity.role!=='director';$('owner').disabled=true;
+ $('staff').classList.add('hide');
+ const manager=['manager','director'].includes(cloud.identity.role);
+ if(cloud.identity.role==='manager'){setOptions($('offCenter'),[cloud.identity.center],cloud.identity.center);setOptions($('noteCenter'),[cloud.identity.center],cloud.identity.center)}
+ $('dayoff').disabled=!manager;$('noteBtn').disabled=!manager;
+ $('dayoff').title=manager?'센터 공동 휴무 관리':'팀장·부장만 센터 공동 휴무 등록 가능';
+ $('noteBtn').title=manager?'센터 공통 행사 관리':'팀장·부장만 공통 행사 등록 가능';
+ $('staffAdd').disabled=true;
+ cloud.base=cloudBaseline();
+ const pending=localStorage.getItem(cloudDraftKey());
+ if(pending){try{const x=JSON.parse(pending);if(confirm('이 기기에 서버로 보내지 못한 일정 변경사항이 있어요. 복구해 서버에 저장할까요?')){
+  model.events=[...model.events.filter(e=>e.readonly),...(x.events||[])];model.participants=x.participants||[];
+  if(['manager','director'].includes(cloud.identity.role)){model.offs=[...model.offs.filter(x=>x.readonly),...(x.offs||[])];model.notices=[...model.notices.filter(x=>x.readonly),...(x.notices||[])];}
+  cloudQueue();
+ }}catch{}}
+ render();
+ $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
+ if(!cloud.needsSave)cloudStatus('동기화 완료 ✓');
+ }catch(err){cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
+}
+function cloudApplyIdentity(info){
+ cloud.identity=info;cloud.active=true;
+ document.body.classList.add('cloud-ready');
+ $('cloudGate').classList.add('hide');
+ $('cloudUser').textContent=info.center+' · '+info.name+' ('+(info.role==='manager'?'팀장':info.role==='director'?'부장':'상담사')+')';
+ $('cloudArea').classList.remove('hide');
+ document.querySelector('.context-note').textContent='로그인 계정으로 담당 센터와 상담사가 자동 지정돼요. 다른 직원 일정은 센터 전체 보기에서 확인할 수 있어요.';
+ document.querySelector('.mobile-banner span:last-child').innerHTML='휴대폰과 PC의 일정을 같은 계정으로 확인할 수 있어요. <b>서버에 저장 완료 ✓</b> 표시를 확인해 주세요.';
+
+}
+async function cloudStartSession(){
+ try{
+ cloudStatus('계정 확인 중…');
+ const {data:{session}}=await cloud.client.auth.getSession();
+ if(!session){document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');cloudStatus('회사 이메일로 로그인해 주세요');return;}
+ const {data,error}=await cloud.client.rpc('schedule_claim_identity');
+ if(error)throw error;
+ cloudApplyIdentity(data);
+ await cloudReload();
+ }catch(err){cloud.active=false;document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';cloudStatus('로그인 확인 실패',true)}
+}
+async function cloudBoot(){
+ if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
+ cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ document.getElementById('cloudLogin').addEventListener('submit',async e=>{
+  e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();if(!email)return;
+  $('cloudSend').disabled=true;$('cloudAuthMessage').textContent='인증 메일을 보내는 중…';
+  try{
+   const opts={shouldCreateUser:true};
+   if(location.protocol==='https:')opts.emailRedirectTo=location.origin+location.pathname;
+   const {error}=await cloud.client.auth.signInWithOtp({email,options:opts});
+   if(error)throw error;
+   $('cloudAuthMessage').textContent='인증 메일을 확인해 주세요. 메일 안의 로그인 링크를 누르면 일정표로 돌아옵니다. (메일 발송 제한이 있을 수 있어요.)';
+  }catch(err){$('cloudAuthMessage').textContent='메일 요청 실패: '+err.message;}
+  finally{$('cloudSend').disabled=false}
+ });
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}await cloud.client.auth.signOut();cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudRetry').onclick=()=>cloudCommit();
+ $('cloudRefresh').onclick=()=>cloudReload();
+ cloud.client.auth.onAuthStateChange((_event,session)=>{if(session&&!cloud.active)setTimeout(cloudStartSession,100)});
+ await cloudStartSession();
+ setInterval(()=>{if(cloud.active&&document.visibilityState==='visible'&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
+ window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
+}
+window.addEventListener('load',cloudBoot);
+
+const ROSTER={'남부본사':[],'동구지사':[],'북부센터':[],'서부센터':[]};
+const CENTERS=Object.keys(ROSTER);
+const TYPES=[['초기','service'],['해석','service'],['IAP','iap'],['컨설팅','service'],['재진단','service'],['훈련등록','service'],['카드발급','service'],['신청','service'],['일경험','service'],['연계','service'],['연차','leave'],['반차','leave'],['2시간 연차','leave'],['반반차','leave'],['출장','trip'],['외부교육','training'],['내부교육','training'],['외부홍보','field'],['외근','field'],['시차','other'],['회의','other'],['기타','other']];
+const SERVICES=new Set(TYPES.slice(0,10).map(a=>a[0]));
+const CONSULT_TYPES=TYPES.filter(t=>SERVICES.has(t[0]));
+const PERSONAL_TYPES=TYPES.filter(t=>!SERVICES.has(t[0]));
+const WORK_TYPES=new Set(['연차','반차','2시간 연차','반반차','출장','외부교육','내부교육','외부홍보','외근','시차','회의','기타']);
+const CUSTOM_TYPE='__custom__';
+// Custom labels must retain their original registration category after saving and importing.
+const eventKind=e=>e.kind==='consult'||e.kind==='work'?e.kind:SERVICES.has(e.type)?'consult':'work';
+const isConsultEvent=e=>eventKind(e)==='consult';
+const isWorkEvent=e=>eventKind(e)==='work';
+const HOL={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-01':'노동절','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일','2026-06-03':'지방선거일','2026-06-06':'현충일','2026-07-17':'제헌절','2026-08-15':'광복절','2026-08-17':'대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절'};
+const $=id=>document.getElementById(id),q=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const dateKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseDate=s=>new Date(s+'T12:00:00');
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const monday=d=>addDays(d,-((d.getDay()+6)%7));
+const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const id=()=>globalThis.crypto?.randomUUID?.()||'id'+Date.now()+'-'+Math.random();
+const normalizedCenter=s=>({'남구 본사':'남부본사','남구본사':'남부본사','동구센터':'동구지사','북구센터':'북부센터'}[s]||s||'북부센터');
+const normalType=t=>({'consult':'초기','iap':'IAP','leave':'연차','field':'출장','other':'기타'}[t]||t||'기타');
+const minute=t=>{const x=String(t||'09:00').split(':').map(Number);return x[0]*60+x[1]};
+const timeFrom=n=>pad(Math.floor(n/60))+':'+pad(n%60);
+const addMinutes=(t,n)=>timeFrom(minute(t)+n);
+const typeClass=e=>e.trip||e.type==='출장'?'trip':(TYPES.find(x=>x[0]===e.type)||['',isConsultEvent(e)?'service':'other'])[1];
+const printMasked=(title)=>{let a=[...String(title||'').trim()];if(a.length===2)return a[0]+'*';if(a.length<2)return title;return a[0]+'*'.repeat(a.length-2)+a.at(-1)};
+const showName=(e,printed)=>isConsultEvent(e)&&printed?printMasked(e.title):e.title;
+const isFridayClosed=(date,time)=>parseDate(date).getDay()===5&&minute(time)>=12*60;
+const slots=()=>{const a=[];for(let h=9;h<18;h++){if(h===12)continue;for(let m of [0,30])a.push(pad(h)+':'+pad(m))}return a};
+let model={events:[],offs:[],notices:[],participants:[],staff:Object.fromEntries(CENTERS.map(c=>[c,[...ROSTER[c]]]))};
+try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&Array.isArray(x.events)){
+ model.events=x.events.map(e=>({...e,center:normalizedCenter(e.center),type:normalType(e.type),id:e.id||id(),allDay:!!e.allDay}));
+   model.offs=Array.isArray(x.offs)?x.offs.map(o=>({...o,center:o.center==='all'?'all':normalizedCenter(o.center)})):[];
+  model.notices=Array.isArray(x.notices)?x.notices.filter(n=>n&&/^\d{4}-\d{2}-\d{2}$/.test(n.date)&&n.title).map(n=>({...n,id:n.id||id(),center:n.center==='all'?'all':normalizedCenter(n.center)})):[];
+ model.participants=Array.isArray(x.participants)?x.participants.filter(p=>p&&typeof p.name==='string'&&p.name.trim()&&p.center&&p.owner).map(p=>({...p,id:p.id||id(),center:normalizedCenter(p.center),tag:String(p.tag||'').slice(0,24)})):[];
+ // Older files stored only event titles. Offer those names as candidates without guessing identity links.
+ if(!Array.isArray(x.participants)){
+  for(const ev of model.events.filter(ev=>isConsultEvent(ev)&&ev.title&&ev.owner)){
+   if(!model.participants.some(p=>p.center===ev.center&&p.owner===ev.owner&&p.name===ev.title)) model.participants.push({id:id(),center:ev.center,owner:ev.owner,name:ev.title,tag:'',lastUsed:ev.date+'T00:00:00',imported:true});
+  }
+ }
+ for(let [c,staff] of Object.entries(x.staff||{})){const key=normalizedCenter(c);if(!CENTERS.includes(key)||!Array.isArray(staff))continue;model.staff[key]=[...new Set([...model.staff[key],...staff.filter(x=>typeof x==='string')])];}
+}}
+catch(e){console.warn('Previous schedule data could not load',e)}
+function save(){if(cloud.active){cloudQueue();return}try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){alert('브라우저 저장에 실패했어. 백업 기능으로 먼저 데이터를 저장해 줘.')}}
+let preferences={center:'북부센터',owner:'',view:'personalWeek'};
+try{const x=JSON.parse(localStorage.getItem(PREF)||'null');if(x&&typeof x==='object')preferences={...preferences,...x}}catch{}
+let focusDate=new Date(),currentView=['personalDay','personalWeek','personalMonth','teamLeave','teamDay'].includes(preferences.view)?preferences.view:'personalWeek',editing=null,quickLeave=false,editorMode='consult';
+try{if(window.matchMedia('(max-width:760px)').matches&&!localStorage.getItem(PREF))currentView='personalDay'}catch{if(window.matchMedia('(max-width:760px)').matches)currentView='personalDay'}
+const currentCenter=()=>$('center').value;
+const currentOwner=()=>$('owner').value;
+let selectedParticipantId=null,newHomonym=false,shownPeople=[],highlightedPerson=0;
+function scopePeople(){return model.participants.filter(p=>p.center===$('fcenter').value&&p.owner===$('fowner').value)}
+function hasSameName(){return scopePeople().some(p=>p.name===$('fperson').value.trim())}
+function selectedParticipant(){return model.participants.find(p=>p.id===selectedParticipantId)}
+function hidePersonSuggestions(){$('personSuggestions').classList.add('hide');shownPeople=[];highlightedPerson=0}
+function clearPersonChoice(){selectedParticipantId=null;newHomonym=false;$('personTag').value='';$('personTagBox').classList.add('hide');$('personStatus').textContent='이름을 입력하면 최근 상담자 최대 6명을 추천';$('personStatus').classList.remove('selected')}
+function personLabel(p){return p.name+(p.tag?' · '+p.tag:'')}
+function choosePerson(p){selectedParticipantId=p.id;newHomonym=false;$('fperson').value=p.name;$('personTag').value='';$('personTagBox').classList.add('hide');$('personStatus').textContent='✓ '+personLabel(p)+' 선택됨';$('personStatus').classList.add('selected');hidePersonSuggestions();$('personNew').classList.toggle('hide',!hasSameName())}
+function showPersonSuggestions(){const input=$('fperson').value.trim();if(editorMode!=='consult'||!input||selectedParticipantId){hidePersonSuggestions();return}
+ const ranked=scopePeople().filter(p=>p.name.includes(input)).sort((a,b)=>String(b.lastUsed||'').localeCompare(String(a.lastUsed||''))||a.name.localeCompare(b.name,'ko'));shownPeople=ranked.slice(0,6);highlightedPerson=0;
+ const box=$('personSuggestions');box.innerHTML=shownPeople.map((p,i)=>`<button type="button" role="option" data-person-index="${i}"><span>${escapeHtml(p.name)}</span><small>${escapeHtml((p.tag?p.tag+' · ':'')+'최근 '+String(p.lastUsed||'').slice(0,10))}</small></button>`).join('');box.classList.toggle('hide',!shownPeople.length);
+ $('personNew').classList.toggle('hide',!hasSameName());$('personStatus').textContent=hasSameName()?'동명이인이라면 아래 별도 등록을 눌러 구분해 줘':'기억된 이름은 최대 6명씩 검색돼';$('personStatus').classList.remove('selected');
+}
+function createNewHomonym(){selectedParticipantId=null;newHomonym=true;hidePersonSuggestions();$('personTagBox').classList.remove('hide');$('personNew').classList.add('hide');$('personStatus').textContent='같은 이름의 새 참여자: 구분표시를 입력해 줘';$('personStatus').classList.remove('selected');$('personTag').focus()}
+function renderPeopleList(){const f=$('peopleSearch').value.trim(),all=scopePeople().filter(p=>!f||p.name.includes(f)||p.tag?.includes(f)).sort((a,b)=>String(b.lastUsed||'').localeCompare(String(a.lastUsed||'')));$('peopleList').innerHTML=all.length?all.map(p=>`<div class="minirow"><span><b>${escapeHtml(personLabel(p))}</b><small>최근 ${escapeHtml(String(p.lastUsed||'').slice(0,10)||'날짜 없음')}</small></span><button type="button" data-forget-person="${escapeHtml(p.id)}">추천에서 삭제</button></div>`).join(''):'<div class="empty">기억된 참여자가 없어.</div>'}
+
+function employees(c){return [...new Set([...(model.staff[c]||[]),...model.events.filter(e=>e.center===c).map(e=>e.owner).filter(Boolean)])]}
+function setOptions(el,items,selected,placeholder){el.innerHTML=(placeholder?`<option value="">${escapeHtml(placeholder)}</option>`:'')+items.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');if(items.includes(selected))el.value=selected;else el.value=items[0]||''}
+function refreshEmployees(suggest){const c=currentCenter(),list=employees(c);setOptions($('owner'),list,suggest||currentOwner());savePreferences()}
+function savePreferences(){try{localStorage.setItem(PREF,JSON.stringify({center:currentCenter(),owner:currentOwner(),view:currentView}))}catch{}}
+function allEventsFor(date){return model.events.filter(e=>e.date===date&&e.center===currentCenter())}
+function employeeEventsFor(date){return allEventsFor(date).filter(e=>e.owner===currentOwner())}
+function teamEventsFor(date){return allEventsFor(date).filter(e=>isWorkEvent(e))}
+function sharedNotices(date){return model.notices.filter(n=>n.date===date&&(n.center==='all'||n.center===currentCenter()))}
+function shortNotices(date){return sharedNotices(date).map(n=>`${n.type}: ${n.title}`)}
+function printSharedNotes(){const isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',day=dateKey(focusDate),dates=isWeek?Array.from({length:5},(_,i)=>dateKey(addDays(monday(focusDate),i))):isDay?[day]:[];
+ const entries=dates.flatMap(d=>sharedNotices(d).map(n=>({date:d,n})));return entries.map(({date,n})=>`<span class="shared-note-chip"><b>${isDay?'비고':date.slice(5)}</b> · ${escapeHtml(n.type)}: ${escapeHtml(n.title)}${n.memo?' ('+escapeHtml(n.memo)+')':''}</span>`).join('')}
+function holidays(date,center=currentCenter()){return [HOL[date],...model.offs.filter(o=>o.start<=date&&date<=o.end&&(o.center==='all'||o.center===center)).map(o=>o.title)].filter(Boolean)}
+function closedDayReasons(date,center=currentCenter()){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))return ['날짜 오류'];
+ const weekday=parseDate(date).getDay();
+ if(weekday===0||weekday===6)return ['주말'];
+ return holidays(date,center);
+}
+const isClosedDay=(date,center=currentCenter())=>closedDayReasons(date,center).length>0;
+function closedDayAlert(date,center=currentCenter()){
+ alert(date+'은(는) '+closedDayReasons(date,center).join(' · ')+'로 비근무일이야. 상담·연차 등 개인 일정은 등록할 수 없어.');
+}
+
+function matchingAt(e,t){return e.allDay||(minute(e.time)<=minute(t)&&minute(e.end||addMinutes(e.time,30))>minute(t))}
+function eventBlock(e,{compact=false,repeat=false,showOwner=false}={}){
+ const name=escapeHtml(showName(e,false)),masked=escapeHtml(showName(e,true)),typ=escapeHtml(e.type),owner=showOwner&&e.owner?`<small>${escapeHtml(e.owner)}</small>`:'';
+ const content=`<strong><span class="screen-only">${name}</span><span class="print-only">${masked}</span></strong><span class="pilltype">· ${typ}${e.trip&&isConsultEvent(e)?' · 출장상담':''}</span>${owner}${e.bookedBy?`<small class="screen-only">예약 등록: ${escapeHtml(e.bookedBy)}</small>`:''}`;
+ return `<div class="entry entry-${typeClass(e)}${repeat?' gap':''}" data-id="${escapeHtml(e.id)}" title="${escapeHtml(e.memo||'')}">${content}</div>`;
+}
+function headerDay(date,label){const tags=holidays(date),closed=parseDate(date).getDay()===5;return `<th>${label}<span class="thead-note">${date.slice(5)}</span>${closed?'<span class="thead-alert">12시까지 근무</span>':''}${tags.map(t=>`<span class="thead-alert">${escapeHtml(t)}</span>`).join('')}${shortNotices(date).map(t=>`<span class="thead-note noted">${escapeHtml(t)}</span>`).join('')}</th>`}
+function personalDay(){
+ const date=dateKey(focusDate),off=closedDayReasons(date),available=workSlots(date),entries=employeeEventsFor(date).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+ let h='<div class="day-agenda">';
+ h+=`<div class="agenda-head"><div><strong>${escapeHtml(date)} · ${['일','월','화','수','목','금','토'][parseDate(date).getDay()]}요일</strong><small>${escapeHtml(currentOwner())} 상담사 일정</small></div><button type="button" class="agenda-today" data-agenda-today>오늘로 이동</button></div>`;
+ if(off.length){h+=`<div class="agenda-closed">🔒 ${escapeHtml(off.join(' · '))} · 비근무일이므로 상담 일정을 등록할 수 없어요.</div></div>`;return h}
+ const filled=new Set();for(const ev of entries)for(const t of available)if(matchingAt(ev,t))filled.add(t);
+ const consultCount=entries.filter(isConsultEvent).length,workCount=entries.filter(isWorkEvent).length;
+ h+=`<div class="agenda-stats"><span>상담 <b>${consultCount}건</b></span><span>근무·외부 <b>${workCount}건</b></span><span>예약 가능 <b>${available.filter(t=>!filled.has(t)).length}칸</b></span></div>`;
+ h+=`<div class="agenda-items">`;
+ for(const t of available){const starting=entries.filter(ev=>!ev.allDay&&ev.time===t||(ev.allDay&&t===available[0]));const continuing=entries.some(ev=>matchingAt(ev,t)&&!starting.includes(ev));
+ h+=`<div class="agenda-line"><span class="agenda-time">${t}</span><div class="agenda-actions">`;
+ for(const ev of starting){const label=isConsultEvent(ev)?'상담':'개인 일정';h+=`<button type="button" class="agenda-event agenda-${typeClass(ev)}" data-agenda-edit="${escapeHtml(ev.id)}"><small>${escapeHtml(label+' · '+ev.type+(ev.trip&&isConsultEvent(ev)?' · 출장상담':''))}</small><b><span class="screen-only">${escapeHtml(ev.title)}</span><span class="print-only">${escapeHtml(isConsultEvent(ev)?printMasked(ev.title):ev.title)}</span></b>${ev.allDay?'<span>하루 전체</span>':''}</button>`}
+ if(!starting.length&&!continuing)h+=`<button type="button" class="agenda-empty" data-agenda-add="${date}" data-agenda-time="${t}">＋ 상담 등록</button>`;
+ if(!starting.length&&continuing)h+=`<div class="agenda-continue">진행 중인 일정</div>`;
+ h+='</div></div>'}
+ h+='</div></div>';return h;
+}
+function personalWeek(){const start=monday(focusDate);let h='<table class="timetable"><thead><tr><th>시간</th>';for(let i=0;i<5;i++){const d=addDays(start,i);h+=headerDay(dateKey(d),['월','화','수','목','금'][i])}h+='</tr></thead><tbody>';
+ for(const t of slots()){h+=`<tr><th class="time">${t}</th>`;for(let i=0;i<5;i++){const date=dateKey(addDays(start,i)),closed=isFridayClosed(date,t)||isClosedDay(date),tags=holidays(date),cellClass=closed?'blocked':'';h+=`<td class="slot ${cellClass}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(currentOwner())}">`;if(!closed){const evs=employeeEventsFor(date).filter(e=>matchingAt(e,t));for(const ev of evs){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return h+'</tbody></table>'}
+function teamDay(){const date=dateKey(focusDate),names=employees(currentCenter());let h=`<table class="timetable" style="--staff-count:${names.length};min-width:${Math.max(700,70+names.length*116)}px"><thead><tr><th>시간</th>`+names.map(n=>`<th>${escapeHtml(n)}</th>`).join('')+'</tr></thead><tbody>';
+ const counts=allEventsFor(date);for(const t of slots()){const closed=isFridayClosed(date,t)||isClosedDay(date);h+=`<tr><th class="time">${t}</th>`;for(const n of names){h+=`<td class="slot ${closed?'blocked':holidays(date).length?'dayoff':''}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(n)}">`;if(!closed){for(const ev of counts.filter(e=>e.owner===n&&matchingAt(e,t))){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return h+'</tbody></table>'}
+function workSlots(date){return isClosedDay(date)?[]:slots().filter(t=>!isFridayClosed(date,t))}
+function coveredSlots(e,date){return workSlots(date).filter(t=>matchingAt(e,t))}
+function leaveDuration(e){if(e.allDay)return workSlots(e.date).length*30;return coveredSlots(e,e.date).length*30}
+function durationLabel(mins){const n=mins/60;return (Number.isInteger(n)?String(n):n.toFixed(1))+'시간'}
+function dayMetrics(list,date){const consultations=list.filter(e=>isConsultEvent(e)).length,leaveSet=new Set();for(const e of list.filter(e=>['연차','반차','2시간 연차','반반차'].includes(e.type))){for(const t of coveredSlots(e,date))leaveSet.add(t)}return {consultations,leaveMinutes:leaveSet.size*30}}
+function monthTotals(){let consultations=0,leaveMinutes=0;const y=focusDate.getFullYear(),m=focusDate.getMonth();for(let d=1;d<=new Date(y,m+1,0).getDate();d++){const date=dateKey(new Date(y,m,d)),stat=dayMetrics(employeeEventsFor(date),date);consultations+=stat.consultations;leaveMinutes+=stat.leaveMinutes}return {consultations,leaveMinutes}}
+function teamLabels(events,date){return teamDayGroups(events,date).map(p=>{
+ const segments=p.labels.map(g=>`${g.type}${g.mins?' '+durationLabel(g.mins):''}`).join(' · ');
+ return `<div class="team-person summarized" title="${escapeHtml(p.owner+' · '+segments)}"><b>${escapeHtml(p.owner)}</b><span>· ${escapeHtml(segments)}</span></div>`
+})}
+function monthCalendar(team=false){const y=focusDate.getFullYear(),m=focusDate.getMonth(),first=new Date(y,m,1),start=monday(first),end=new Date(y,m+1,0),lastMon=monday(end),weeks=Math.round((lastMon-start)/604800000)+1;let h=`<div class="monthgrid" style="--weekcount:${weeks}">`+['월','화','수','목','금'].map(v=>`<div class="monthhead">${v}</div>`).join('');for(let w=0;w<weeks;w++){for(let i=0;i<5;i++){const d=addDays(start,w*7+i),inMonth=d.getMonth()===m,date=dateKey(d);if(!inMonth){h+='<div class="monthday dim" aria-hidden="true"></div>';continue}const tags=holidays(date),friday=d.getDay()===5,blocked=isClosedDay(date),arr=team?teamEventsFor(date):employeeEventsFor(date);h+=`<div class="monthday ${tags.length?'holiday':''} ${!team&&blocked?'closed-day':''}" data-date="${date}" title="${date} ${team?'센터 직원 일정 요약 보기':blocked?'휴무일 · 개인 일정 등록 불가':'내 하루 일정 등록'}"><div class="daytop"><span class="dayno ${tags.length?'red':''}">${d.getDate()}</span>${tags.map(x=>`<span class="tag">${escapeHtml(x)}</span>`).join('')}${friday?'<span class="tag" style="color:#496b88;background:#e7f1f9">오전근무</span>':''}</div>`;for(const n of sharedNotices(date))h+=`<div class="month-note" title="${escapeHtml(n.memo||n.title)}">📌 ${escapeHtml(n.type)} · ${escapeHtml(n.title)}</div>`;
+if(team){const labels=teamLabels(arr,date);h+=labels.length?labels.join(''):'<span class="empty-hint">등록된 근무 일정 없음</span>'}
+else{const x=dayMetrics(arr,date);if(x.consultations)h+=`<div class="metric metric-consult">상담 <span class="count">${x.consultations}건</span></div>`;if(x.leaveMinutes)h+=`<div class="metric metric-leave">연차 <span class="count">${durationLabel(x.leaveMinutes)}</span></div>`;const others=[...new Set(arr.filter(e=>!isConsultEvent(e)&&!['연차','반차','2시간 연차','반반차'].includes(e.type)).map(e=>e.type))];for(const x of others)h+=`<div class="mini-detail">${escapeHtml(x)}</div>`;if(!arr.length)h+=blocked?'<span class="closed-hint">휴무 · 일정 등록 불가</span>':'<span class="empty-hint">클릭하여 하루 일정 등록</span>'}
+h+='</div>'}}return h+'</div>'}
+function changeView(v){currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
+function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateKey(start)+' ~ '+dateKey(addDays(start,4)):(isDay||isAgenda)?date:month;
+ $('period').textContent=period;$('datePickerWrap').classList.toggle('hide',!(isDay||isAgenda));$('datePicker').value=date;
+ const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
+ $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
+ $('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
+ $('calendar').innerHTML=isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
+ const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');setQuickState()}
+function setQuickState(){$('quickLeave').classList.toggle('quick-active',quickLeave);$('quickLeave').textContent='연차 칸 선택 '+(quickLeave?'ON':'OFF');$('modeTip').textContent=quickLeave?'연차 선택 중 · 클릭 또는 드래그 (기존 연차 칸부터 드래그하면 해제)':'';document.body.classList.toggle('painting',quickLeave)}
+function formStaff(value){
+ const center=$('fcenter').value;
+ const names=cloud.active?(editorMode==='consult'&&!editing?employees(cloud.identity.center):[cloud.identity.name]):employees(center);
+ setOptions($('fowner'),names,value,'직원 선택');
+ if(!cloud.active)$('fowner').insertAdjacentHTML('beforeend','<option value="__new">＋ 새 직원 추가</option>');
+ updateProxyHint();
+}
+function updateProxyHint(){
+ const delegated=!!(cloud.active&&editorMode==='consult'&&!editing&&$('fowner').value&&$('fowner').value!==cloud.identity.name);
+ $('proxyHint').classList.toggle('hide',!cloud.active||editorMode!=='consult');
+ $('proxyHint').textContent=delegated?'다른 상담사에게 대신 예약합니다. 담당자 일정에 저장되며, 등록자는 기록됩니다. 기존 일정은 수정할 수 없어요.':'본인 상담을 등록합니다.';
+ $('personManageWrap').classList.toggle('hide',editorMode!=='consult'||delegated);
+ if(delegated){clearPersonChoice();hidePersonSuggestions()}
+}
+
+function newDefault(date,time,owner){return {id:null,center:currentCenter(),owner:owner||currentOwner(),date:date||dateKey(focusDate),type:'초기',title:'',time:time||'09:00',end:addMinutes(time||'09:00',30),allDay:false,trip:false,memo:''}}
+function changeEditorMode(mode,preserve=false){
+ if(mode!=='consult'&&mode!=='work')return;
+ if(editing&&editorMode!==mode)return; // Edit an existing event within its original category.
+ const prevType=$('ftype').value,oldMode=editorMode,oldTitle=$('fperson').value.trim();
+ editorMode=mode;
+ const service=mode==='consult',items=service?CONSULT_TYPES:PERSONAL_TYPES;
+ const selected=preserve&&items.some(t=>t[0]===prevType)?prevType:service?'초기':'연차';
+ $('ftype').innerHTML=items.map(t=>`<option value="${escapeHtml(t[0])}">${escapeHtml(t[0])}</option>`).join('')+`<option value="${CUSTOM_TYPE}">＋ 직접입력</option>`;$('ftype').value=selected;$('ftype').dataset.lastType=selected;
+ if(!preserve){$('customType').value='';$('customType').dataset.previous='';}updateCustomTypeField();
+ document.querySelectorAll('[data-entry-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.entryMode===mode);b.disabled=!!editing&&b.dataset.entryMode!==mode;b.setAttribute('aria-pressed',String(b.dataset.entryMode===mode))});
+ $('entryModeHelp').textContent=service?'내담자 이름과 상담 구분을 입력하세요. 시간은 선택한 30분으로 자동 등록돼요.':'상담 일정과 별도로 연차·교육·출장·외부홍보 등을 관리해요. 시간·종일 여부를 정할 수 있어요.';
+ $('entryTitleLabel').textContent=service?'내담자 이름':'일정명 (선택)';$('fperson').placeholder=service?'예: 홍길동':'예: 연차 / 교육기관 방문 / 외부 홍보';
+ $('fperson').required=service;$('entryTypeLabel').textContent=service?'상담 구분':'개인 일정 구분';$('typeHelp').textContent=service?'초기 · 해석 · IAP · 컨설팅 등':'연차 · 반차 · 출장 · 외부교육 · 외부홍보 등';
+ $('personInline').classList.toggle('hide',!service);$('personPrintHint').classList.toggle('hide',!service);$('memoLabel').textContent=service?'상담 메모 (선택)':'일정 메모 (선택)';
+ $('workChoices').classList.toggle('hide',service);$('consultTripRow').classList.toggle('hide',!service);$('timeLabel').textContent=service?'상담 시간 (30분 단위)':'시작 시간 (30분 단위)';
+ if(!preserve){
+  if(service){if(oldMode!=='consult')$('fperson').value='';$('allDay').checked=false;$('ftrip').checked=false;$('consultTrip').checked=false;$('duration').value='30'}
+  else {$('fperson').value=oldMode!=='work'||!oldTitle?selected:oldTitle;$('allDay').checked=currentView==='personalMonth';$('ftrip').checked=false;$('duration').value='30'}
+ }
+ if(!service){clearPersonChoice();hidePersonSuggestions();$('consultTrip').checked=false}
+ if(cloud.active){formStaff(service?$('fowner').value||cloud.identity.name:cloud.identity.name);$('fowner').disabled=!service||!!editing}
+ setFormLayout();
+}
+function updateCustomTypeField(){
+ const custom=$('ftype').value===CUSTOM_TYPE;
+ $('customTypeWrap').classList.toggle('hide',!custom);
+ $('customType').required=custom;
+ $('customType').disabled=!custom;
+ $('customTypeLabel').textContent=editorMode==='consult'?'직접 입력할 상담 구분':'직접 입력할 개인 일정 구분';
+ $('customType').placeholder=editorMode==='consult'?'예: 사후관리 상담':'예: 기관 방문 · 팀 회의';
+}
+function openEditor(date,time,eventId,owner,mode='consult'){
+ if(cloud.active && eventId && model.events.some(e=>e.id===eventId&&e.readonly)){alert('다른 상담사의 일정은 조회만 가능해요.');return}
+ if(currentView==='teamLeave'||currentView==='teamDay')return;
+ editing=eventId||null;const e=eventId?model.events.find(x=>x.id===eventId):newDefault(date,time,owner);if(!e)return;if(isClosedDay(e.date,e.center)){closedDayAlert(e.date,e.center);return}
+ editorMode=eventId?eventKind(e):mode;
+ const f=$('editor');$('fcenter').value=cloud.active?cloud.identity.center:(CENTERS.includes(e.center)?e.center:currentCenter());formStaff(cloud.active&&editorMode==='work'?cloud.identity.name:e.owner);$('fcenter').disabled=cloud.active;$('fowner').disabled=cloud.active&&(editorMode==='work'||!!eventId);
+ clearPersonChoice();selectedParticipantId=e.participantId||null;if(selectedParticipantId&&selectedParticipant()){$('personStatus').textContent='✓ '+personLabel(selectedParticipant())+' 선택됨';$('personStatus').classList.add('selected')}
+ f.elements.date.value=e.date;f.elements.time.value=e.time||'09:00';f.elements.memo.value=e.memo||'';$('allDay').checked=!!e.allDay;$('ftrip').checked=!!e.trip||e.type==='출장';$('consultTrip').checked=!!e.trip&&editorMode==='consult';
+ const duration=minute(e.end||addMinutes(e.time,30))-minute(e.time);$('duration').value=[30,60,120,180,240,480].includes(duration)?duration:'30';
+ changeEditorMode(editorMode,true);
+ const standardType=(editorMode==='consult'?CONSULT_TYPES:PERSONAL_TYPES).some(x=>x[0]===e.type);
+ f.elements.type.value=eventId&&!standardType?CUSTOM_TYPE:standardType?e.type:editorMode==='consult'?'초기':'연차';
+ $('customType').value=eventId&&!standardType?e.type:'';
+ $('ftype').dataset.lastType=f.elements.type.value;updateCustomTypeField();
+ f.elements.title.value=e.title||(editorMode==='work'?f.elements.type.value:'');
+ if(!eventId&&editorMode==='work'){$('allDay').checked=currentView==='personalMonth';f.elements.title.value=f.elements.type.value;$('ftrip').checked=false;$('duration').value='30'}
+ setFormLayout();$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
+}
+function setFormLayout(){const service=editorMode==='consult';if(service){$('allDay').checked=false;$('duration').value='30';$('ftrip').checked=false}
+ $('personManageWrap').classList.toggle('hide',!service);$('consultTripRow').classList.toggle('hide',!service);$('personNew').classList.toggle('hide',!service||!hasSameName());$('personTagBox').classList.toggle('hide',!service||!newHomonym);if(!service)hidePersonSuggestions();
+ $('allDay').disabled=service;$('workChoices').classList.toggle('hide',service);$('durationBox').classList.toggle('hide',service||$('allDay').checked);$('fixedDuration').classList.toggle('hide',!service);$('ftimeWrap').classList.toggle('hide',!service&&$('allDay').checked);$('ftime').disabled=!service&&$('allDay').checked;$('ftrip').disabled=service;$('consultTrip').disabled=!service;updateProxyHint();
+} 
+function withinSameDay(date,t,mins){if(isClosedDay(date,$('fcenter').value))return false;const end=minute(t)+mins;if(end>18*60)return false;const breakConflict=minute(t)<13*60&&end>12*60;return !breakConflict&&!isFridayClosed(date,t)&&(parseDate(date).getDay()!==5||end<=12*60)}
+async function saveEntry(ev){const f=$('editor'),data=Object.fromEntries(new FormData(f).entries());if(cloud.active){data.center=cloud.identity.center;if(editorMode!=='consult'||editing)data.owner=cloud.identity.name}const service=editorMode==='consult',allDay=service?false:$('allDay').checked,time=allDay?'09:00':data.time;
+ const type=(data.type===CUSTOM_TYPE?$('customType').value:data.type||'').trim();
+ if(!type){alert('직접 입력할 '+(service?'상담':'개인 일정')+' 구분을 적어 줘.');$('customType').focus();return false}
+ const end=allDay?'18:00':addMinutes(time,service?30:Number($('duration').value));const dest={id:editing||id(),center:normalizedCenter(data.center),owner:data.owner,date:data.date,kind:editorMode,type,title:String(data.title||'').trim()||(service?'':type),time,end,allDay,trip:(service&&$('consultTrip').checked)||(!service&&$('ftrip').checked)||(!service&&type==='출장'),memo:data.memo||'',quick:false};
+ if(editing){const previous=model.events.find(x=>x.id===editing);if(previous?.bookedBy)dest.bookedBy=previous.bookedBy;}
+ if(!dest.owner){alert('담당 상담사를 선택해 줘.');return false}if(!dest.title){alert('내담자 이름을 입력해 줘.');return false}
+ if(isClosedDay(dest.date,dest.center)){closedDayAlert(dest.date,dest.center);return false}
+ if(!allDay&&!withinSameDay(dest.date,dest.time,service?30:Number($('duration').value))){alert('근무시간을 확인해 줘. 월~목 09:00~12:00, 13:00~18:00 / 금 09:00~12:00 이내로 등록해 줘.');return false}
+ const conflict=model.events.find(e=>e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
+ if(conflict){
+   if(cloud.active&&service&&!editing&&dest.owner!==cloud.identity.name){alert('해당 상담사에게 이미 등록된 일정이 있어. 다른 시간을 선택해 줘.');return false}
+   if(!confirm('같은 시간에 기존 일정이 있어. 중복 등록할까?'))return false;
+ }
+ // A colleague can only create a 30-minute reservation via a checked server function. No local participant list or owner-write access.
+ if(cloud.active&&service&&!editing&&dest.owner!==cloud.identity.name){
+   const btn=$('saveEntryBtn');btn.disabled=true;btn.textContent='대신 예약 중…';
+   try{
+     const {error}=await cloud.client.rpc('schedule_book_for_colleague',{
+       _owner_name:dest.owner,_date:dest.date,_time:dest.time,_type:dest.type,_title:dest.title,_trip:dest.trip
+     });
+     if(error)throw error;
+     $('dlg').close();await cloudReload();alert(dest.owner+' 상담사 '+dest.date+' '+dest.time+' 예약을 등록했어. 담당자에게도 일정이 표시돼.');
+   }catch(err){alert('대신 예약 실패: '+(err.message||String(err)))}
+   finally{btn.disabled=false;btn.textContent='저장'}
+   return true;
+ }
+ // Save a participant only after all event validations and overlap confirmation passed.
+ if(service){
+  let candidate=selectedParticipant(),similar=model.participants.filter(p=>p.center===dest.center&&p.owner===dest.owner&&p.name===dest.title);
+  if(candidate&&candidate.name!==dest.title)candidate=null;
+  if(!candidate&&similar.length&&!newHomonym){
+   if(similar.length===1){if(confirm('이미 기억된 같은 이름이 있어. '+personLabel(similar[0])+' 님과 동일인이 맞아?\n확인: 기존 인물 선택 / 취소: 동명이인 별도 등록'))candidate=similar[0];else{createNewHomonym();return false}}
+   else{alert('같은 이름의 참여자가 여러 명이야. 추천 목록에서 올바른 사람을 선택하거나, 동명이인 별도 등록을 눌러 줘.');showPersonSuggestions();return false}
+  }
+  if(!candidate){const tag=(newHomonym?$('personTag').value.trim():'').slice(0,24);
+   if(similar.length&&!tag){createNewHomonym();alert('동명이인을 새로 등록할 때는 구분표시를 입력해 줘.');return false}
+   if(similar.some(p=>p.tag===tag)){alert('이 이름과 구분표시는 이미 있어. 기존 참여자를 선택하거나 구분표시를 바꿔 줘.');return false}
+   candidate={id:id(),center:dest.center,owner:dest.owner,name:dest.title,tag,lastUsed:new Date().toISOString()};model.participants.push(candidate)
+  } else candidate.lastUsed=new Date().toISOString();
+  dest.participantId=candidate.id;
+ } else dest.participantId=null;
+
+ if(editing){const i=model.events.findIndex(e=>e.id===editing);if(i>=0)model.events[i]=dest}else model.events.push(dest);
+ focusDate=parseDate(dest.date);save();$('dlg').close();if(dest.center!==currentCenter()){$('center').value=dest.center;refreshEmployees(dest.owner)}if(currentView==='personalDay'||currentView==='personalWeek'||currentView==='personalMonth'){$('owner').value=dest.owner;savePreferences()}render();return true}
+function slotKey(cell){return cell.dataset.date+'|'+cell.dataset.time+'|'+(cell.dataset.owner||currentOwner())}
+function lookupQuick(c){const [date,time,owner]=c.split('|');return model.events.find(e=>e.center===currentCenter()&&e.date===date&&e.owner===owner&&e.type==='연차'&&e.quick&&e.time===time&&e.end===addMinutes(time,30))}
+function batchQuick(keys){if(currentView!=='personalWeek'||!keys.length)return;const removing=!!lookupQuick(keys[0]);let changed=false,conflicts=[];for(const key of keys){const [date,time,owner]=key.split('|');if(!date||!time||!owner||isFridayClosed(date,time)||isClosedDay(date))continue;const old=lookupQuick(key);if(removing){if(old){model.events=model.events.filter(e=>e.id!==old.id);changed=true}continue}if(old)continue;const occupying=model.events.filter(e=>e.center===currentCenter()&&e.owner===owner&&e.date===date&&matchingAt(e,time));if(occupying.length){conflicts.push(key);continue}model.events.push({id:id(),center:currentCenter(),owner,date,type:'연차',title:'연차',time,end:addMinutes(time,30),allDay:false,trip:false,quick:true,memo:''});changed=true}if(changed){save();render()}if(conflicts.length)alert('기존 일정과 겹치는 '+conflicts.length+'개 칸은 변경하지 않았어. 기존 일정을 먼저 확인해 줘.')}
+let activePaint=null,suppressPaintClick=false;
+function paintCellAt(x,y){
+ if(!activePaint)return;const n=document.elementFromPoint(x,y)?.closest('.slot[data-date][data-time]');if(!n||!$('calendar').contains(n)||n.classList.contains('blocked'))return;
+ const key=slotKey(n),origin=activePaint.start||key;
+ const [startDate,startTime,startOwner]=origin.split('|'),[date,time,owner]=key.split('|');
+ // When vertically dragging, select every intervening half-hour, even if the pointer skips a cell.
+ if(date===startDate&&owner===startOwner){
+  const lower=Math.min(minute(startTime),minute(time)),upper=Math.max(minute(startTime),minute(time));
+  activePaint.keys=slots().filter(t=>minute(t)>=lower&&minute(t)<=upper&&!isFridayClosed(date,t)&&!isClosedDay(date)).map(t=>date+'|'+t+'|'+owner)
+ }else if(!activePaint.keys.includes(key))activePaint.keys.push(key);
+ $('calendar').querySelectorAll('.slot.paint-preview').forEach(el=>el.classList.remove('paint-preview'));
+ for(const k of activePaint.keys){const [d,t,o]=k.split('|');const cell=[...$('calendar').querySelectorAll('.slot[data-date][data-time]')].find(c=>c.dataset.date===d&&c.dataset.time===t&&c.dataset.owner===o);if(cell)cell.classList.add('paint-preview')}
+}
+function openQuickDay(date){if(!date||currentView!=='personalMonth')return;if(isClosedDay(date)){closedDayAlert(date);return}quickDate=date;$('quickDateLabel').textContent=date+' · 나의 하루 전체 일정';renderQuickExisting();$('quickDayDlg').showModal()}
+let quickDate=null;
+function quickSelectedOwner(){return currentOwner()}
+function renderQuickExisting(){
+ const owner=quickSelectedOwner();const entries=allEventsFor(quickDate).filter(e=>e.owner===owner).sort((a,b)=>a.time.localeCompare(b.time));
+ // Fast-painted 30-minute leave entries are one logical absence for summary and bulk deletion.
+ const grouped=new Map();
+ for(const e of entries){const key=e.quick&&e.type==='연차'?'quick:연차':'entry:'+e.id;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(e)}
+ const rows=[...grouped.values()].map(list=>{
+  const e=list[0],isQuick=list.length>1&&e.quick,mins=new Set(list.flatMap(ev=>coveredSlots(ev,quickDate))).size*30;
+  const timeDisplay=e.allDay?'종일':isQuick?durationLabel(mins)+' · '+list.length+'칸':e.time;
+  const title=e.title&&e.title!==e.type?' · '+escapeHtml(isConsultEvent(e)?printMasked(e.title):e.title):'';
+  const ids=list.map(ev=>escapeHtml(ev.id)).join(',');
+  return `<div class="rowitem"><span><b>${escapeHtml(e.type)}</b> · ${escapeHtml(timeDisplay)}${title}</span><button type="button" data-remove-group="${ids}">${isQuick?'선택 연차 삭제':'삭제'}</button></div>`
+ });
+ $('quickExisting').innerHTML='<h3>'+escapeHtml(owner||'직원')+' · 등록된 일정</h3>'+(rows.length?rows.join(''):'<span class="modal-footnote">등록된 일정이 없어.</span>')
+}
+function teamDayGroups(events,date){
+ const owners=new Map();
+ for(const e of events.filter(e=>isWorkEvent(e))){
+  const owner=e.owner||'미배정';if(!owners.has(owner))owners.set(owner,new Map());
+  const types=owners.get(owner),key=e.type+(e.trip?'|출장':'');
+  if(!types.has(key))types.set(key,{type:e.type,trip:!!e.trip,items:[]});
+  types.get(key).items.push(e);
+ }
+ return [...owners.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([owner,types])=>({owner,labels:[...types.values()].map(g=>{
+  const covered=new Set();for(const e of g.items)for(const t of coveredSlots(e,date))covered.add(t);
+  const mins=covered.size*30;
+  return {type:g.type,trip:g.trip,mins,title:g.items.find(e=>e.title&&e.title!==e.type)?.title||''};
+ })}));
+}
+function showTeamDaySummary(date){
+ if(currentView!=='teamLeave')return;
+ $('teamSummaryDate').textContent=date+' · '+currentCenter()+' 근무 일정';
+ const groups=teamDayGroups(teamEventsFor(date),date),hol=holidays(date),notices=sharedNotices(date);
+ let markup=hol.length?`<div class="summary-holidays"><strong>휴무 안내</strong> ${hol.map(escapeHtml).join(' · ')}</div>`:'';markup+=notices.map(n=>`<div class="note-summary"><strong>📌 ${escapeHtml(n.type)}</strong> · ${escapeHtml(n.title)}${n.memo?' · '+escapeHtml(n.memo):''}</div>`).join('');
+ markup+=groups.length?groups.map(g=>`<div class="summary-person-card"><div class="summary-person-name">${escapeHtml(g.owner)}</div><div class="summary-chips">${g.labels.map(x=>`<span class="summary-chip entry-${typeClass({type:x.type,trip:x.trip})}">${escapeHtml(x.type)}${x.mins?' · '+durationLabel(x.mins):''}${x.title?' ('+escapeHtml(x.title)+')':''}</span>`).join('')}</div></div>`).join(''):'<div class="empty">이 날짜에는 등록된 직원 연차·교육·외근 일정이 없어요.</div>';
+ $('teamSummaryList').innerHTML=markup;
+ $('teamSummaryDlg').showModal();
+}
+function quickWholeDay(type){if(currentView!=='personalMonth')return;const owner=quickSelectedOwner(),date=quickDate;if(isClosedDay(date)){closedDayAlert(date);return}if(!owner){alert('직원을 선택해 줘.');return}const entries=allEventsFor(date).filter(e=>e.owner===owner);if(entries.some(e=>e.allDay&&e.type===type)){alert('같은 종류의 하루 전체 일정이 이미 있어. 아래 등록 목록에서 확인해 줘.');return}const existingAllDay=entries.filter(e=>e.allDay);if(existingAllDay.length&&!confirm(owner+'님의 '+date+'에 이미 하루 전체 일정이 있어. 추가 등록할까?'))return;const consultation=entries.some(e=>isConsultEvent(e));if(consultation&&!confirm('이날 등록된 상담이 있어. 기존 상담을 유지한 채 하루 전체 '+type+' 일정을 추가할까?'))return;model.events.push({id:id(),center:currentCenter(),owner,date,type,title:type,time:'09:00',end:parseDate(date).getDay()===5?'12:00':'18:00',allDay:true,trip:false,quick:false,memo:''});save();render();renderQuickExisting();$('quickDayDlg').close()}
+function dateRange(a,b){let total=0;for(let d=parseDate(a);dateKey(d)<=b;d=addDays(d,1)){total++;if(total>366)break}return total}
+function updateOffs(){$('offs').innerHTML='<strong>등록된 자체 휴무</strong>'+(model.offs.length?model.offs.slice().reverse().map(o=>`<div class="minirow"><span>${escapeHtml(o.start)} ~ ${escapeHtml(o.end)} / ${escapeHtml(o.center==='all'?'전체 센터':o.center)} / ${escapeHtml(o.title)}</span><button type="button" data-off="${escapeHtml(o.id)}">삭제</button></div>`).join(''):'<p class="modal-footnote">등록된 자체 휴무가 없어.</p>')}
+function updateStaff(){$('staffList').innerHTML=employees($('staffCenter').value).map(n=>`<span class="member">${escapeHtml(n)} <button data-staff="${escapeHtml(n)}" aria-label="${escapeHtml(n)} 제거">×</button></span>`).join('')}
+function nav(n){if(currentView==='personalWeek')focusDate=addDays(focusDate,n*7);else if(currentView==='personalDay'||currentView==='teamDay')focusDate=addDays(focusDate,n);else focusDate=new Date(focusDate.getFullYear(),focusDate.getMonth()+n,1);render()}
+function exportData(){const b=new Blob([JSON.stringify({format:'standalone_schedule_v12',exportedAt:new Date().toISOString(),...model},null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='상담일정_v12_백업_'+dateKey(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+async function importData(file){try{const content=JSON.parse(await file.text()),events=Array.isArray(content)?content:content.events;if(!Array.isArray(events)||!events.every(x=>x&&typeof x.date==='string'&&typeof x.title==='string'))throw Error('이 파일은 일정 백업 형식이 아니야.');if(!confirm('현재 등록된 일정을 백업 파일로 교체할까? 복원 전 기존 데이터 백업을 권장해.'))return;
+ model.events=events.map(x=>({...x,id:x.id||id(),center:normalizedCenter(x.center),type:normalType(x.type),allDay:!!x.allDay}));model.offs=Array.isArray(content.offs)?content.offs.map(x=>({...x,center:x.center==='all'?'all':normalizedCenter(x.center)})):[];
+ model.participants=Array.isArray(content.participants)?content.participants.filter(p=>p&&p.name&&p.center&&p.owner).map(p=>({...p,id:p.id||id(),center:normalizedCenter(p.center)})):[];model.notices=Array.isArray(content.notices)?content.notices.filter(n=>n&&n.date&&n.title).map(n=>({...n,id:n.id||id(),center:n.center==='all'?'all':normalizedCenter(n.center)})):[];
+ if(!Array.isArray(content.participants))for(const e of model.events.filter(e=>isConsultEvent(e)&&e.title&&e.owner)){
+  if(!model.participants.some(p=>p.center===e.center&&p.owner===e.owner&&p.name===e.title))model.participants.push({id:id(),center:e.center,owner:e.owner,name:e.title,tag:'',lastUsed:e.date+'T00:00:00',imported:true});
+ }
+ if(cloud.active){model.events=[...model.events.filter(e=>e.readonly),...model.events.filter(e=>e.center===cloud.identity.center&&e.owner===cloud.identity.name)];model.participants=model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name);if(!['manager','director'].includes(cloud.identity.role)){model.offs=[];model.notices=[]}}model.staff=Object.fromEntries(CENTERS.map(c=>[c,[...ROSTER[c]]]));for(const [k,list] of Object.entries(content.staff||{})){const c=normalizedCenter(k);if(CENTERS.includes(c)&&Array.isArray(list))model.staff[c]=[...new Set([...model.staff[c],...list.filter(x=>typeof x==='string')])]}
+ save();refreshEmployees(preferences.owner);render();alert('복원했어.')}catch(err){alert('복원 실패: '+err.message)}}
+// Events
+for(const id1 of ['center','fcenter','staffCenter'])setOptions($(id1),CENTERS,id1==='center'?normalizedCenter(preferences.center):'북부센터');
+setOptions($('offCenter'),['all',...CENTERS],'all');$('offCenter').options[0].textContent='전체 센터';setOptions($('noteCenter'),['all',...CENTERS],currentCenter());$('noteCenter').options[0].textContent='전체 센터';
+refreshEmployees(preferences.owner);
+$('ftype').innerHTML=CONSULT_TYPES.map(x=>`<option value="${escapeHtml(x[0])}">${escapeHtml(x[0])}</option>`).join('')+`<option value="${CUSTOM_TYPE}">＋ 직접입력</option>`;
+$('ftime').innerHTML=slots().map(t=>`<option value="${t}">${t}</option>`).join('');
+for(const b of document.querySelectorAll('.viewtab'))b.onclick=()=>changeView(b.dataset.view);
+$('center').onchange=()=>{refreshEmployees();render()};$('owner').onchange=()=>{savePreferences();render()};
+$('prev').onclick=()=>nav(-1);$('next').onclick=()=>nav(1);$('today').onclick=()=>{focusDate=new Date();render()};$('datePicker').onchange=e=>{if(e.target.value){focusDate=parseDate(e.target.value);render()}};
+$('addConsult').onclick=()=>{if(currentView==='personalDay'||currentView==='personalWeek'||currentView==='personalMonth')openEditor(null,null,null,null,'consult')};$('addWork').onclick=()=>{if(currentView==='personalDay'||currentView==='personalWeek'||currentView==='personalMonth')openEditor(null,null,null,null,'work')};$('quickLeave').onclick=()=>{quickLeave=!quickLeave;setQuickState()};
+$('calendar').onclick=e=>{
+ const today=e.target.closest('[data-agenda-today]');if(today){focusDate=new Date();render();return}
+ const edit=e.target.closest('[data-agenda-edit]');if(edit){const ev=model.events.find(x=>x.id===edit.dataset.agendaEdit);if(ev)openEditor(ev.date,ev.time,ev.id,ev.owner,eventKind(ev));return}
+ const add=e.target.closest('[data-agenda-add]');if(add){openEditor(add.dataset.agendaAdd,add.dataset.agendaTime,null,currentOwner(),'consult');return}
+ if(suppressPaintClick){suppressPaintClick=false;return}if(currentView==='teamDay')return;const cell=e.target.closest('[data-date]');if(!cell)return;if(currentView==='teamLeave'){showTeamDaySummary(cell.dataset.date);return}if(isClosedDay(cell.dataset.date)){closedDayAlert(cell.dataset.date);return}if(isFridayClosed(cell.dataset.date,cell.dataset.time||'09:00'))return;if(quickLeave)return;const block=e.target.closest('[data-id]');if(block){openEditor(null,null,block.dataset.id);return}if(currentView==='personalMonth'){openQuickDay(cell.dataset.date);return}openEditor(cell.dataset.date,cell.dataset.time||'09:00',null,cell.dataset.owner||currentOwner())};
+$('calendar').addEventListener('pointerdown',e=>{if(!quickLeave||currentView!=='personalWeek'||e.button!==0)return;const cell=e.target.closest('.slot[data-date][data-time]');if(!cell||cell.classList.contains('blocked')||isClosedDay(cell.dataset.date))return;e.preventDefault();activePaint={start:slotKey(cell),keys:[]};paintCellAt(e.clientX,e.clientY)});
+document.addEventListener('pointermove',e=>{if(activePaint){e.preventDefault();paintCellAt(e.clientX,e.clientY)}},{passive:false});
+document.addEventListener('pointerup',()=>{if(!activePaint)return;const keys=activePaint.keys;activePaint=null;suppressPaintClick=true;batchQuick(keys);setTimeout(()=>{suppressPaintClick=false},0)});
+document.addEventListener('pointercancel',()=>{if(activePaint){activePaint=null;render()}});
+$('teamSummaryClose').onclick=$('teamSummaryDone').onclick=()=>$('teamSummaryDlg').close();
+$('quickDayClose').onclick=$('quickDone').onclick=()=>$('quickDayDlg').close();
+$('quickDayDlg').querySelectorAll('[data-quick-type]').forEach(b=>b.onclick=()=>quickWholeDay(b.dataset.quickType));
+$('quickExisting').onclick=e=>{const btn=e.target.closest('[data-remove-group]');if(!btn||currentView!=='personalMonth')return;const ids=btn.dataset.removeGroup.split(','),entries=model.events.filter(x=>ids.includes(x.id));if(!entries.length||entries.some(e=>e.readonly)||!confirm(entries.length+'개 칸의 '+entries[0].type+' 일정을 삭제할까?'))return;model.events=model.events.filter(x=>!ids.includes(x.id));save();render();renderQuickExisting()};
+$('quickAdvanced').onclick=()=>{const d=quickDate,owner=quickSelectedOwner();$('quickDayDlg').close();openEditor(d,'09:00',null,owner,'work')};
+$('fcenter').onchange=()=>formStaff('');$('fowner').onchange=()=>{if($('fowner').value!=='__new'){updateProxyHint();showPersonSuggestions();return;}const name=prompt('추가할 직원 이름을 입력해 줘.');const c=$('fcenter').value;if(name?.trim()){const n=name.trim().slice(0,30);model.staff[c]=[...new Set([...(model.staff[c]||[]),n])];save();formStaff(n);refreshEmployees(currentOwner())}else formStaff('')};
+$('ftype').onchange=()=>{const type=$('ftype').value,previous=$('ftype').dataset.lastType;
+ updateCustomTypeField();
+ if(type===CUSTOM_TYPE){$('customType').focus()}
+ if(editorMode==='work'){
+ if(type==='2시간 연차'){$('duration').value='120';$('allDay').checked=false}
+ if(type==='출장')$('ftrip').checked=true;else if(previous==='출장')$('ftrip').checked=false;
+ if(['연차','반차','외부교육','내부교육'].includes(type)&&currentView==='personalMonth')$('allDay').checked=true;
+ const title=$('fperson').value.trim();if(type!==CUSTOM_TYPE&&(!title||title===previous))$('fperson').value=type;
+ if(type===CUSTOM_TYPE&&title===previous)$('fperson').value='';
+ }$('ftype').dataset.lastType=type;setFormLayout()};
+$('customType').addEventListener('input',()=>{
+ if(editorMode!=='work'||$('ftype').value!==CUSTOM_TYPE)return;
+ // For personal entries, the custom category doubles as the title until overridden.
+ const title=$('fperson').value;
+ if(!title||title===$('customType').dataset.previous)$('fperson').value=$('customType').value;
+ $('customType').dataset.previous=$('customType').value;
+});
+$('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;changeEditorMode(b.dataset.entryMode)});
+$('allDay').onchange=setFormLayout;$('editor').onsubmit=e=>{e.preventDefault();saveEntry()};
+$('remove').onclick=()=>{if(editing&&confirm('일정을 삭제할까?')){model.events=model.events.filter(x=>x.id!==editing);save();$('dlg').close();render()}};
+$('cancel').onclick=$('closeModal').onclick=()=>$('dlg').close();
+$('dayoff').onclick=()=>{if(cloud.active&&!['manager','director'].includes(cloud.identity.role))return;if(currentView!=='teamLeave'&&currentView!=='teamDay')return;const f=$('offForm');f.elements.start.value=dateKey(focusDate);f.elements.end.value=dateKey(focusDate);f.elements.center.value=currentCenter();updateOffs();$('offDlg').showModal()};$('offCancel').onclick=()=>$('offDlg').close();
+$('offForm').onsubmit=e=>{e.preventDefault();if(cloud.active&&!['manager','director'].includes(cloud.identity.role))return;const v=Object.fromEntries(new FormData(e.target).entries());if(cloud.active&&cloud.identity.role==='manager')v.center=cloud.identity.center;if(v.end<v.start||dateRange(v.start,v.end)>366){alert('시작일·종료일을 확인해 줘. 최대 366일까지 지정 가능해.');return}model.offs.push({...v,id:id()});save();updateOffs();render()};
+$('offs').onclick=e=>{const el=e.target.closest('[data-off]');if(!el)return;if(confirm('이 휴무를 삭제할까?')){model.offs=model.offs.filter(o=>o.id!==el.dataset.off);save();updateOffs();render()}};
+function updateNotices(){const entries=model.notices.filter(n=>n.center==='all'||n.center===currentCenter()).sort((a,b)=>a.date.localeCompare(b.date));$('notesList').innerHTML=entries.length?entries.map(n=>`<div class="minirow"><span><b>${escapeHtml(n.date)}</b> · ${escapeHtml(n.type)} · ${escapeHtml(n.title)}${n.memo?' · '+escapeHtml(n.memo):''}<small>${escapeHtml(n.center==='all'?'전체 센터':n.center)}</small></span><button type="button" data-note-remove="${escapeHtml(n.id)}">삭제</button></div>`).join(''):'<p class="modal-footnote">등록된 공통 비고가 없어요.</p>'}
+$('noteBtn').onclick=()=>{if(cloud.active&&!['manager','director'].includes(cloud.identity.role))return;if(currentView!=='teamLeave'&&currentView!=='teamDay')return;$('noteDate').value=dateKey(focusDate);$('noteCenter').value=currentCenter();$('notesForm').reset();$('noteDate').value=dateKey(focusDate);$('noteCenter').value=currentCenter();updateNotices();$('notesDlg').showModal()};
+$('notesClose').onclick=()=>$('notesDlg').close();
+$('notesForm').onsubmit=e=>{e.preventDefault();if(cloud.active&&!['manager','director'].includes(cloud.identity.role))return;const v=Object.fromEntries(new FormData(e.currentTarget));if(cloud.active&&cloud.identity.role==='manager')v.center=cloud.identity.center;v.title=String(v.title||'').trim();if(!v.title)return;model.notices.push({...v,id:id()});save();updateNotices();render();e.currentTarget.elements.title.value='';e.currentTarget.elements.memo.value='';};
+$('notesList').onclick=e=>{const b=e.target.closest('[data-note-remove]');if(!b)return;if(confirm('공통 비고를 삭제할까?')){model.notices=model.notices.filter(n=>n.id!==b.dataset.noteRemove);save();updateNotices();render()}};
+$('staff').onclick=()=>{setOptions($('staffCenter'),CENTERS,currentCenter());updateStaff();$('staffDlg').showModal()};$('staffClose').onclick=()=>$('staffDlg').close();$('staffCenter').onchange=updateStaff;
+$('staffAdd').onclick=()=>{const c=$('staffCenter').value,n=$('staffName').value.trim();if(!n)return;model.staff[c]=[...new Set([...(model.staff[c]||[]),n.slice(0,30)])];$('staffName').value='';save();updateStaff();refreshEmployees(currentOwner());render()};
+$('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return;const c=$('staffCenter').value,n=b.dataset.staff;if(!confirm(n+' 직원을 기본 목록에서 제외할까? 기존 일정은 유지돼.'))return;model.staff[c]=model.staff[c].filter(x=>x!==n);save();updateStaff();refreshEmployees(currentOwner());render()};
+$('print').onclick=()=>window.print();$('export').onclick=exportData;$('import').onclick=()=>$('file').click();$('file').onchange=async e=>{const f=e.target.files[0];if(f)await importData(f);e.target.value=''};
+// Remember participant names only for consulting categories; never show a full expanding dropdown.
+$('fperson').addEventListener('input',()=>{clearPersonChoice();showPersonSuggestions()});
+$('fperson').addEventListener('focus',()=>showPersonSuggestions());
+$('fperson').addEventListener('keydown',e=>{if($('personSuggestions').classList.contains('hide')||!shownPeople.length)return;
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();highlightedPerson=(highlightedPerson+(e.key==='ArrowDown'?1:-1)+shownPeople.length)%shownPeople.length;[...$('personSuggestions').querySelectorAll('button')].forEach((b,i)=>b.classList.toggle('is-active',i===highlightedPerson))}
+ if(e.key==='Enter'){e.preventDefault();choosePerson(shownPeople[highlightedPerson])}
+ if(e.key==='Escape')hidePersonSuggestions();
+});
+$('personSuggestions').addEventListener('pointerdown',e=>e.preventDefault());
+$('personSuggestions').onclick=e=>{const b=e.target.closest('[data-person-index]');if(b)choosePerson(shownPeople[Number(b.dataset.personIndex)])};
+$('personNew').onclick=createNewHomonym;
+$('fcenter').addEventListener('change',()=>{clearPersonChoice();hidePersonSuggestions()});
+$('fowner').addEventListener('change',()=>{clearPersonChoice();hidePersonSuggestions()});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.person-field'))hidePersonSuggestions()});
+$('personManage').onclick=()=>{$('peopleScope').textContent=$('fcenter').value+' · '+$('fowner').value+' 상담사';$('peopleSearch').value='';renderPeopleList();$('peopleDlg').showModal()};
+$('peopleClose').onclick=()=>$('peopleDlg').close();
+$('peopleSearch').oninput=renderPeopleList;
+$('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(!b)return;const p=model.participants.find(x=>x.id===b.dataset.forgetPerson);if(!p)return;if(confirm(personLabel(p)+' 이름을 자동완성에서 지울까? (기존 일정은 유지돼)')){model.participants=model.participants.filter(x=>x.id!==p.id);if(selectedParticipantId===p.id)clearPersonChoice();save();renderPeopleList()}};
+changeView(currentView);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('앱 설치 준비 실패',e)));
+}
+</script>
+</body></html>
