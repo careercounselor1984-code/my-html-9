@@ -167,7 +167,7 @@ body:not(.cloud-ready) main.wrap{display:none}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v17 · 자동 로그인·비밀번호 찾기</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v17.1 · 관리자 계정관리 바로가기</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -176,7 +176,7 @@ body:not(.cloud-ready) main.wrap{display:none}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
   <section class="panel no-print">
     <div class="context">
       <label class="control"><span>센터</span><select id="center"></select></label>
@@ -358,6 +358,7 @@ function cloudApplyIdentity(info){
  $('cloudGate').classList.add('hide');
  $('cloudUser').textContent=info.center+' · '+info.name+' ('+(info.role==='manager'?'팀장':info.role==='director'?'부장':'상담사')+')';
  $('cloudArea').classList.remove('hide');
+ $('cloudAdminShortcut').classList.toggle('hide',!info.isAdmin);
  document.querySelector('.context-note').textContent='로그인 계정으로 담당 센터와 상담사가 자동 지정돼요. 다른 직원 일정은 센터 전체 보기에서 확인할 수 있어요.';
  document.querySelector('.mobile-banner span:last-child').innerHTML='휴대폰과 PC의 일정을 같은 계정으로 확인할 수 있어요. <b>서버에 저장 완료 ✓</b> 표시를 확인해 주세요.';
 
@@ -454,6 +455,7 @@ async function cloudBoot(){
   }catch(err){$('cloudAuthMessage').textContent='메일 요청 실패: '+err.message;}
   finally{$('cloudMagic').disabled=false}
  };
+ $('cloudAdminShortcut').onclick=()=>window.open('https://supabase.com/dashboard/project/hnhccnyitrlzqprnredi/auth/users','_blank','noopener,noreferrer');
  $('cloudSetPassword').onclick=()=>{
   cloud.recovering=false;
   $('cloudPasswordDialog').querySelector('h2').textContent='내 비밀번호 설정·변경';
