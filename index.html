@@ -161,16 +161,16 @@ body:not(.cloud-ready) main.wrap{display:none}
 .cloud-gate{min-height:calc(100dvh - 66px);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(155deg,#f0f6ff,#f9fbfe)}
 .cloud-login-panel{width:min(460px,100%);background:white;border-radius:18px;padding:32px;box-shadow:0 14px 50px #1f446025;border:1px solid #d9e5f1}
 .cloud-login-mark{font-size:36px}.cloud-login-panel h2{margin:10px 0}.cloud-login-panel p{color:#52677e;line-height:1.6}.cloud-login-panel form{display:flex;flex-direction:column;gap:11px;margin:22px 0}.cloud-login-panel input,.cloud-login-panel button{min-height:48px;padding:12px}.cloud-login-panel small{color:#718298;line-height:1.4}
-.cloud-login-panel .cloud-magic{margin-top:16px;border-top:1px solid #d9e3ee;padding-top:14px}.cloud-magic summary{cursor:pointer;color:#506a88;font-size:13px}.cloud-magic button{width:100%;margin-top:12px}.cloud-login-panel input{width:100%}.cloud-help{font-size:13px;color:#52677e;line-height:1.5}.cloud-feedback{min-height:24px}.password-dialog{border:none;border-radius:18px;width:min(420px,calc(100vw - 24px));padding:24px;box-shadow:0 18px 60px #1b304c55}.password-dialog::backdrop{background:#1d2e4570}.password-dialog form{display:flex;flex-direction:column;gap:12px}.password-dialog h2{margin:0}.password-dialog p{margin:0;color:#52677e;font-size:13px;line-height:1.5}.password-dialog input{width:100%;padding:12px;min-height:44px}.password-actions{display:flex;gap:8px;justify-content:flex-end}.password-actions button{flex:1}.password-actions button.primary{background:#2366b4;color:white}
+ .cloud-login-panel .cloud-reveal{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:13px;color:#51657d;cursor:pointer}.cloud-login-panel .cloud-reveal input{width:auto;flex:none;min-width:17px;height:17px}.cloud-login-panel .cloud-magic{margin-top:16px;border-top:1px solid #d9e3ee;padding-top:14px}.cloud-magic summary{cursor:pointer;color:#506a88;font-size:13px}.cloud-magic button{width:100%;margin-top:12px}.cloud-login-panel input{width:100%}.cloud-help{font-size:13px;color:#52677e;line-height:1.5}.cloud-feedback{min-height:24px}.password-dialog{border:none;border-radius:18px;width:min(420px,calc(100vw - 24px));padding:24px;box-shadow:0 18px 60px #1b304c55}.password-dialog::backdrop{background:#1d2e4570}.password-dialog form{display:flex;flex-direction:column;gap:12px}.password-dialog h2{margin:0}.password-dialog p{margin:0;color:#52677e;font-size:13px;line-height:1.5}.password-dialog input{width:100%;padding:12px;min-height:44px}.password-actions{display:flex;gap:8px;justify-content:flex-end}.password-actions button{flex:1}.password-actions button.primary{background:#2366b4;color:white}
 .cloud-area{background:#eff7f4;border:1px solid #bddbcf;border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 15px;margin-bottom:10px;flex-wrap:wrap}.cloud-area>div:first-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.cloud-area span{font-size:12px;color:#2b765b}.cloud-area span.error{color:#b23b40}.cloud-actions{display:flex;gap:6px}.cloud-actions button{font-size:12px;padding:7px 9px}
 @media(max-width:550px){.cloud-login-panel{padding:22px}.cloud-area{flex-direction:column;align-items:stretch}.cloud-actions button{flex:1}}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v16.1 · 비밀번호 8자 이상</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v16.2 · 로그인 오류 안내 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
- <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
  <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">직원 전용 계정으로 로그인해 주세요. 기존 PC에서 로그인 중이라면 로그인 후 비밀번호를 설정할 수 있습니다.</p>
  <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>비밀번호는 Supabase 인증 서버에서 검증되며 일정 데이터나 GitHub 소스에 저장되지 않습니다. 신규 직원 계정은 관리자가 생성합니다.</small></div>
 </section>
@@ -359,6 +359,7 @@ async function cloudStartSession(){
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
   if(!email||password.length<8)return;
@@ -369,7 +370,27 @@ async function cloudBoot(){
    $('cloudPassword').value='';
    $('cloudAuthMessage').textContent='로그인 성공 · 본인 일정 확인 중…';
    await cloudStartSession();
-  }catch(err){$('cloudPassword').value='';$('cloudAuthMessage').textContent='로그인할 수 없습니다. 이메일·비밀번호·계정 등록 상태를 확인해 주세요.';}
+  }catch(err){
+   // Display safe error categories without logging password or authentication tokens.
+   const code=String(err?.code||'').toLowerCase();
+   const message=String(err?.message||'').toLowerCase();
+   let display='로그인에 실패했어요. 잠시 뒤 다시 시도하거나 관리자에게 문의해 주세요.';
+   if(code==='invalid_credentials'||message.includes('invalid login credentials')){
+     display='이메일 또는 비밀번호가 일치하지 않습니다. 서버에 비밀번호가 등록되어 있어도 입력값이 다르면 로그인할 수 없습니다. 대소문자·자동완성·공백을 확인해 주세요.';
+   }else if(code==='email_not_confirmed'||message.includes('email not confirmed')){
+     display='이메일 확인이 완료되지 않은 계정이에요. 관리자에게 문의해 주세요.';
+   }else if(code==='over_request_rate_limit'||code==='over_email_send_rate_limit'||message.includes('rate limit')){
+     display='로그인 요청이 너무 많습니다. 잠시 기다린 뒤 다시 시도해 주세요.';
+   }else if(code==='user_banned'){
+     display='사용 중지된 계정입니다. 관리자에게 문의해 주세요.';
+   }else if(code==='network_error'||message.includes('failed to fetch')){
+     display='서버 연결에 실패했습니다. 인터넷 연결을 확인해 주세요.';
+   }else if(code){
+     display+=' (오류 코드: '+code.replace(/[^a-z0-9_-]/g,'').slice(0,50)+')';
+   }
+   $('cloudAuthMessage').textContent=display;
+   $('cloudPassword').value='';
+  }
   finally{$('cloudSend').disabled=false}
  });
  $('cloudMagic').onclick=async()=>{
