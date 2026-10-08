@@ -167,14 +167,14 @@ body:not(.cloud-ready) main.wrap{display:none}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v16 · 비밀번호 로그인</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v16.1 · 비밀번호 8자 이상</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
- <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="12" autocomplete="current-password" placeholder="등록된 비밀번호 (12자 이상)" required><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
  <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">직원 전용 계정으로 로그인해 주세요. 기존 PC에서 로그인 중이라면 로그인 후 비밀번호를 설정할 수 있습니다.</p>
  <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>비밀번호는 Supabase 인증 서버에서 검증되며 일정 데이터나 GitHub 소스에 저장되지 않습니다. 신규 직원 계정은 관리자가 생성합니다.</small></div>
 </section>
-<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 12자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="12" autocomplete="new-password" required placeholder="12자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="12" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
+<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
 <div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
   <section class="panel no-print">
@@ -361,7 +361,7 @@ async function cloudBoot(){
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
-  if(!email||password.length<12)return;
+  if(!email||password.length<8)return;
   $('cloudSend').disabled=true;$('cloudAuthMessage').textContent='로그인 확인 중…';
   try{
    const {error}=await cloud.client.auth.signInWithPassword({email,password});
@@ -394,7 +394,7 @@ async function cloudBoot(){
   e.preventDefault();
   const newPassword=$('cloudNewPassword').value;
   const confirmPassword=$('cloudConfirmPassword').value;
-  if(newPassword.length<12){$('cloudPasswordFeedback').textContent='12자 이상 입력해 주세요.';return;}
+  if(newPassword.length<8){$('cloudPasswordFeedback').textContent='8자 이상 입력해 주세요.';return;}
   if(newPassword!==confirmPassword){$('cloudPasswordFeedback').textContent='두 비밀번호가 일치하지 않습니다.';return;}
   const button=$('cloudPassSave');button.disabled=true;$('cloudPasswordFeedback').textContent='비밀번호 저장 중…';
   try{
