@@ -285,12 +285,21 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,timer:null,busy:false,needsSave:false,recovering:false};
+const cloud={client:null,identity:null,active:false,base:null,timer:null,busy:false,needsSave:false,recovering:false,initialPasswordChange:false};
+function cloudOpenInitialPasswordDialog(){
+ cloud.initialPasswordChange=true;
+ const dlg=$('cloudPasswordDialog');
+ dlg.querySelector('h2').textContent='최초 로그인 · 비밀번호 변경 필수';
+ $('cloudPassCancel').textContent='로그아웃';
+ $('cloudPasswordForm').reset();
+ $('cloudPasswordFeedback').textContent='임시 비밀번호를 본인만 아는 비밀번호로 변경해야 일정관리를 이용할 수 있습니다. 영문과 숫자를 포함해 8자 이상 입력하세요.';
+ if(!dlg.open)dlg.showModal();
+}
 function cloudOpenRecoveryDialog(){
  const dlg=$('cloudPasswordDialog');
- if(!dlg||dlg.open)return;
+ if(!dlg||dlg.open||cloud.initialPasswordChange)return;
  cloud.recovering=true;
- dlg.querySelector('h2').textContent='새 비밀번호 설정';
+ dlg.querySelector('h2').textContent='새 비밀번호 설정';$('cloudPassCancel').textContent='취소';
  $('cloudPasswordForm').reset();
  $('cloudPasswordFeedback').textContent='재설정 링크를 확인했어요. 새 비밀번호를 8자 이상으로 입력해 주세요.';
  dlg.showModal();
@@ -384,6 +393,16 @@ async function cloudStartSession(){
  if(!session){document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');cloudStatus('회사 이메일로 로그인해 주세요');return;}
  const {data,error}=await cloud.client.rpc('schedule_claim_identity');
  if(error)throw error;
+ if(data?.mustChangePassword){
+  cloud.identity=data;cloud.active=false;
+  document.body.classList.remove('cloud-ready');
+  $('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');
+  $('cloudAuthMessage').textContent='임시 비밀번호로 로그인했어요. 비밀번호를 변경한 뒤 일정관리를 이용할 수 있습니다.';
+  cloudStatus('초기 비밀번호 변경 필요');
+  setTimeout(cloudOpenInitialPasswordDialog,80);
+  return;
+ }
+ cloud.initialPasswordChange=false;
  cloudApplyIdentity(data);
  await cloudReload();
  }catch(err){cloud.active=false;document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';cloudStatus('로그인 확인 실패',true)}
@@ -632,11 +651,19 @@ async function cloudBoot(){
  $('installGuideBtn').onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null}else $('installGuideDlg').showModal()};
  $('installGuideClose').onclick=()=>$('installGuideDlg').close();
  $('cloudSetPassword').onclick=()=>{
-  cloud.recovering=false;
+  cloud.recovering=false;cloud.initialPasswordChange=false;$('cloudPassCancel').textContent='취소';
   $('cloudPasswordDialog').querySelector('h2').textContent='내 비밀번호 설정·변경';
   $('cloudPasswordForm').reset();$('cloudPasswordFeedback').textContent='';$('cloudPasswordDialog').showModal();
  };
- $('cloudPassCancel').onclick=()=>{$('cloudPasswordForm').reset();$('cloudPasswordDialog').close();};
+ $('cloudPassCancel').onclick=async()=>{
+  $('cloudPasswordForm').reset();$('cloudPasswordDialog').close();
+  if(cloud.initialPasswordChange){
+   cloud.initialPasswordChange=false;
+   await cloud.client.auth.signOut();
+   $('cloudAuthMessage').textContent='초기 비밀번호를 변경해야 일정관리를 사용할 수 있어요. 다시 로그인해 주세요.';
+  }
+ };
+ $('cloudPasswordDialog').addEventListener('cancel',e=>{if(cloud.initialPasswordChange)e.preventDefault()});
  $('cloudPasswordForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const newPassword=$('cloudNewPassword').value;
@@ -645,9 +672,17 @@ async function cloudBoot(){
   if(newPassword!==confirmPassword){$('cloudPasswordFeedback').textContent='두 비밀번호가 일치하지 않습니다.';return;}
   const button=$('cloudPassSave');button.disabled=true;$('cloudPasswordFeedback').textContent='비밀번호 저장 중…';
   try{
-   const {error}=await cloud.client.auth.updateUser({password:newPassword});
-   if(error)throw error;
-   $('cloudPasswordForm').reset();$('cloudPasswordDialog').close();
+   if(cloud.initialPasswordChange){
+    await staffAdminApi('complete_initial',{password:newPassword});
+    cloud.initialPasswordChange=false;
+    $('cloudPassCancel').textContent='취소';
+    $('cloudPasswordForm').reset();$('cloudPasswordDialog').close();
+    await cloudStartSession();
+   }else{
+    const {error}=await cloud.client.auth.updateUser({password:newPassword});
+    if(error)throw error;
+    $('cloudPasswordForm').reset();$('cloudPasswordDialog').close();
+   }
    cloud.recovering=false;
    cloudStatus('비밀번호 설정 완료 · 다른 기기에서도 로그인 가능 ✓');
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
