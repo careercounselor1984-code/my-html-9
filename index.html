@@ -166,9 +166,10 @@ body:not(.cloud-ready) main.wrap{display:none}
 @media(max-width:550px){.cloud-login-panel{padding:22px}.cloud-area{flex-direction:column;align-items:stretch}.cloud-actions button{flex:1}}
 @media print{.cloud-area,.cloud-gate{display:none!important}}
 .special-work-summary{margin:12px 0}.special-work-summary .entries{display:flex;flex-wrap:wrap;gap:7px}.special-work-summary button{background:#fff4df;border-color:#dbb77e;font-size:12px}.team-status-dialog{border:0;border-radius:15px;padding:0;max-width:calc(100vw - 16px);box-shadow:0 20px 50px #1236}.team-status-dialog::backdrop{background:#132b4577}.status-modal{width:min(680px,calc(100vw - 25px));padding:18px;max-height:83dvh;overflow-y:auto}.status-modal header{display:flex;align-items:center;justify-content:space-between;gap:14px}.status-modal h2{margin:0;font-size:20px}.status-modal p,#presenceFeedback,#messageFeedback{font-size:12px;color:#68778c;line-height:1.55}.status-actions{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:12px 0}.status-actions label{flex:1}.status-actions select{padding:10px;width:100%}.status-panel{padding:10px;margin:9px 0;background:#f5f8fc;border:1px solid #dce4ec;border-radius:9px}.status-panel h3{margin:0 0 6px;font-size:15px}.status-person{display:inline-block;background:white;padding:5px 8px;border:1px solid #dbe3ee;border-radius:8px;margin:3px;font-size:12px}.status-person small{color:#627589}#messageForm{display:grid;gap:8px}#messageForm label{display:grid;gap:4px}#messageForm select,#messageForm textarea{width:100%;padding:9px}.message-item{background:#f6f8fb;border:1px solid #dce3ed;border-radius:9px;padding:10px;margin:8px 0;font-size:12px}.message-item strong{display:block}.message-item p{white-space:pre-wrap;overflow-wrap:anywhere;color:#1d3049}
+.staff-admin-dialog{padding:0;border:0;border-radius:16px;max-width:calc(100vw - 15px);box-shadow:0 18px 50px #102f4859}.staff-admin-dialog::backdrop{background:#122b4580}.staff-admin-body{width:min(980px,calc(100vw - 25px));max-height:88dvh;overflow-y:auto;padding:18px}.staff-admin-body header{display:flex;align-items:center;justify-content:space-between;gap:10px}.staff-admin-body header h2{margin:0;font-size:20px}.staff-admin-body header p{margin:4px 0;color:#68778c;font-size:12px}.staff-admin-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:10px 0}.staff-admin-rows{display:grid;gap:6px;margin-top:16px}.staff-admin-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border:1px solid #dbe4ed;border-radius:10px;background:#f7f9fc}.staff-admin-row .details{flex:1;min-width:170px}.staff-admin-row .details small{display:block;color:#68778c;margin-top:3px;overflow-wrap:anywhere}.staff-admin-row .actions{display:flex;gap:5px;flex-wrap:wrap}.staff-admin-row .actions button{font-size:12px;padding:6px 8px}.staff-admin-row .state{font-size:12px;color:#2366b4}.staff-admin-credentials{padding:12px;border:1px solid #ebc98b;background:#fffaed;border-radius:10px;margin:12px 0}.staff-admin-credentials p{font-size:12px;color:#74522b}.staff-admin-credentials pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:white;border-radius:7px;padding:12px;font-size:12px}.staff-admin-body form{background:#f3f7fc;padding:12px;border:1px solid #dce4ed;border-radius:10px}.staff-admin-body h3{margin:0 0 10px}.staff-admin-formrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.staff-admin-formrow label{display:grid;gap:4px;font-size:12px}.staff-admin-formrow input,.staff-admin-formrow select{width:100%;padding:9px}@media(max-width:650px){.staff-admin-formrow{grid-template-columns:1fr}.staff-admin-row{align-items:flex-start;flex-direction:column}.staff-admin-body{padding:13px}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v18.1 · 특별근무·근무현황·쪽지</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v19 · 직원 계정관리·앱 설치</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -177,7 +178,7 @@ body:not(.cloud-ready) main.wrap{display:none}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></div>
   <section class="panel no-print">
     <div class="context">
       <label class="control"><span>센터</span><select id="center"></select></label>
@@ -198,6 +199,16 @@ body:not(.cloud-ready) main.wrap{display:none}
     <div class="scroll"><div id="calendar"></div></div><p id="summary" class="summary no-print"></p><div id="specialWorkSummary" class="special-work-summary no-print"></div>
   </section>
 </main>
+
+<dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
+ <header><div><h2>직원 계정관리</h2><p>관리자 전용 · 직원 발급·초기화·활성화 관리</p></div><button id="staffAdminClose" type="button">닫기</button></header>
+ <div class="staff-admin-actions"><button type="button" id="staffAdminRefresh">명단 새로고침</button><button type="button" class="primary" id="staffAdminBulk">미발급 직원 전체 계정 발급</button></div>
+ <p id="staffAdminSummary" role="status">명단을 불러오는 중…</p>
+ <div class="staff-admin-credentials hide" id="staffAdminCredentials"><div class="staff-admin-actions"><strong>이번 작업에서 발급한 임시 비밀번호</strong><button type="button" id="staffAdminCopy">목록 복사</button><button type="button" id="staffAdminClear">화면에서 지우기</button></div><p>이 정보는 서버에 별도로 보관되지 않아요. 각 직원에게 개별 전달하고 화면에서 지워 주세요. 공용 단체방에는 공유하지 마세요.</p><pre id="staffAdminCredentialText"></pre></div>
+ <form id="staffAdminForm"><h3 id="staffAdminFormTitle">직원 추가</h3><div class="staff-admin-formrow"><label>직원명<input id="staffName" required maxlength="40"></label><label>센터<select id="staffCenter" required><option value="남부본사">남부본사</option><option value="북부센터">북부센터</option><option value="동구지사">동구지사</option><option value="서부센터">서부센터</option></select></label><label>회사 이메일<input id="staffEmail" type="email" required placeholder="name@ulsan1.kr"></label><label>역할<select id="staffRole"><option value="counselor">상담사</option><option value="manager">팀장</option></select></label></div><div class="staff-admin-actions"><button type="submit" class="primary" id="staffAdminSave">직원 추가</button><button type="button" id="staffAdminEditCancel" class="hide">수정 취소</button></div></form>
+ <div id="staffAdminRows" class="staff-admin-rows"></div>
+ </section></dialog>
+<dialog id="installGuideDlg" class="staff-admin-dialog"><section class="staff-admin-body"><header><h2>휴대폰 앱 설치</h2><button id="installGuideClose" type="button">닫기</button></header><p>앱스토어를 거치지 않고 휴대폰 홈 화면에 아이콘을 만들 수 있어요.</p><div class="status-panel"><strong>안드로이드 (Chrome)</strong><p>주소창 오른쪽의 메뉴 ⋮ → 앱 설치 또는 홈 화면에 추가 → 설치</p></div><div class="status-panel"><strong>아이폰 (Safari)</strong><p>하단 공유 버튼 → 홈 화면에 추가 → 추가</p></div><p>PC와 같은 계정으로 로그인하면 일정이 자동 동기화돼요. 인터넷 연결이 필요합니다.</p></section></dialog>
 <dialog id="presenceDlg" class="team-status-dialog"><section class="status-modal"><header><h2>센터별 오늘 근무현황</h2><button type="button" id="presenceClose">닫기</button></header><p>직원 본인이 표시한 상태만 보여요. 미확인은 결근이 아니며 실제 출퇴근 인증도 아니야.</p><div class="status-actions"><label>내 상태 <select id="myPresence"><option value="">미확인</option><option value="출근">출근</option><option value="외근">외근</option><option value="퇴근">퇴근</option><option value="휴무">휴무</option></select></label><button class="primary" id="presenceSave" type="button">상태 저장</button><button id="presenceRefresh" type="button">새로고침</button></div><div id="presenceFeedback"></div><div id="presenceList"></div></section></dialog>
 <dialog id="messageDlg" class="team-status-dialog"><section class="status-modal"><header><h2>상담사 쪽지</h2><button type="button" id="messageClose">닫기</button></header><p>500자 이하 텍스트만 보낼 수 있어. 내담자 이름·연락처 등 개인정보는 적지 마세요.</p><form id="messageForm"><label>받는 직원 <select id="messageTo" required></select></label><label>쪽지 <textarea id="messageText" rows="3" maxlength="500" required></textarea></label><div class="status-actions"><button type="submit" class="primary" id="messageSend">보내기</button><button id="messageRefresh" type="button">새로고침</button></div></form><div id="messageFeedback"></div><div id="messageList"></div></section></dialog>
 <dialog id="dlg"><form class="modal" id="editor"><div class="modal-head"><div><h2 id="editTitle">일정 등록</h2><span class="modal-sub">상담 예약과 개인 근무 일정을 별도로 등록해요</span></div><button id="closeModal" type="button" aria-label="닫기">✕</button></div>
@@ -433,6 +444,77 @@ async function sendMessage(event){
  $('messageText').value='';await refreshMessages();$('messageFeedback').textContent='쪽지를 보냈어.';
 }
 
+
+const staffAdmin={staff:[],editId:null,credentials:[],working:false};
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e});
+async function staffAdminApi(action,extra={}){
+ const {data,error}=await cloud.client.functions.invoke('schedule-staff-admin',{body:{action,...extra}});
+ if(error){let reason='서버 요청 실패';try{const body=await error.context?.json?.();if(body?.error)reason=body.error;}catch{}throw new Error(reason)}
+ if(data?.error)throw new Error(data.error);
+ return data;
+}
+function staffAdminRender(){
+ const rows=$('staffAdminRows'),staff=staffAdmin.staff;
+ $('staffAdminSummary').textContent='활성 '+staff.filter(s=>s.active).length+'명 · 계정 발급 '+staff.filter(s=>s.active&&s.linked).length+'명 · 발급 대기 '+staff.filter(s=>s.active&&!s.linked).length+'명';
+ rows.innerHTML=staff.map(s=>{
+  const state=!s.active?'비활성':!s.linked?'계정 발급 전':s.needsPassword?'첫 비밀번호 변경 대기':'사용 가능';
+  return '<div class="staff-admin-row" data-staff-id="'+escapeHtml(s.id)+'"><div class="details"><strong>'+escapeHtml(s.center+' · '+s.name)+'</strong><span class="state"> · '+escapeHtml(state)+'</span><small>'+escapeHtml(s.email)+(s.isAdmin?' · 최고 관리자':'')+'</small></div><div class="actions">'+
+   (s.isAdmin?'<small>관리자 계정</small>':'<button type="button" data-act="edit">수정</button><button type="button" data-act="'+(s.active?'deactivate':'activate')+'">'+(s.active?'비활성화':'재활성화')+'</button>'+
+   (s.active?'<button type="button" data-act="'+(s.linked?'reset':'issue')+'">'+(s.linked?'비밀번호 초기화':'계정 발급')+'</button>':''))+'</div></div>';
+ }).join('');
+}
+async function staffAdminRefresh(){
+ const data=await staffAdminApi('list');staffAdmin.staff=Array.isArray(data.staff)?data.staff:[];staffAdminRender();
+}
+function staffAdminCredentialsRender(){
+ const text=staffAdmin.credentials.map(s=>s.name+' ('+s.email+') : '+s.temporaryPassword).join('\n');
+ $('staffAdminCredentialText').textContent=text;
+ $('staffAdminCredentials').classList.toggle('hide',!text);
+}
+function staffAdminAppendCredential(result,staff){
+ staffAdmin.credentials.push({name:staff.name,email:result.email,temporaryPassword:result.temporaryPassword});
+ staffAdminCredentialsRender();
+}
+function staffAdminResetEditor(){
+ staffAdmin.editId=null;$('staffAdminForm').reset();$('staffAdminFormTitle').textContent='직원 추가';$('staffAdminSave').textContent='직원 추가';$('staffAdminEditCancel').classList.add('hide');
+}
+async function staffAdminAction(action,staff){
+ if(staffAdmin.working)return;
+ if(['issue','reset','deactivate','activate'].includes(action)){
+  const label={issue:'신규 계정을 발급',reset:'임시 비밀번호로 초기화',activate:'계정을 재활성화',deactivate:'계정을 비활성화'}[action];
+  if(!confirm(staff.name+' 직원의 '+label+'할까?'))return;
+ }
+ staffAdmin.working=true;$('staffAdminSummary').textContent=staff.name+' · 처리 중…';
+ try{const result=await staffAdminApi(action,{staffId:staff.id});
+ if(result?.temporaryPassword)staffAdminAppendCredential(result,staff);
+ await staffAdminRefresh();
+ }catch(err){$('staffAdminSummary').textContent='처리 실패: '+err.message;}finally{staffAdmin.working=false}
+}
+async function staffAdminBulkIssue(){
+ if(staffAdmin.working)return;
+ const waiting=staffAdmin.staff.filter(s=>s.active&&!s.linked&&!s.isAdmin);
+ if(!waiting.length){alert('발급 대기 중인 직원이 없어.');return}
+ if(!confirm('발급 대기 직원 '+waiting.length+'명의 계정을 발급할까? 직원별 임시 비밀번호를 화면에 표시해. 발급 후 목록을 안전하게 보관해 줘.'))return;
+ staffAdmin.working=true;$('staffAdminBulk').disabled=true;
+ const errors=[];
+ try{
+  for(let i=0;i<waiting.length;i++){
+   const staff=waiting[i];
+   $('staffAdminSummary').textContent='계정 발급 진행 '+(i+1)+' / '+waiting.length+' · '+staff.name;
+   try{const result=await staffAdminApi('issue',{staffId:staff.id});if(result.temporaryPassword)staffAdminAppendCredential(result,staff)}
+   catch(err){errors.push(staff.name+' : '+err.message)}
+  }
+  await staffAdminRefresh();
+  if(errors.length){$('staffAdminSummary').textContent='일부 발급 실패 ('+errors.length+'명). '+errors.join(' / ')}
+ }finally{staffAdmin.working=false;$('staffAdminBulk').disabled=false}
+}
+async function openStaffAdmin(){
+ if(!cloud.active||!cloud.identity?.isAdmin)return;
+ $('staffAdminDlg').showModal();
+ try{await staffAdminRefresh()}catch(e){$('staffAdminSummary').textContent='명단을 가져오지 못했습니다: '+e.message}
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
@@ -522,7 +604,33 @@ async function cloudBoot(){
   }catch(err){$('cloudAuthMessage').textContent='메일 요청 실패: '+err.message;}
   finally{$('cloudMagic').disabled=false}
  };
- $('cloudAdminShortcut').onclick=()=>window.open('https://supabase.com/dashboard/project/hnhccnyitrlzqprnredi/auth/users','_blank','noopener,noreferrer');
+ $('cloudAdminShortcut').onclick=openStaffAdmin;
+ $('staffAdminClose').onclick=()=>$('staffAdminDlg').close();
+ $('staffAdminRefresh').onclick=async()=>{try{await staffAdminRefresh()}catch(e){$('staffAdminSummary').textContent=e.message}};
+ $('staffAdminBulk').onclick=staffAdminBulkIssue;
+ $('staffAdminCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('staffAdminCredentialText').textContent);alert('이번에 발급된 계정 목록을 복사했어. 안전하게 보관해 줘.')}catch{alert('복사할 수 없어요. 화면에서 직접 선택해 복사해 주세요.')}};
+ $('staffAdminClear').onclick=()=>{staffAdmin.credentials=[];staffAdminCredentialsRender()};
+ $('staffAdminEditCancel').onclick=staffAdminResetEditor;
+ $('staffAdminRows').onclick=e=>{
+  const btn=e.target.closest('[data-act]');if(!btn)return;
+  const id=btn.closest('[data-staff-id]')?.dataset.staffId;
+  const staff=staffAdmin.staff.find(s=>s.id===id);if(!staff)return;
+  if(btn.dataset.act==='edit'){
+   staffAdmin.editId=staff.id;$('staffName').value=staff.name;$('staffEmail').value=staff.email;$('staffCenter').value=staff.center;$('staffRole').value=staff.role;
+   $('staffAdminFormTitle').textContent='직원 정보 수정 · '+staff.name;$('staffAdminSave').textContent='변경사항 저장';$('staffAdminEditCancel').classList.remove('hide');$('staffAdminForm').scrollIntoView({behavior:'smooth'});return;
+  }
+  staffAdminAction(btn.dataset.act,staff);
+ };
+ $('staffAdminForm').onsubmit=async e=>{
+  e.preventDefault();if(staffAdmin.working)return;
+  const info={name:$('staffName').value.trim(),email:$('staffEmail').value.trim().toLowerCase(),center:$('staffCenter').value,role:$('staffRole').value};
+  staffAdmin.working=true;$('staffAdminSave').disabled=true;
+  try{await staffAdminApi(staffAdmin.editId?'edit':'add',{staffId:staffAdmin.editId,staff:info});staffAdminResetEditor();await staffAdminRefresh()}
+  catch(err){$('staffAdminSummary').textContent='저장 실패: '+err.message}
+  finally{staffAdmin.working=false;$('staffAdminSave').disabled=false}
+ };
+ $('installGuideBtn').onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null}else $('installGuideDlg').showModal()};
+ $('installGuideClose').onclick=()=>$('installGuideDlg').close();
  $('cloudSetPassword').onclick=()=>{
   cloud.recovering=false;
   $('cloudPasswordDialog').querySelector('h2').textContent='내 비밀번호 설정·변경';
