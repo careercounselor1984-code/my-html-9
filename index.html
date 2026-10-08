@@ -416,7 +416,7 @@ async function refreshMessages(){
  const person=id=>{const x=sharedTeam.directory.find(e=>e.id===id);return x?x.center+' · '+x.name:'직원'};
  $('messageList').innerHTML=sharedTeam.messages.map(e=>{
  const incoming=e.recipient_id===me,other=incoming?e.sender_id:e.recipient_id;
- return '<div class="message-item"><strong>'+escapeHtml(incoming?'받은 쪽지 · ':'보낸 쪽지 · ')+escapeHtml(person(other))+'</strong><small>'+escapeHtml(new Date(e.created_at).toLocaleString('ko-KR'))+'</small><p>'+escapeHtml(e.content)+'</p></div>';
+ return '<div class="message-item"><strong>'+escapeHtml(incoming?'받은 쪽지 · ':'보낸 쪽지 · ')+escapeHtml(person(other))+'</strong><small>'+escapeHtml(new Date(e.created_at).toLocaleString('ko-KR'))+'</small><p>'+escapeHtml(e.content)+'</p><button type="button" data-msg-delete="'+escapeHtml(e.id)+'">삭제</button></div>';
  }).join('')||'<p>쪽지가 없어.</p>';
  const unread=sharedTeam.messages.filter(x=>x.recipient_id===me&&!x.read_at);
  $('messageFeedback').textContent='최근 쪽지 최대 80개 표시 · 개인정보 전송 금지';
@@ -445,7 +445,7 @@ async function cloudBoot(){
  $('messageBtn').onclick=async()=>{if(!cloud.active)return;$('messageDlg').showModal();try{await refreshMessages()}catch(e){$('messageFeedback').textContent='쪽지 조회 오류: '+e.message}};
  $('messageClose').onclick=()=>$('messageDlg').close();
  $('messageRefresh').onclick=refreshMessages;
- $('messageForm').onsubmit=sendMessage;
+ $('messageForm').onsubmit=sendMessage;$('messageList').onclick=async e=>{const button=e.target.closest('[data-msg-delete]');if(!button||!confirm('이 쪽지를 삭제할까?'))return;const {error}=await cloud.client.from('schedule_messages').delete().eq('id',button.dataset.msgDelete);if(error){$('messageFeedback').textContent='삭제 오류: '+error.message;return}await refreshMessages()};
  $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
@@ -705,7 +705,7 @@ function render(){let start=monday(focusDate),isAgenda=currentView==='personalDa
  $('calendar').innerHTML=isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
  const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState()}
 function renderSpecialWork(){
- const node=$('specialWorkSummary');if(['teamLeave','teamDay'].includes(currentView)){node.innerHTML='';return}
+ const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
  const year=focusDate.getFullYear(),month=pad(focusDate.getMonth()+1),a=dateKey(monday(focusDate)),b=dateKey(addDays(monday(focusDate),6)),today=dateKey(focusDate);
  const entries=model.events.filter(e=>e.specialWork&&e.center===currentCenter()&&e.owner===currentOwner()&&
  (currentView==='personalDay'?e.date===today:currentView==='personalWeek'?e.date>=a&&e.date<=b:e.date.startsWith(year+'-'+month+'-'))).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
