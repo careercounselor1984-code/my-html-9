@@ -238,6 +238,7 @@ body:not(.cloud-ready) main.wrap{display:none}
  .mobile-worktools>summary{display:block!important;cursor:pointer;font-size:12px;font-weight:750;padding:12px;color:#526a84}
  .mobile-worktools-items{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 9px 10px}
  .mobile-worktools-items button{min-width:0;width:100%;font-size:12px;min-height:42px;white-space:normal;word-break:keep-all;line-height:1.2}
+ .mobile-worktools:not([open])>.mobile-worktools-items,.cloud-action-more:not([open])>.cloud-extra-actions{display:none!important}
  .toolline input[type=file]{display:none}
  .mobile-bottom-action{position:fixed;bottom:0;left:0;right:0;z-index:80;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));background:#fffffff5;border-top:1px solid #dce7f1;box-shadow:0 -4px 20px #2b4f6818;backdrop-filter:blur(7px)}
  .mobile-bottom-action button{width:100%;min-width:0;min-height:48px;border-radius:12px;font-size:14px;padding:8px;word-break:keep-all;white-space:normal}
@@ -643,6 +644,74 @@ async function openStaffAdmin(){
  catch(err){$('staffAdminSummary').textContent='직원 명단 연결 실패: '+(err?.message||String(err))+' · 연결 또는 로그인 상태를 확인해 주세요.'}
 }
 
+
+/* v20 quick consultation entry: reuse main event validations and cloud sync */
+const QUICK_TYPE_MAP=Object.freeze({'초기':'초기','초기상담':'초기','해석':'해석','검사해석':'해석','iap':'IAP','iap수립':'IAP','계획수립':'IAP','컨설팅':'컨설팅','재진단':'재진단','훈련등록':'훈련등록','카드발급':'카드발급','신청':'신청','일경험':'일경험','연계':'연계'});
+function quickParse(raw){
+ const m=String(raw||'').trim().replace(/\s+/g,' ').match(/^(.+?)\s+([^\s]+)$/);
+ if(!m)return {error:'이름과 상담 구분을 한 칸 띄워 입력해 주세요. 예: 홍길동 초기'};
+ const type=QUICK_TYPE_MAP[m[2].toLowerCase()],title=m[1].trim();
+ if(!type)return {error:'상담 구분: 초기 / 해석 / IAP / 컨설팅 / 재진단 / 훈련등록 / 카드발급 등을 입력해 주세요.'};
+ if(title.length<2||title.length>60)return {error:'내담자 이름을 확인해 주세요.'};
+ return {title,type};
+}
+function quickRefreshTimes(keep=true){
+ const date=$('quickEntryDate').value,sel=$('quickEntryTime'),old=keep?sel.value:'';
+ const now=new Date(),today=dateKey(now),earliest=date===today?Math.ceil((now.getHours()*60+now.getMinutes())/30)*30:0;
+ const owner=cloud.active?cloud.identity.name:currentOwner();
+ const options=slots().filter(t=>!isClosedDay(date)&&withinSameDay(date,t,30,false)&&minute(t)>=earliest);
+ const free=options.filter(t=>!model.events.some(e=>e.center===currentCenter()&&e.owner===owner&&e.date===date&&matchingAt(e,t)));
+ const use=free.length?free:options;
+ sel.innerHTML=use.length?'<option value="">시간 선택</option>'+use.map(t=>'<option value="'+t+'">'+t+'</option>').join(''):'<option value="">등록 가능한 시간 없음</option>';
+ sel.value=old&&use.includes(old)?old:(use[0]||'');
+ quickPreview();
+}
+function quickPreview(){
+ const p=$('quickEntryPreview'),raw=$('quickEntryText').value.trim(),parsed=quickParse(raw),date=$('quickEntryDate').value,time=$('quickEntryTime').value;
+ const valid=!!(raw&&!parsed.error&&date&&time);
+ p.classList.toggle('valid',valid);
+ p.textContent=!raw?'예: 홍길동 초기 → 홍길동 · 초기상담 · 선택한 시간에 30분 예약':
+ parsed.error||!time?'상담 가능한 날짜와 시간을 선택해 주세요.':('등록 예정 · '+parsed.title+' · '+parsed.type+' · '+date+' '+time+' (30분)');
+ if(raw&&parsed.error)p.textContent=parsed.error;
+}
+function quickSyncDate(){
+ $('quickEntrySection').classList.toggle('hide',['teamDay','teamLeave'].includes(currentView));
+ if(['teamDay','teamLeave'].includes(currentView))return;
+ const date=dateKey(focusDate);
+ if($('quickEntryDate').value!==date){$('quickEntryDate').value=date;quickRefreshTimes(false)}else quickRefreshTimes(true);
+}
+async function quickSubmit(e){
+ e.preventDefault();
+ if(!cloud.active){$('quickEntryPreview').textContent='로그인 후 등록해 주세요.';return}
+ const parsed=quickParse($('quickEntryText').value),date=$('quickEntryDate').value,time=$('quickEntryTime').value;
+ if(parsed.error){$('quickEntryPreview').textContent=parsed.error;return}
+ if(!date||!time||!withinSameDay(date,time,30,false)){$('quickEntryPreview').textContent='근무 가능한 날짜·시간을 선택해 주세요.';return}
+ const b=$('quickEntrySave');b.disabled=true;b.textContent='저장 중…';
+ try{
+  openEditor(date,time,null,cloud.identity.name,'consult');
+  if(!$('dlg').open){$('quickEntryPreview').textContent='등록 창을 열지 못했어요. 날짜를 확인해 주세요.';return}
+  $('fperson').value=parsed.title;$('ftype').value=parsed.type;$('ftype').dataset.lastType=parsed.type;updateCustomTypeField();
+  const saved=await saveEntry();
+  if(saved&&!$('dlg').open){
+   $('quickEntryText').value='';
+   quickRefreshTimes(false);
+   $('quickEntryPreview').textContent=parsed.title+' · '+parsed.type+' · '+date+' '+time+' 등록됨. 동기화 완료 표시를 확인해 주세요.';
+  }else $('quickEntryPreview').textContent='기존 이름이나 중복 일정 확인이 필요해요. 열린 상담 등록창을 확인해 주세요.';
+ }catch(err){$('quickEntryPreview').textContent='저장 오류: '+(err?.message||String(err))}
+ finally{b.disabled=false;b.textContent='바로 등록'}
+}
+function initQuickAndMobile(){
+ const mobile=window.matchMedia('(max-width:760px)').matches;
+ document.querySelector('.cloud-action-more').open=!mobile;
+ document.querySelector('.mobile-worktools').open=!mobile;
+ $('quickEntryText').addEventListener('input',quickPreview);
+ $('quickEntryDate').addEventListener('change',()=>quickRefreshTimes(false));
+ $('quickEntryTime').addEventListener('change',quickPreview);
+ $('quickEntryForm').addEventListener('submit',quickSubmit);
+ $('mobileAddConsult').onclick=()=>{if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');$('addConsult').click()};
+ $('mobileAddWork').onclick=()=>{if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');$('addWork').click()};
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
@@ -822,6 +891,7 @@ async function cloudBoot(){
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
 window.addEventListener('load',cloudBoot);
+window.addEventListener('load',initQuickAndMobile);
 
 const ROSTER={'남부본사':[],'동구지사':[],'북부센터':[],'서부센터':[]};
 const CENTERS=Object.keys(ROSTER);
@@ -964,7 +1034,7 @@ function render(){let start=monday(focusDate),isAgenda=currentView==='personalDa
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
  $('calendar').innerHTML=isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
- const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState()}
+ const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate()}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
  const year=focusDate.getFullYear(),month=pad(focusDate.getMonth()+1),a=dateKey(monday(focusDate)),b=dateKey(addDays(monday(focusDate),6)),today=dateKey(focusDate);
