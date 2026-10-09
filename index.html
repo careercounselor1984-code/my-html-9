@@ -386,7 +386,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
 }
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22 · 모바일 간편 일정관리</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.1 · 부드러운 일정 스와이프</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -1195,13 +1195,17 @@ function personalDay(dayOverride){
  h+='</div></div>'}
  h+='</div></div>';return h;
 }
-function personalWeek(){
- const start=monday(focusDate),days=Array.from({length:5},(_,i)=>dateKey(addDays(start,i))),names=['월','화','수','목','금'];
- const chosen=dateKey(focusDate),active=days.includes(chosen)?chosen:days[0];
+function mobileWeekContent(targetDate){
+ const start=monday(targetDate),days=Array.from({length:5},(_,i)=>dateKey(addDays(start,i))),names=['월','화','수','목','금'];
+ const chosen=dateKey(targetDate),active=days.includes(chosen)?chosen:days[0];
  const buttons=days.map((day,i)=>{const count=employeeEventsFor(day).filter(isConsultEvent).length;
   return `<button type="button" class="week-day ${day===active?'active':''}" data-week-day="${day}" aria-pressed="${day===active}" aria-label="${day} ${names[i]}요일 상담 ${count}건"><b>${names[i]}</b><strong>${Number(day.slice(8))}</strong><small>${isClosedDay(day)?'휴무':count+'건'}</small></button>`;
  }).join('');
  const mobile=`<div class="mobile-week"><div class="mobile-week-intro"><b>이번 주 일정</b><small>← 좌우로 밀어 날짜 이동 →</small></div><div class="mobile-week-tabs">${buttons}</div><div class="mobile-week-date">${active.slice(5).replace('-','/')} ${names[days.indexOf(active)]}요일 · 상담 ${employeeEventsFor(active).filter(isConsultEvent).length}건</div>${personalDay(active)}</div>`;
+ return mobile;
+}
+function personalWeek(){
+ const start=monday(focusDate),mobile=mobileWeekContent(focusDate);
  let h='<div class="desktop-week"><table class="timetable"><thead><tr><th>시간</th>';for(let i=0;i<5;i++){const d=addDays(start,i);h+=headerDay(dateKey(d),['월','화','수','목','금'][i])}h+='</tr></thead><tbody>';
  for(const t of slots()){h+=`<tr><th class="time">${t}</th>`;for(let i=0;i<5;i++){const date=dateKey(addDays(start,i)),closed=isFridayClosed(date,t)||isClosedDay(date),tags=holidays(date),cellClass=closed?'blocked':'';h+=`<td class="slot ${cellClass}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(currentOwner())}">`;if(!closed){const evs=employeeEventsFor(date).filter(e=>matchingAt(e,t));for(const ev of evs){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return mobile+h+'</tbody></table></div>'}
 function teamDay(){const date=dateKey(focusDate),names=employees(currentCenter());let h=`<table class="timetable" style="--staff-count:${names.length};min-width:${Math.max(700,70+names.length*116)}px"><thead><tr><th>시간</th>`+names.map(n=>`<th>${escapeHtml(n)}</th>`).join('')+'</tr></thead><tbody>';
@@ -1220,13 +1224,32 @@ function monthCalendar(team=false){const y=focusDate.getFullYear(),m=focusDate.g
 if(team){const labels=teamLabels(arr,date);h+=labels.length?labels.join(''):'<span class="empty-hint">등록된 근무 일정 없음</span>'}
 else{const x=dayMetrics(arr,date);if(x.consultations)h+=`<div class="metric metric-consult">상담 <span class="count">${x.consultations}건</span></div>`;if(x.leaveMinutes)h+=`<div class="metric metric-leave">연차 <span class="count">${durationLabel(x.leaveMinutes)}</span></div>`;const others=[...new Set(arr.filter(e=>!isConsultEvent(e)&&!['연차','반차','2시간 연차','반반차'].includes(e.type)).map(e=>e.type))];for(const x of others)h+=`<div class="mini-detail">${escapeHtml(x)}</div>`;if(!arr.length)h+=blocked?'<span class="closed-hint">휴무 · 일정 등록 불가</span>':'<span class="empty-hint">클릭하여 하루 일정 등록</span>'}
 h+='</div>'}}return h+'</div>'}
+
+function mobileSwipeTargetDate(date,step){
+ let next=addDays(date,step);
+ if(currentView==='personalWeek')while(next.getDay()===0||next.getDay()===6)next=addDays(next,step);
+ return next;
+}
+function mobileSwipeMarkup(){
+ const before=mobileSwipeTargetDate(focusDate,-1),after=mobileSwipeTargetDate(focusDate,1);
+ const content=date=>currentView==='personalWeek'?mobileWeekContent(date):personalDay(dateKey(date));
+ return '<div class="mobile-swipe-viewport" aria-label="좌우로 밀어 날짜 이동"><div class="mobile-swipe-track">'+
+ '<section class="mobile-swipe-page" data-swipe-page="previous">'+content(before)+'</section>'+
+ '<section class="mobile-swipe-page" data-swipe-page="current">'+content(focusDate)+'</section>'+
+ '<section class="mobile-swipe-page" data-swipe-page="next">'+content(after)+'</section></div></div>';
+}
+function mobileSwipeSize(){
+ const area=$('calendar').querySelector('.mobile-swipe-viewport');
+ const page=area?.querySelector('[data-swipe-page="current"]');
+ if(page)area.style.height=Math.ceil(page.getBoundingClientRect().height)+'px';
+}
 function changeView(v){currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
 function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateKey(start)+' ~ '+dateKey(addDays(start,4)):(isDay||isAgenda)?date:month;
  $('period').textContent=period;$('datePickerWrap').classList.toggle('hide',!(isDay||isAgenda));$('datePicker').value=date;
  const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
- $('calendar').innerHTML=isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
+ $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches&&(isAgenda||isWeek)?mobileSwipeMarkup():isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');mobileSwipeSize();document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
  const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate()}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
