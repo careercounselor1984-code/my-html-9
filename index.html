@@ -257,9 +257,44 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
  .day-agenda{padding:0 0 13px}
 }
 @media print{.quick-entry,.mobile-bottom-action,.cloud-action-more>summary,.mobile-worktools>summary{display:none!important}}
+
+/* v21 mobile layout, kept separate from print and desktop views */
+.mobile-week{display:none}
+@media screen and (max-width:760px){
+ #quickEntrySection{min-width:0;overflow:hidden}
+ #quickEntrySection .quick-entry-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch;gap:11px!important}
+ #quickEntrySection .quick-entry-form label{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0!important;grid-column:1/-1!important;font-size:12px}
+ #quickEntrySection .quick-entry-form input,#quickEntrySection .quick-entry-form select{display:block!important;box-sizing:border-box;width:100%!important;max-width:100%!important;min-width:0!important;height:48px!important;min-height:48px;padding:9px 13px!important;font-size:16px!important;line-height:1.3;text-align:left;border-radius:10px;margin:0}
+ #quickEntrySection .quick-entry-form input[type=date]{-webkit-appearance:none;appearance:none}
+ #quickEntrySection .quick-entry-form input[type=date]::-webkit-date-and-time-value{text-align:left}
+ #quickEntrySection .quick-entry-form #quickEntrySave{grid-column:1/-1!important;width:100%;height:48px!important;margin-top:1px;font-size:15px}
+ body[data-view=personalWeek] .desktop-week{display:none!important}
+ body[data-view=personalWeek] .mobile-week{display:block!important;min-width:0}
+ body[data-view=personalWeek] .scroll{overflow-x:hidden!important}
+ body[data-view=personalWeek] .legend{display:none!important}
+ .mobile-week-intro{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:2px 0 10px}
+ .mobile-week-intro b{font-size:14px}.mobile-week-intro small{font-size:11px;color:#6d8095}
+ .mobile-week-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .mobile-week-tabs .week-day{width:100%;min-width:0;display:flex;align-items:center;flex-direction:column;gap:5px;border:1px solid #dbe5ef;background:#f8fafc;color:#476078;border-radius:11px;padding:11px 2px 9px;line-height:1.1}
+ .mobile-week-tabs .week-day b{font-size:12px}.mobile-week-tabs .week-day strong{font-size:20px;font-variant-numeric:tabular-nums}.mobile-week-tabs .week-day small{font-size:10px;white-space:nowrap}
+ .mobile-week-tabs .week-day.active{background:#e8f3ff;color:#1d5d9b;border-color:#387cc0;box-shadow:inset 0 0 0 1px #387cc0}
+ .mobile-week-date{margin:12px 0 5px;background:#f1f6fb;color:#315979;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:750}
+ body[data-view=personalWeek] .day-agenda{padding:0;max-width:100%}
+ body[data-view=personalWeek] .agenda-head{padding:8px 1px 10px;gap:6px}
+ body[data-view=personalWeek] .agenda-head strong{font-size:14px;line-height:1.4}
+ body[data-view=personalWeek] .agenda-head small{font-size:11px}
+ body[data-view=personalWeek] .agenda-today{padding:7px;font-size:11px}
+ body[data-view=personalWeek] .agenda-stats{gap:5px;padding:9px 0}
+ body[data-view=personalWeek] .agenda-stats>span{min-width:0;font-size:11px;padding:8px 2px}
+ body[data-view=personalWeek] .agenda-line{min-height:42px;padding:3px 0;gap:6px}
+ body[data-view=personalWeek] .agenda-time{width:46px;font-size:11px;padding:10px 0 0}
+ body[data-view=personalWeek] .agenda-event{min-height:42px;padding:8px 10px}
+ body[data-view=personalWeek] .agenda-empty{min-height:36px;font-size:11px;padding:7px 10px}
+}
+@media print{.mobile-week{display:none!important}.desktop-week{display:block!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v20 · 모바일 화면·빠른 상담등록</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v21 · 휴대폰 일정표 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -993,8 +1028,8 @@ function eventBlock(e,{compact=false,repeat=false,showOwner=false}={}){
  return `<div class="entry entry-${typeClass(e)}${repeat?' gap':''}" data-id="${escapeHtml(e.id)}" title="${escapeHtml(e.memo||'')}">${content}</div>`;
 }
 function headerDay(date,label){const tags=holidays(date),closed=parseDate(date).getDay()===5;return `<th>${label}<span class="thead-note">${date.slice(5)}</span>${closed?'<span class="thead-alert">12시까지 근무</span>':''}${tags.map(t=>`<span class="thead-alert">${escapeHtml(t)}</span>`).join('')}${shortNotices(date).map(t=>`<span class="thead-note noted">${escapeHtml(t)}</span>`).join('')}</th>`}
-function personalDay(){
- const date=dateKey(focusDate),off=closedDayReasons(date),available=workSlots(date),entries=employeeEventsFor(date).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+function personalDay(dayOverride){
+ const date=dayOverride||dateKey(focusDate),off=closedDayReasons(date),available=workSlots(date),entries=employeeEventsFor(date).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
  let h='<div class="day-agenda">';
  h+=`<div class="agenda-head"><div><strong>${escapeHtml(date)} · ${['일','월','화','수','목','금','토'][parseDate(date).getDay()]}요일</strong><small>${escapeHtml(currentOwner())} 상담사 일정</small></div><button type="button" class="agenda-today" data-agenda-today>오늘로 이동</button></div>`;
  if(off.length){h+=`<div class="agenda-closed">🔒 ${escapeHtml(off.join(' · '))} · 상담 등록은 기본 차단. 실제 근무는 연장·휴일근무 버튼으로 등록해요.</div>`;h+=entries.filter(e=>e.specialWork).map(e=>`<button type="button" class="agenda-event" data-agenda-edit="${escapeHtml(e.id)}">${escapeHtml(e.time+' · '+e.type+' · '+e.title)}</button>`).join('');return h+'</div>'}
@@ -1010,8 +1045,15 @@ function personalDay(){
  h+='</div></div>'}
  h+='</div></div>';return h;
 }
-function personalWeek(){const start=monday(focusDate);let h='<table class="timetable"><thead><tr><th>시간</th>';for(let i=0;i<5;i++){const d=addDays(start,i);h+=headerDay(dateKey(d),['월','화','수','목','금'][i])}h+='</tr></thead><tbody>';
- for(const t of slots()){h+=`<tr><th class="time">${t}</th>`;for(let i=0;i<5;i++){const date=dateKey(addDays(start,i)),closed=isFridayClosed(date,t)||isClosedDay(date),tags=holidays(date),cellClass=closed?'blocked':'';h+=`<td class="slot ${cellClass}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(currentOwner())}">`;if(!closed){const evs=employeeEventsFor(date).filter(e=>matchingAt(e,t));for(const ev of evs){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return h+'</tbody></table>'}
+function personalWeek(){
+ const start=monday(focusDate),days=Array.from({length:5},(_,i)=>dateKey(addDays(start,i))),names=['월','화','수','목','금'];
+ const chosen=dateKey(focusDate),active=days.includes(chosen)?chosen:days[0];
+ const buttons=days.map((day,i)=>{const count=employeeEventsFor(day).filter(isConsultEvent).length;
+  return `<button type="button" class="week-day ${day===active?'active':''}" data-week-day="${day}" aria-pressed="${day===active}" aria-label="${day} ${names[i]}요일 상담 ${count}건"><b>${names[i]}</b><strong>${Number(day.slice(8))}</strong><small>${isClosedDay(day)?'휴무':count+'건'}</small></button>`;
+ }).join('');
+ const mobile=`<div class="mobile-week"><div class="mobile-week-intro"><b>이번 주 일정</b><small>요일을 눌러 상담을 확인하세요</small></div><div class="mobile-week-tabs">${buttons}</div><div class="mobile-week-date">${active.slice(5).replace('-','/')} ${names[days.indexOf(active)]}요일 · 상담 ${employeeEventsFor(active).filter(isConsultEvent).length}건</div>${personalDay(active)}</div>`;
+ let h='<div class="desktop-week"><table class="timetable"><thead><tr><th>시간</th>';for(let i=0;i<5;i++){const d=addDays(start,i);h+=headerDay(dateKey(d),['월','화','수','목','금'][i])}h+='</tr></thead><tbody>';
+ for(const t of slots()){h+=`<tr><th class="time">${t}</th>`;for(let i=0;i<5;i++){const date=dateKey(addDays(start,i)),closed=isFridayClosed(date,t)||isClosedDay(date),tags=holidays(date),cellClass=closed?'blocked':'';h+=`<td class="slot ${cellClass}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(currentOwner())}">`;if(!closed){const evs=employeeEventsFor(date).filter(e=>matchingAt(e,t));for(const ev of evs){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return mobile+h+'</tbody></table></div>'}
 function teamDay(){const date=dateKey(focusDate),names=employees(currentCenter());let h=`<table class="timetable" style="--staff-count:${names.length};min-width:${Math.max(700,70+names.length*116)}px"><thead><tr><th>시간</th>`+names.map(n=>`<th>${escapeHtml(n)}</th>`).join('')+'</tr></thead><tbody>';
  const counts=allEventsFor(date);for(const t of slots()){const closed=isFridayClosed(date,t)||isClosedDay(date);h+=`<tr><th class="time">${t}</th>`;for(const n of names){h+=`<td class="slot ${closed?'blocked':holidays(date).length?'dayoff':''}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(n)}">`;if(!closed){for(const ev of counts.filter(e=>e.owner===n&&matchingAt(e,t))){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return h+'</tbody></table>'}
 function workSlots(date){return isClosedDay(date)?[]:slots().filter(t=>!isFridayClosed(date,t))}
@@ -1239,9 +1281,10 @@ $('center').onchange=()=>{refreshEmployees();render()};$('owner').onchange=()=>{
 $('prev').onclick=()=>nav(-1);$('next').onclick=()=>nav(1);$('today').onclick=()=>{focusDate=new Date();render()};$('datePicker').onchange=e=>{if(e.target.value){focusDate=parseDate(e.target.value);render()}};
 $('addConsult').onclick=()=>{if(currentView==='personalDay'||currentView==='personalWeek'||currentView==='personalMonth')openEditor(null,null,null,null,'consult')};$('addWork').onclick=()=>{if(currentView==='personalDay'||currentView==='personalWeek'||currentView==='personalMonth')openEditor(null,null,null,null,'work')};$('specialWorkBtn').onclick=()=>{if(['personalDay','personalWeek','personalMonth'].includes(currentView))openEditor(dateKey(focusDate),'18:00',null,currentOwner(),'work',true)};$('specialWorkSummary').onclick=e=>{const b=e.target.closest('[data-special]');if(!b)return;const ev=model.events.find(x=>x.id===b.dataset.special);if(ev)openEditor(ev.date,ev.time,ev.id,ev.owner,'work')};$('quickLeave').onclick=()=>{quickLeave=!quickLeave;setQuickState()};
 $('calendar').onclick=e=>{
+ const weekDay=e.target.closest('[data-week-day]');if(weekDay&&currentView==='personalWeek'){focusDate=parseDate(weekDay.dataset.weekDay);render();return}
  const today=e.target.closest('[data-agenda-today]');if(today){focusDate=new Date();render();return}
- const edit=e.target.closest('[data-agenda-edit]');if(edit){const ev=model.events.find(x=>x.id===edit.dataset.agendaEdit);if(ev)openEditor(ev.date,ev.time,ev.id,ev.owner,eventKind(ev));return}
- const add=e.target.closest('[data-agenda-add]');if(add){openEditor(add.dataset.agendaAdd,add.dataset.agendaTime,null,currentOwner(),'consult');return}
+ const edit=e.target.closest('[data-agenda-edit]');if(edit){const ev=model.events.find(x=>x.id===edit.dataset.agendaEdit);if(!ev)return;if(quickLeave&&currentView==='personalWeek'&&matchMedia('(max-width:760px)').matches){if(ev.quick&&ev.type==='연차')batchQuick([ev.date+'|'+ev.time+'|'+ev.owner]);else alert('이미 등록된 일정이 있어요. 빈 시간을 선택해 주세요.');return}openEditor(ev.date,ev.time,ev.id,ev.owner,eventKind(ev));return}
+ const add=e.target.closest('[data-agenda-add]');if(add){if(quickLeave&&currentView==='personalWeek'&&matchMedia('(max-width:760px)').matches){batchQuick([add.dataset.agendaAdd+'|'+add.dataset.agendaTime+'|'+currentOwner()]);return}openEditor(add.dataset.agendaAdd,add.dataset.agendaTime,null,currentOwner(),'consult');return}
  if(suppressPaintClick){suppressPaintClick=false;return}if(currentView==='teamDay')return;const cell=e.target.closest('[data-date]');if(!cell)return;if(currentView==='teamLeave'){showTeamDaySummary(cell.dataset.date);return}if(isClosedDay(cell.dataset.date)){closedDayAlert(cell.dataset.date);return}if(isFridayClosed(cell.dataset.date,cell.dataset.time||'09:00'))return;if(quickLeave)return;const block=e.target.closest('[data-id]');if(block){openEditor(null,null,block.dataset.id);return}if(currentView==='personalMonth'){openQuickDay(cell.dataset.date);return}openEditor(cell.dataset.date,cell.dataset.time||'09:00',null,cell.dataset.owner||currentOwner())};
 $('calendar').addEventListener('pointerdown',e=>{if(!quickLeave||currentView!=='personalWeek'||e.button!==0)return;const cell=e.target.closest('.slot[data-date][data-time]');if(!cell||cell.classList.contains('blocked')||isClosedDay(cell.dataset.date))return;e.preventDefault();activePaint={start:slotKey(cell),keys:[]};paintCellAt(e.clientX,e.clientY)});
 document.addEventListener('pointermove',e=>{if(activePaint){e.preventDefault();paintCellAt(e.clientX,e.clientY)}},{passive:false});
