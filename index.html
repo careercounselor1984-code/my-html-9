@@ -963,7 +963,7 @@ function initQuickAndMobile(){
 
 
 /* Journal-to-schedule transfer: only prefill. The employee must click Save. */
-let journalBookingPending=null;
+let journalBookingPending=null,journalBookingDisplayedKey='';
 function journalBookingAnnounce(){
  const status={type:'goodjob:schedule-ready:v1',loggedIn:!!cloud.active};
  for(const target of [window.parent!==window?window.parent:null,window.opener]){
@@ -999,6 +999,9 @@ window.addEventListener('message',event=>{
  const date=String(p.date||''),time=String(p.time||''),name=String(p.name||'').trim(),typ=String(p.consultType||'초기');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).valueOf())||!/^([01]\d|2[0-3]):(00|30)$/.test(time)||name.length<2||name.length>70)return;
  if(!CONSULT_TYPES.some(x=>x[0]===typ))return;
+ const key=date+'|'+time+'|'+name+'|'+typ;
+ if(key===journalBookingDisplayedKey&&$('dlg').open)return;
+ journalBookingDisplayedKey=key;
  journalBookingPending={date,time,name,type:typ};
  if(cloud.active)journalBookingMaybeOpen();
  else $('cloudAuthMessage').textContent='상담일지에서 다음 상담 예약을 받았어요. 로그인 후 예약창이 열립니다.';
