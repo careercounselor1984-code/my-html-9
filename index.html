@@ -829,7 +829,7 @@ async function quickSubmit(e){
  finally{b.disabled=false;b.textContent='바로 등록'}
 }
 
-let mobileSwipeStart=null,lastMobileSwipeAt=0;
+let mobileSwipeStart=null,lastMobileSwipeAt=0,mobileSwipeAnimating=false;
 function closeMobileMenu(){
  $('cloudArea').classList.remove('mobile-menu-open');
  $('mobileMenuToggle').setAttribute('aria-expanded','false');
@@ -845,15 +845,41 @@ function closeMobileQuick(){
  document.body.classList.remove('mobile-quick-open');
  $('quickEntryText').blur();
 }
-function mobileShiftDate(direction){
- if(!window.matchMedia('(max-width:760px)').matches||!['personalDay','personalWeek'].includes(currentView))return;
- let next=addDays(focusDate,direction);
- if(currentView==='personalWeek'){
-  while([0,6].includes(next.getDay()))next=addDays(next,direction);
- }
- focusDate=next;
+function mobileSwipeSettle(direction=0){
+ const viewport=$('calendar').querySelector('.mobile-swipe-viewport');
+ const track=viewport?.querySelector('.mobile-swipe-track');
+ if(!viewport||!track||mobileSwipeAnimating)return;
+ mobileSwipeAnimating=true;
+ mobileSwipeStart=null;
  lastMobileSwipeAt=Date.now();
- render();
+ const target=direction>0?'-200%':direction<0?'0%':'-100%';
+ const incoming=viewport.querySelector('[data-swipe-page="'+(direction>0?'next':direction<0?'previous':'current')+'"]');
+ if(incoming)viewport.style.height=Math.ceil(incoming.getBoundingClientRect().height)+'px';
+ let finished=false;
+ let watchdog;
+ const done=()=>{
+  if(finished)return;
+  finished=true;
+  clearTimeout(watchdog);
+  track.removeEventListener('transitionend',onEnd);
+  if(direction){
+   focusDate=mobileSwipeTargetDate(focusDate,direction);
+   render();
+  }else{
+   track.style.transition='none';
+   track.style.transform='translate3d(-100%,0,0)';
+   mobileSwipeSize();
+  }
+  mobileSwipeAnimating=false;
+ };
+ const onEnd=e=>{if(e.target===track&&e.propertyName==='transform')done()};
+ track.addEventListener('transitionend',onEnd);
+ watchdog=setTimeout(done,490);
+ requestAnimationFrame(()=>{
+  if(finished)return;
+  track.style.transition='transform 325ms cubic-bezier(.22,.72,.19,1)';
+  track.style.transform='translate3d('+target+',0,0)';
+ });
 }
 function initQuickAndMobile(){
  const mobile=window.matchMedia('(max-width:760px)').matches;
@@ -879,19 +905,40 @@ function initQuickAndMobile(){
  };
  const calendar=$('calendar');
  calendar.addEventListener('touchstart',e=>{
-  if(!window.matchMedia('(max-width:760px)').matches||!['personalDay','personalWeek'].includes(currentView))return;
-  if(e.touches.length!==1)return;
-  if(!e.target.closest('.mobile-week,.day-agenda'))return;
-  mobileSwipeStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  if(!window.matchMedia('(max-width:760px)').matches||!['personalDay','personalWeek'].includes(currentView)||mobileSwipeAnimating)return;
+  if(e.touches.length!==1||document.querySelector('dialog[open]')||document.body.classList.contains('mobile-quick-open'))return;
+  const viewport=e.target.closest('.mobile-swipe-viewport');
+  if(!viewport||!e.target.closest('[data-swipe-page="current"]'))return;
+  const touch=e.touches[0];
+  mobileSwipeStart={x:touch.clientX,y:touch.clientY,time:performance.now(),axis:'',dx:0,width:viewport.clientWidth,viewport,track:viewport.querySelector('.mobile-swipe-track')};
  },{passive:true});
+ calendar.addEventListener('touchmove',e=>{
+  const drag=mobileSwipeStart;
+  if(!drag||e.touches.length!==1)return;
+  const dx=e.touches[0].clientX-drag.x,dy=e.touches[0].clientY-drag.y;
+  if(!drag.axis){
+   if(Math.abs(dy)>11&&Math.abs(dy)>Math.abs(dx)){mobileSwipeStart=null;return}
+   if(Math.abs(dx)>9&&Math.abs(dx)>Math.abs(dy)*1.15)drag.axis='horizontal';
+  }
+  if(drag.axis!=='horizontal')return;
+  e.preventDefault();
+  drag.dx=Math.max(-drag.width*1.05,Math.min(drag.width*1.05,dx));
+  drag.track.style.transition='none';
+  drag.track.style.transform='translate3d(calc(-100% + '+drag.dx+'px),0,0)';
+ },{passive:false});
  calendar.addEventListener('touchend',e=>{
-  if(!mobileSwipeStart||!e.changedTouches.length)return;
-  const x=e.changedTouches[0].clientX-mobileSwipeStart.x;
-  const y=e.changedTouches[0].clientY-mobileSwipeStart.y;
+  const drag=mobileSwipeStart;
   mobileSwipeStart=null;
-  if(Math.abs(x)>=60&&Math.abs(x)>Math.abs(y)*1.5)mobileShiftDate(x<0?1:-1);
+  if(!drag||drag.axis!=='horizontal'||!e.changedTouches.length)return;
+  const dx=e.changedTouches[0].clientX-drag.x;
+  const dt=performance.now()-drag.time;
+  const sufficient=Math.abs(dx)>Math.min(drag.width*.24,105)||(Math.abs(dx)>44&&dt<300);
+  mobileSwipeSettle(sufficient?(dx<0?1:-1):0);
  },{passive:true});
- calendar.addEventListener('touchcancel',()=>{mobileSwipeStart=null},{passive:true});
+ calendar.addEventListener('touchcancel',()=>{
+  if(mobileSwipeStart?.axis==='horizontal')mobileSwipeSettle(0);
+  mobileSwipeStart=null;
+ },{passive:true});
  calendar.addEventListener('click',e=>{
   if(Date.now()-lastMobileSwipeAt<450){e.preventDefault();e.stopImmediatePropagation()}
  },true);
