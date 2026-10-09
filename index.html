@@ -749,7 +749,7 @@ async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
  try{
  const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(error)throw error;
- cloud.identity=data.identity;
+ cloud.identity={...cloud.identity,...data.identity};
  // Personal data is full. Other employees' consultation names come from server already masked.
  model.events=Array.isArray(data.events)?data.events:[];
  model.participants=Array.isArray(data.participants)?data.participants:[];
@@ -787,6 +787,8 @@ function cloudApplyIdentity(info){
  $('cloudUser').textContent=info.center+' · '+info.name+' ('+(info.role==='manager'?'팀장':info.role==='director'?'부장':'상담사')+')';
  $('cloudArea').classList.remove('hide');
  $('cloudAdminShortcut').classList.toggle('hide',!info.isAdmin);
+ $('executiveOpen').classList.toggle('hide',!(info.isAdmin||info.role==='director'));
+ $('executiveBack').classList.toggle('hide',info.role==='director');
  document.querySelector('.context-note').textContent='로그인 계정으로 담당 센터와 상담사가 자동 지정돼요. 다른 직원 일정은 센터 전체 보기에서 확인할 수 있어요.';
  document.querySelector('.mobile-banner span:last-child').innerHTML='휴대폰과 PC의 일정을 같은 계정으로 확인할 수 있어요. <b>서버에 저장 완료 ✓</b> 표시를 확인해 주세요.';
 
@@ -810,6 +812,7 @@ async function cloudStartSession(){
  cloud.initialPasswordChange=false;
  cloudApplyIdentity(data);
  await cloudReload();
+ if(cloud.identity?.role==='director')await executiveOpen();
  journalBookingAnnounce();
  journalBookingMaybeOpen();
  await journalDirectProcess();
@@ -1238,11 +1241,153 @@ window.addEventListener('message',event=>{
 });
 window.addEventListener('load',()=>setTimeout(journalBookingAnnounce,400));
 
+
+/* Executive overview v23. The API returns only scheduled categories/counts,
+   not client names, notes, participant IDs or contact information. */
+const executiveState={center:'전체',month:'',day:'',data:null,loading:false,open:false};
+const EXEC_CENTERS=['남부본사','북부센터','동구지사','서부센터'];
+function executiveAllowed(){return !!(cloud.active&&(cloud.identity?.isAdmin===true||cloud.identity?.role==='director'));}
+function executiveMonthRange(month){
+ if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new Error('조회 월을 선택해 주세요.');
+ const [y,m]=month.split('-').map(Number);
+ return {start:month+'-01',end:y+'-'+pad(m)+'-'+pad(new Date(y,m,0).getDate())};
+}
+function executiveMoveMonth(direction){
+ const month=executiveState.month||dateKey(new Date()).slice(0,7);
+ const [y,m]=month.split('-').map(Number);
+ const next=new Date(y,m-1+direction,1);
+ executiveState.month=next.getFullYear()+'-'+pad(next.getMonth()+1);
+ executiveState.day='';
+ $('executiveMonth').value=executiveState.month;
+ executiveLoad();
+}
+function executiveFilterItems(){
+ const selected=executiveState.center;
+ $('executiveCenterChips').innerHTML=['전체',...EXEC_CENTERS].map(c=>
+  '<button type="button" data-executive-center="'+escapeHtml(c)+'" aria-pressed="'+(selected===c)+'" class="'+(selected===c?'is-active':'')+'">'+escapeHtml(c==='전체'?'4개 지사 전체':c)+'</button>'
+ ).join('');
+}
+function executiveData(){
+ const obj=executiveState.data||{};
+ const matches=x=>executiveState.center==='전체'||x.center===executiveState.center;
+ return {staff:(obj.staff||[]).filter(matches),events:(obj.events||[]).filter(matches),presence:(obj.presence||[]).filter(matches)};
+}
+function executiveKpi(label,value,hint){
+ return '<div class="executive-kpi"><span>'+escapeHtml(label)+'</span><strong>'+escapeHtml(value)+'</strong><small>'+escapeHtml(hint)+'</small></div>';
+}
+function executiveRender(){
+ if(!executiveState.data)return;
+ executiveFilterItems();
+ const all=executiveData(),staff=all.staff,events=all.events;
+ const consult=events.filter(x=>x.kind==='consult'),work=events.filter(x=>x.kind==='work');
+ const selectedDay=executiveState.day&&executiveState.day.startsWith(executiveState.month)?executiveState.day:(
+  dateKey(new Date()).startsWith(executiveState.month)?dateKey(new Date()):executiveMonthRange(executiveState.month).start);
+ executiveState.day=selectedDay;
+ $('executiveDay').value=selectedDay;
+ $('executiveDay').min=executiveMonthRange(executiveState.month).start;
+ $('executiveDay').max=executiveMonthRange(executiveState.month).end;
+ const dayEvents=events.filter(x=>x.date===selectedDay);
+ const monthlyStaffWithPlans=new Set(events.map(x=>x.center+'|'+x.owner));
+ $('executiveTotals').innerHTML=[
+  executiveKpi('상담사·직원',staff.length+'명','활성 직원 명단 기준'),
+  executiveKpi('월간 상담 예약',consult.length+'건','등록된 상담 일정, 실적 아님'),
+  executiveKpi('근무 일정 등록',work.length+'건','연차·교육·외근 등'),
+  executiveKpi('일정 등록 직원',monthlyStaffWithPlans.size+'명','선택 월 기준')
+ ].join('');
+ $('executiveCenterCards').innerHTML=EXEC_CENTERS.filter(c=>executiveState.center==='전체'||c===executiveState.center).map(c=>{
+  const people=staff.filter(x=>x.center===c);
+  const entries=events.filter(x=>x.center===c);
+  const consultCount=entries.filter(x=>x.kind==='consult').length;
+  const workCount=entries.filter(x=>x.kind==='work').length;
+  return '<button type="button" class="executive-center-card" data-executive-center="'+escapeHtml(c)+'"><strong>'+escapeHtml(c)+'</strong>'+
+   '<div class="exec-number">'+consultCount+'건</div><p>월간 상담 예약 · 직원 '+people.length+'명</p><p>연차·교육 등 '+workCount+'건</p></button>';
+ }).join('');
+ const viewCenters=EXEC_CENTERS.filter(c=>executiveState.center==='전체'||c===executiveState.center);
+ $('executiveDaily').innerHTML=viewCenters.map(c=>{
+  const staffForCenter=staff.filter(x=>x.center===c);
+  const sorted=staffForCenter.map(person=>{
+   const day=dayEvents.filter(x=>x.center===c&&x.owner===person.name);
+   if(!day.length)return '';
+   const consultTimes=day.filter(x=>x.kind==='consult').map(x=>x.time).filter(Boolean).sort();
+   const dailyWork=day.filter(x=>x.kind==='work').map(x=>x.type+(x.allDay?' (종일)':x.time?' ('+x.time+')':''));
+   const summary=[consultTimes.length?'상담 '+consultTimes.length+'건'+(consultTimes.length<=4?' · '+consultTimes.join(', '):''):'',dailyWork.length?dailyWork.join(' / '):''].filter(Boolean).join(' · ');
+   return '<div class="executive-detail-row"><span>'+escapeHtml(person.name)+'</span><span>'+escapeHtml(summary)+'</span></div>';
+  }).filter(Boolean);
+  return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+' · '+selectedDay.slice(5).replace('-','/')+'</h4>'+(sorted.join('')||'<div class="executive-empty">등록된 일정 없음</div>')+'</div>';
+ }).join('');
+ $('executivePresence').innerHTML=viewCenters.map(c=>{
+  const people=all.presence.filter(x=>x.center===c);
+  const items=people.map(x=>'<div class="executive-person"><strong>'+escapeHtml(x.name)+'</strong><span class="executive-pill'+(x.status==='미확인'?' is-unknown':'')+'">'+escapeHtml(x.status)+'</span></div>').join('');
+  return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+'</h4>'+(items||'<div class="executive-empty">직원 명단 없음</div>')+'</div>';
+ }).join('');
+ $('executiveStatus').textContent='조회 월 '+executiveState.month+' · '+(executiveState.center==='전체'?'4개 지사 전체':executiveState.center)+' · 조회 전용';
+}
+async function executiveLoad(){
+ if(!executiveAllowed()||executiveState.loading)return;
+ executiveState.loading=true;
+ $('executiveRefresh').disabled=true;
+ $('executiveStatus').textContent='총괄 현황을 조회하는 중…';
+ try{
+  const period=executiveMonthRange(executiveState.month);
+  const {data,error}=await cloud.client.rpc('schedule_executive_overview',{p_start:period.start,p_end:period.end});
+  if(error)throw error;
+  if(!data||!Array.isArray(data.staff)||!Array.isArray(data.events))throw new Error('총괄 현황 응답이 올바르지 않습니다.');
+  executiveState.data=data;
+  executiveRender();
+ }catch(err){$('executiveStatus').textContent='총괄 현황을 불러오지 못했어요: '+String(err?.message||'서버 응답 오류');}
+ finally{executiveState.loading=false;$('executiveRefresh').disabled=false}
+}
+async function executiveOpen(){
+ if(!executiveAllowed()){alert('총괄 현황 조회 권한이 없어요.');return}
+ executiveState.open=true;
+ document.body.classList.add('executive-mode');
+ $('executiveDashboard').classList.remove('hide');
+ $('executiveOpen').textContent='내 일정 / 총괄 현황';
+ if(!executiveState.month)executiveState.month=dateKey(new Date()).slice(0,7);
+ $('executiveMonth').value=executiveState.month;
+ if(!executiveState.data)await executiveLoad();
+ else executiveRender();
+ window.scrollTo?.({top:0,behavior:'instant'});
+}
+function executiveClose(){
+ if(cloud.identity?.role==='director')return;
+ executiveState.open=false;
+ document.body.classList.remove('executive-mode');
+ $('executiveDashboard').classList.add('hide');
+ $('executiveOpen').textContent='📊 총괄 현황';
+}
+function executiveInitialize(){
+ $('executiveOpen').onclick=()=>executiveState.open?executiveClose():executiveOpen();
+ $('executiveBack').onclick=executiveClose;
+ $('executiveRefresh').onclick=executiveLoad;
+ $('executivePrev').onclick=()=>executiveMoveMonth(-1);
+ $('executiveNext').onclick=()=>executiveMoveMonth(1);
+ $('executiveMonth').onchange=value=>{
+  const month=$('executiveMonth').value;
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))return;
+  executiveState.month=month;executiveState.day='';
+  executiveLoad();
+ };
+ $('executiveDay').onchange=()=>{
+  const date=$('executiveDay').value;
+  if(date.startsWith(executiveState.month)){executiveState.day=date;executiveRender();}
+ };
+ $('executiveCenterChips').onclick=e=>{
+  const c=e.target.closest('[data-executive-center]')?.dataset.executiveCenter;
+  if(c&&['전체',...EXEC_CENTERS].includes(c)){executiveState.center=c;executiveRender();}
+ };
+ $('executiveCenterCards').onclick=e=>{
+  const c=e.target.closest('[data-executive-center]')?.dataset.executiveCenter;
+  if(c&&EXEC_CENTERS.includes(c)){executiveState.center=c;executiveRender();}
+ };
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
+ executiveInitialize();
  $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
  $('presenceClose').onclick=()=>$('presenceDlg').close();
  $('presenceRefresh').onclick=refreshPresence;
