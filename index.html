@@ -650,6 +650,7 @@ async function cloudStartSession(){
  await cloudReload();
  journalBookingAnnounce();
  journalBookingMaybeOpen();
+ await journalDirectProcess();
  }catch(err){cloud.active=false;document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';cloudStatus('로그인 확인 실패',true)}
 }
 
@@ -961,6 +962,73 @@ function initQuickAndMobile(){
  },true);
 }
 
+
+
+/* Journal integration v2. The user presses Save only in the journal form.
+   Authenticated appointments are inserted by a server RPC with idempotency and conflict checks.
+   An untrusted local HTML file requires one-time approval before writing any calendar data. */
+let journalDirectPending=null,journalDirectBusy=false;
+const JOURNAL_TRUSTED_ORIGIN='https://careercounselor1984-code.github.io';
+function journalDirectReply(target,origin,data){
+ try{target.postMessage({type:'goodjob:schedule-create-result:v2',...data},origin==='null'?'*':origin)}catch{}
+}
+async function journalDirectProcess(){
+ if(!journalDirectPending||journalDirectBusy)return;
+ const task=journalDirectPending;
+ if(!cloud.active){
+  journalDirectReply(task.source,task.origin,{requestId:task.payload.requestId,status:'login_required',
+   message:'일정관리 로그인 후 자동 예약됩니다.'});
+  return;
+ }
+ journalDirectBusy=true;
+ const p=task.payload;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_book_from_journal',{
+   _request_id:p.requestId,_date:p.date,_time:p.time,_type:p.consultType,_title:p.name
+  });
+  if(error)throw error;
+  if(!data?.ok)throw new Error('예약을 저장할 수 없습니다.');
+  journalDirectReply(task.source,task.origin,{requestId:p.requestId,status:'saved',booking:data});
+  if(journalDirectPending===task)journalDirectPending=null;
+  try{await cloudReload()}catch(err){console.warn('예약 저장 후 일정 다시 불러오기 지연',err)}
+ }catch(error){
+  const message=String(error?.message||'서버에 저장하지 못했습니다.').slice(0,240);
+  journalDirectReply(task.source,task.origin,{requestId:p.requestId,status:'error',message});
+  if(journalDirectPending===task)journalDirectPending=null;
+ }finally{journalDirectBusy=false}
+}
+window.addEventListener('message',async event=>{
+ if(event.source!==window.parent||!event.data||event.data.type!=='goodjob:schedule-create:v2')return;
+ if(event.origin!==JOURNAL_TRUSTED_ORIGIN&&event.origin!=='null')return;
+ const p=event.data.payload||{},requestId=String(p.requestId||'');
+ const reply=(status,message)=>journalDirectReply(event.source,event.origin,{requestId,status,message});
+ // file:// tests have opaque origins: never accept a write without explicit approval.
+ if(event.origin==='null'){
+  let authorized=false;
+  try{authorized=sessionStorage.getItem('goodjob-local-journal-consent-v1')==='yes'}catch{}
+  if(!authorized){
+   let accepted=false;
+   try{accepted=confirm('로컬 HTML 상담일지에서 내 일정표에 예약을 직접 저장하도록 허용할까요?\n\n이 기기에서 처음 한 번만 승인하면 됩니다. 믿을 수 있는 상담일지 파일에서만 허용하세요.')}catch{}
+   if(!accepted){reply('error','로컬 파일 연결 승인이 필요합니다. 일정관리에서 허용한 후 다시 시도해 주세요.');return}
+   try{sessionStorage.setItem('goodjob-local-journal-consent-v1','yes')}catch{}
+  }
+ }
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)||
+ !/^\d{4}-\d{2}-\d{2}$/.test(String(p.date||''))||
+ !/^([01]\d|2[0-3]):(00|30)$/.test(String(p.time||''))||
+ String(p.name||'').trim().length<2||String(p.name||'').trim().length>70||
+ !CONSULT_TYPES.some(x=>x[0]===p.consultType)){
+  reply('error','입력한 이름·날짜·시간·상담 구분을 확인해 주세요.');return;
+ }
+ if(journalDirectPending?.payload.requestId===requestId){
+  if(!journalDirectBusy)await journalDirectProcess();
+  return;
+ }
+ if(journalDirectBusy){reply('error','다른 예약을 처리하는 중입니다. 잠시 후 다시 시도해 주세요.');return}
+ journalDirectPending={payload:{requestId,date:p.date,time:p.time,name:p.name.trim(),consultType:p.consultType},
+  source:event.source,origin:event.origin};
+ await journalDirectProcess();
+});
 
 /* Journal-to-schedule transfer: only prefill. The employee must click Save. */
 let journalBookingPending=null,journalBookingDisplayedKey='';
