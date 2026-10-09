@@ -1287,7 +1287,8 @@ else{const x=dayMetrics(arr,date);if(x.consultations)h+=`<div class="metric metr
 h+='</div>'}}return h+'</div>'}
 
 function mobileSwipeTargetDate(date,step){
- let next=addDays(date,step);
+ const base=currentView==='personalWeek'&&(date.getDay()===0||date.getDay()===6)?monday(date):date;
+ let next=addDays(base,step);
  if(currentView==='personalWeek')while(next.getDay()===0||next.getDay()===6)next=addDays(next,step);
  return next;
 }
@@ -1310,7 +1311,7 @@ function render(){let start=monday(focusDate),isAgenda=currentView==='personalDa
  const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
- $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches&&(isAgenda||isWeek)?mobileSwipeMarkup():isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');mobileSwipeSize();document.body.dataset.view=currentView;$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
+ $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches&&(isAgenda||isWeek)?mobileSwipeMarkup():isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;mobileSwipeSize();$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
  const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate()}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
