@@ -384,6 +384,20 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
  body.painting .day-agenda .mobile-compact-agenda{display:none!important}
  body[data-view=personalWeek] .mobile-week .agenda-head{display:none!important}
 }
+
+/* v22.1 smooth mobile day carousel: finger-following slides */
+@media screen and (max-width:760px){
+ #calendar .mobile-swipe-viewport{position:relative;width:100%;min-width:0;overflow:hidden;transition:height 280ms cubic-bezier(.22,.72,.19,1);-webkit-overflow-scrolling:touch;contain:layout style;touch-action:pan-y}
+ #calendar .mobile-swipe-track{display:flex;align-items:flex-start;width:100%;min-width:0;transform:translate3d(-100%,0,0);will-change:transform;backface-visibility:hidden}
+ #calendar .mobile-swipe-page{flex:0 0 100%;min-width:0;width:100%;box-sizing:border-box;overflow:hidden;backface-visibility:hidden}
+ #calendar .mobile-swipe-page .mobile-week{display:block;min-width:0}
+ #calendar .mobile-swipe-page .day-agenda{touch-action:pan-y}
+}
+@media print{
+ #calendar .mobile-swipe-viewport{overflow:visible!important;height:auto!important;transition:none!important}
+ #calendar .mobile-swipe-track{transform:none!important;display:block!important}
+ #calendar .mobile-swipe-page:not([data-swipe-page="current"]){display:none!important}
+}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.1 · 부드러운 일정 스와이프</span></header>
