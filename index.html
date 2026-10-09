@@ -1459,10 +1459,8 @@ function mobileMonthPick(focus){
  const prefix=y+'-'+pad(m+1)+'-';
  if(mobileMonthSelected.startsWith(prefix)&&!([0,6].includes(parseDate(mobileMonthSelected).getDay())))
   return mobileMonthSelected;
- let d=new Date(y,m,1);
- const now=new Date();
- if(now.getFullYear()===y&&now.getMonth()===m)d=new Date(y,m,now.getDate());
- while(d.getMonth()===m&&(d.getDay()===0||d.getDay()===6))d=addDays(d,1);
+ let d=new Date(y,m,focus.getDate());
+ while(d.getMonth()===m&&(d.getDay()===0||d.getDay()===6||isClosedDay(dateKey(d))))d=addDays(d,1);
  if(d.getMonth()!==m){d=new Date(y,m,1);while(d.getDay()===0||d.getDay()===6)d=addDays(d,1)}
  mobileMonthSelected=dateKey(d);
  return mobileMonthSelected;
