@@ -399,6 +399,57 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
  #calendar .mobile-swipe-page:not([data-swipe-page="current"]){display:none!important}
 }
 #journalPrefillInfo:not([hidden]){background:#eff6ff;border:1px solid #b7d4f8;border-radius:10px;padding:10px 13px;margin:8px 0;color:#1d568d;font-weight:700;font-size:12px;line-height:1.65}
+
+/* v22.5: native-sized monthly calendar only on mobile. Desktop/print grid unchanged. */
+@media screen and (max-width:760px){
+ body[data-view="personalMonth"] .sheet,
+ body[data-view="teamLeave"] .sheet{min-width:0;width:100%;max-width:100%;overflow:hidden}
+ body[data-view="personalMonth"] #calendar,
+ body[data-view="teamLeave"] #calendar{width:100%;max-width:100%;min-width:0;overflow:hidden}
+ #calendar .mobile-month-layout{display:block;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+ #calendar .mobile-month-intro{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;align-items:center;margin:1px 0 11px}
+ #calendar .mobile-month-intro strong{font-size:14px;color:#1c3e5e}
+ #calendar .mobile-month-intro span{font-size:11px;color:#69819a;line-height:1.35}
+ #calendar .mobile-month-summary{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 12px;margin-bottom:13px;background:#f4f8fd;border:1px solid #e2ebf4;border-radius:12px}
+ #calendar .mobile-month-summary span{font-size:12px;color:#536d85}
+ #calendar .mobile-month-summary b{font-size:15px;color:#1d5c99;margin-left:4px}
+ #calendar .mobile-month-grid{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-auto-rows:auto;gap:6px!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box;margin:0!important}
+ #calendar .mobile-month-weekname{display:block;min-width:0;text-align:center;background:#edf3fa;color:#4d6681;border-radius:8px;padding:7px 1px;font-size:12px;font-weight:800}
+ #calendar .mobile-month-placeholder{display:block;min-width:0;min-height:59px;border-radius:10px;background:#f8fafc}
+ #calendar .mobile-month-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0!important;width:100%!important;min-height:59px!important;padding:5px 2px!important;margin:0!important;border:1px solid #dae5f0;border-radius:10px;background:#fff;color:#2d4660;line-height:1.2;touch-action:manipulation;box-shadow:none;white-space:normal}
+ #calendar .mobile-month-cell strong{font-size:16px;font-weight:800}
+ #calendar .mobile-month-cell small{font-size:10px;min-height:13px;max-width:100%;color:#647d95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #calendar .mobile-month-cell.is-selected{border:2px solid #2b73b9;background:#e9f3ff;color:#155c9b;box-shadow:0 0 0 1px #c0dbf5}
+ #calendar .mobile-month-cell.is-selected small{color:#1b609e}
+ #calendar .mobile-month-cell.is-closed{background:#fff3f3;border-color:#f0dadc}
+ #calendar .mobile-month-cell.is-closed small{color:#b34f55}
+ #calendar .mobile-month-cell.is-selected.is-closed{background:#ffe9eb;border-color:#b44a58}
+ #calendar .mobile-month-cell.is-today:not(.is-selected){box-shadow:inset 0 0 0 1px #89b4e1}
+ #calendar .mobile-month-detail{margin-top:14px;padding:14px 12px;border-radius:13px;background:#fff;border:1px solid #d9e5f0;box-shadow:0 3px 14px #1848760d;min-width:0}
+ #calendar .mobile-month-detail header{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #e9eef5}
+ #calendar .mobile-month-detail header b{display:block;font-size:16px;color:#1e405f}
+ #calendar .mobile-month-detail header small{display:block;font-size:12px;color:#688097;margin-top:3px}
+ #calendar .mobile-month-events{display:grid;gap:7px;margin:10px 0}
+ #calendar .mobile-month-event{display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;background:#f5f8fc;min-width:0}
+ #calendar .mobile-month-time{font-size:12px;font-weight:750;color:#2365a3;flex:0 0 47px}
+ #calendar .mobile-month-event>div{min-width:0;flex:1}
+ #calendar .mobile-month-event strong{display:block;font-size:13px;overflow-wrap:anywhere}
+ #calendar .mobile-month-event small{display:block;font-size:11px;color:#647b90;margin-top:3px}
+ #calendar .mobile-month-person{border-radius:9px;border:1px solid #e0e8f1;background:#f9fbfe;padding:10px;min-width:0}
+ #calendar .mobile-month-person>strong{display:block;font-size:13px;margin-bottom:7px}
+ #calendar .mobile-month-tags{display:flex;gap:6px;flex-wrap:wrap}
+ #calendar .mobile-month-tag{font-size:11px;padding:6px 8px;background:#eaf2fb;border-radius:7px;color:#315e87;overflow-wrap:anywhere}
+ #calendar .mobile-month-empty{text-align:center;background:#f6f9fc;border-radius:10px;border:1px dashed #dce6ef;padding:22px 8px;font-size:12px;color:#6c8094}
+ #calendar .mobile-month-holiday{font-size:12px;font-weight:750;color:#b34d56;padding:10px 3px 1px}
+ #calendar .mobile-month-notice{font-size:12px;color:#466787;background:#edf4fc;border-radius:8px;padding:8px;margin-top:8px}
+ #calendar .mobile-month-open{width:100%;min-height:43px;text-align:center;background:#eaf2fb;border:1px solid #cbdff1;border-radius:10px;color:#1d629e;font-weight:750;font-size:12px;padding:10px;margin-top:4px}
+ body[data-view="personalMonth"] .sheet-head,
+ body[data-view="teamLeave"] .sheet-head{margin-bottom:9px}
+ body[data-view="personalMonth"] .navline,
+ body[data-view="teamLeave"] .navline{grid-template-columns:44px minmax(0,1fr) 44px!important;margin-bottom:7px}
+ body[data-view="personalMonth"] .navline #today,
+ body[data-view="teamLeave"] .navline #today{grid-column:1/4;grid-row:2;justify-self:center;width:auto;min-width:74px;margin:0;padding:7px 14px}
+}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.5 · 모바일 월간표 개선</span></header>
