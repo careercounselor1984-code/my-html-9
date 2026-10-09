@@ -536,9 +536,20 @@ body.executive-mode #executiveDashboard{display:block!important}
  .executive-detail-row span:first-child{flex-basis:66px}
 }
 @media print{#executiveDashboard{display:none!important}body.executive-mode .wrap > .sheet{display:block!important}}
+
+.director-invite-panel{border:1px solid #c9dbef;background:#f0f6ff;border-radius:12px;padding:13px 14px;margin:12px 0;min-width:0}
+.director-invite-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.director-invite-top>div{flex:1;min-width:0}
+.director-invite-top strong{color:#205280;font-size:14px}
+.director-invite-top p{font-size:12px;color:#4d6987;line-height:1.55;overflow-wrap:anywhere;margin:5px 0}
+.director-invite-top button{flex:none;font-size:12px;padding:7px}
+.director-invite-panel .staff-admin-actions{margin:8px 0}
+.director-invite-panel .staff-admin-actions button{font-size:12px;min-height:39px}
+#directorInviteStatus{color:#5c748e;font-size:12px;line-height:1.5;margin:3px 0}
+@media(max-width:760px){.director-invite-panel{padding:12px 10px}.director-invite-top button{min-height:38px;white-space:normal}.director-invite-panel .staff-admin-actions button{width:100%}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v23 · 관리자·부장 총괄 현황판</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v23.1 · 부장 로그인 초대 관리</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -609,6 +620,11 @@ body.executive-mode #executiveDashboard{display:block!important}
  <header><div><h2>직원 계정관리</h2><p>관리자 전용 · 직원 발급·초기화·활성화 관리</p></div><button id="staffAdminClose" type="button">닫기</button></header>
  <div class="staff-admin-actions"><button type="button" id="staffAdminRefresh">명단 새로고침</button><button type="button" class="primary" id="staffAdminBulk">미발급 직원 전체 계정 발급</button></div>
  <p id="staffAdminSummary" role="status">명단을 불러오는 중…</p>
+ <section class="director-invite-panel" aria-label="부장 전용 계정 초대">
+  <div class="director-invite-top"><div><strong>부장 · 총괄 조회 전용 계정</strong><p id="directorInviteDetails">부장 계정 상태 확인 중…</p></div><button type="button" id="directorInviteRefresh">상태 확인</button></div>
+  <div class="staff-admin-actions"><button type="button" class="primary" id="directorInviteSend" disabled>부장에게 로그인 초대 메일 보내기</button></div>
+  <p id="directorInviteStatus" role="status">초대 메일은 버튼을 눌렀을 때만 발송 요청됩니다. 수신 이메일 주소를 먼저 확인해 주세요.</p>
+ </section>
  <div class="staff-admin-credentials hide" id="staffAdminCredentials"><div class="staff-admin-actions"><strong>이번 작업에서 발급한 임시 비밀번호</strong><button type="button" id="staffAdminCopy">목록 복사</button><button type="button" id="staffAdminClear">화면에서 지우기</button></div><p>이 정보는 서버에 별도로 보관되지 않아요. 각 직원에게 개별 전달하고 화면에서 지워 주세요. 공용 단체방에는 공유하지 마세요.</p><pre id="staffAdminCredentialText"></pre></div>
  <form id="staffAdminForm"><h3 id="staffAdminFormTitle">직원 추가</h3><div class="staff-admin-formrow"><label>직원명<input id="adminStaffName" required maxlength="40"></label><label>센터<select id="adminStaffCenter" required><option value="남부본사">남부본사</option><option value="북부센터">북부센터</option><option value="동구지사">동구지사</option><option value="서부센터">서부센터</option></select></label><label>회사 이메일<input id="adminStaffEmail" type="email" required placeholder="name@ulsan1.kr"></label><label>역할<select id="adminStaffRole"><option value="counselor">상담사</option><option value="manager">팀장</option></select></label></div><div class="staff-admin-actions"><button type="submit" class="primary" id="staffAdminSave">직원 추가</button><button type="button" id="staffAdminEditCancel" class="hide">수정 취소</button></div></form>
  <div id="staffAdminRows" class="staff-admin-rows"></div>
@@ -894,6 +910,46 @@ function staffAdminRender(){
    (s.active?'<button type="button" data-act="'+(s.linked?'reset':'issue')+'">'+(s.linked?'비밀번호 초기화':'계정 발급')+'</button>':''))+'</div></div>';
  }).join('');
 }
+
+async function directorInviteRefresh(){
+ $('directorInviteStatus').textContent='부장 로그인 계정을 확인 중…';
+ try{
+  const {director}=await staffAdminApi('director_status');
+  if(!director)throw new Error('부장 계정 정보가 없습니다.');
+  const state=!director.active?'비활성':director.linked
+   ?director.pendingFirstPassword?'초대 계정 연결됨 · 첫 비밀번호 변경 대기':'로그인 계정 연결 완료':'계정 활성화됨 · 이메일 초대 전';
+  $('directorInviteDetails').textContent=director.name+' · '+director.email+' · '+state;
+  $('directorInviteSend').disabled=!director.active||director.linked;
+  $('directorInviteSend').dataset.email=director.email;
+  $('directorInviteStatus').textContent=director.linked
+   ?'계정이 연결돼 있습니다. 부장님은 이메일 초대 링크에서 최초 비밀번호를 설정하거나 기존 계정으로 로그인할 수 있습니다.'
+   :'부장님의 수신 이메일이 올바른지 확인한 후 초대 메일을 보내 주세요.';
+ }catch(err){
+  $('directorInviteDetails').textContent='부장 계정을 조회하지 못했습니다.';
+  $('directorInviteStatus').textContent='조회 오류: '+err.message;
+  $('directorInviteSend').disabled=true;
+ }
+}
+async function directorInviteSend(){
+ const btn=$('directorInviteSend');
+ if(btn.disabled)return;
+ const email=btn.dataset.email;
+ if(!email||!confirm('박지영 부장님의 이메일 '+email+'(으)로 로그인 초대 메일을 보낼까요? 주소가 정확한지 확인해 주세요.'))return;
+ btn.disabled=true;
+ $('directorInviteStatus').textContent='초대 메일을 발송 요청하는 중…';
+ try{
+  const result=await staffAdminApi('invite_director');
+  $('directorInviteStatus').textContent=(result.message||'발송 요청 완료')+' 이메일 수신 여부를 부장님께 확인해 주세요.';
+  await directorInviteRefresh();
+  $('directorInviteStatus').textContent='초대 메일 발송 요청이 완료됐습니다. 실제 메일 수신 여부는 부장님께 확인해 주세요.';
+ }catch(err){
+  $('directorInviteStatus').textContent='발송 실패: '+err.message+' · 메일 발송 설정이나 주소를 확인해 주세요.';
+  await directorInviteRefresh();
+ }finally{
+  btn.disabled=true;
+ }
+}
+
 async function staffAdminRefresh(){
  const data=await staffAdminApi('list');staffAdmin.staff=Array.isArray(data.staff)?data.staff:[];staffAdminRender();
 }
@@ -951,8 +1007,8 @@ async function openStaffAdmin(){
  $('staffAdminSummary').textContent='직원 명단을 불러오는 중…';
  if(!cloud.identity?.isAdmin){$('staffAdminSummary').textContent='관리자 권한을 확인하지 못했어요. 다시 로그인해 주세요.';return}
  if(!cloud.client){$('staffAdminSummary').textContent='서버 연결이 준비되지 않았어요. 새로고침 후 다시 시도해 주세요.';return}
- try{await staffAdminRefresh()}
- catch(err){$('staffAdminSummary').textContent='직원 명단 연결 실패: '+(err?.message||String(err))+' · 연결 또는 로그인 상태를 확인해 주세요.'}
+ try{await Promise.all([staffAdminRefresh(),directorInviteRefresh()])}
+ catch(err){$('staffAdminSummary').textContent='명단 연결 실패: '+(err?.message||String(err))+' · 연결 또는 로그인 상태를 확인해 주세요.'}
 }
 
 
@@ -1492,7 +1548,9 @@ async function cloudBoot(){
   if(staffAdmin.credentials.length&&!confirm('닫으면 이번에 발급한 임시 비밀번호가 화면에서 지워집니다. 닫을까요?'))e.preventDefault();
  });
  $('staffAdminDlg').addEventListener('close',()=>{staffAdmin.credentials=[];staffAdminCredentialsRender();staffAdminResetEditor()});
- $('staffAdminRefresh').onclick=async()=>{try{await staffAdminRefresh()}catch(e){$('staffAdminSummary').textContent=e.message}};
+ $('staffAdminRefresh').onclick=async()=>{try{await staffAdminRefresh();await directorInviteRefresh()}catch(e){$('staffAdminSummary').textContent=e.message}};
+ $('directorInviteRefresh').onclick=directorInviteRefresh;
+ $('directorInviteSend').onclick=directorInviteSend;
  $('staffAdminBulk').onclick=staffAdminBulkIssue;
  $('staffAdminCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('staffAdminCredentialText').textContent);alert('이번에 발급된 계정 목록을 복사했어. 안전하게 보관해 줘.')}catch{alert('복사할 수 없어요. 화면에서 직접 선택해 복사해 주세요.')}};
  $('staffAdminClear').onclick=()=>{staffAdmin.credentials=[];staffAdminCredentialsRender()};
