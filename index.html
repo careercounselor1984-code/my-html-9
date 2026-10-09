@@ -736,6 +736,33 @@ async function quickSubmit(e){
  }catch(err){$('quickEntryPreview').textContent='저장 오류: '+(err?.message||String(err))}
  finally{b.disabled=false;b.textContent='바로 등록'}
 }
+
+let mobileSwipeStart=null,lastMobileSwipeAt=0;
+function closeMobileMenu(){
+ $('cloudArea').classList.remove('mobile-menu-open');
+ $('mobileMenuToggle').setAttribute('aria-expanded','false');
+}
+function openMobileQuick(){
+ if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');
+ quickSyncDate();
+ closeMobileMenu();
+ document.body.classList.add('mobile-quick-open');
+ requestAnimationFrame(()=>$('quickEntryText').focus({preventScroll:true}));
+}
+function closeMobileQuick(){
+ document.body.classList.remove('mobile-quick-open');
+ $('quickEntryText').blur();
+}
+function mobileShiftDate(direction){
+ if(!window.matchMedia('(max-width:760px)').matches||!['personalDay','personalWeek'].includes(currentView))return;
+ let next=addDays(focusDate,direction);
+ if(currentView==='personalWeek'){
+  while([0,6].includes(next.getDay()))next=addDays(next,direction);
+ }
+ focusDate=next;
+ lastMobileSwipeAt=Date.now();
+ render();
+}
 function initQuickAndMobile(){
  const mobile=window.matchMedia('(max-width:760px)').matches;
  document.querySelector('.cloud-action-more').open=!mobile;
@@ -744,8 +771,38 @@ function initQuickAndMobile(){
  $('quickEntryDate').addEventListener('change',()=>quickRefreshTimes(false));
  $('quickEntryTime').addEventListener('change',quickPreview);
  $('quickEntryForm').addEventListener('submit',quickSubmit);
- $('mobileAddConsult').onclick=()=>{if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');$('addConsult').click()};
- $('mobileAddWork').onclick=()=>{if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');$('addWork').click()};
+ $('mobileMenuToggle').onclick=()=>{
+  const show=!$('cloudArea').classList.contains('mobile-menu-open');
+  $('cloudArea').classList.toggle('mobile-menu-open',show);
+  $('mobileMenuToggle').setAttribute('aria-expanded',String(show));
+ };
+ $('mobileCloudActions').addEventListener('click',e=>{if(e.target.closest('button'))closeMobileMenu()});
+ $('mobileQuickClose').onclick=closeMobileQuick;
+ $('mobileQuickBackdrop').onclick=closeMobileQuick;
+ $('mobileAddConsult').onclick=()=>{if(mobile)openMobileQuick();else $('addConsult').click()};
+ $('mobileAddWork').onclick=()=>{
+  closeMobileQuick();
+  if(['teamDay','teamLeave'].includes(currentView))changeView('personalDay');
+  $('addWork').click();
+ };
+ const calendar=$('calendar');
+ calendar.addEventListener('touchstart',e=>{
+  if(!window.matchMedia('(max-width:760px)').matches||!['personalDay','personalWeek'].includes(currentView))return;
+  if(e.touches.length!==1)return;
+  if(!e.target.closest('.mobile-week,.day-agenda'))return;
+  mobileSwipeStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+ },{passive:true});
+ calendar.addEventListener('touchend',e=>{
+  if(!mobileSwipeStart||!e.changedTouches.length)return;
+  const x=e.changedTouches[0].clientX-mobileSwipeStart.x;
+  const y=e.changedTouches[0].clientY-mobileSwipeStart.y;
+  mobileSwipeStart=null;
+  if(Math.abs(x)>=60&&Math.abs(x)>Math.abs(y)*1.5)mobileShiftDate(x<0?1:-1);
+ },{passive:true});
+ calendar.addEventListener('touchcancel',()=>{mobileSwipeStart=null},{passive:true});
+ calendar.addEventListener('click',e=>{
+  if(Date.now()-lastMobileSwipeAt<450){e.preventDefault();e.stopImmediatePropagation()}
+ },true);
 }
 
 async function cloudBoot(){
