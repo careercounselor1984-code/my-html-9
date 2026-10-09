@@ -294,7 +294,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
 @media print{.mobile-week{display:none!important}.desktop-week{display:block!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v21 · 휴대폰 일정표 개선</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22 · 모바일 간편 일정관리</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -303,8 +303,8 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><div class="cloud-actions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
-  <section class="panel no-print">
+<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+  <section class="panel no-print mobile-context-panel">
     <div class="context">
       <label class="control"><span>센터</span><select id="center"></select></label>
       <label class="control"><span>상담사</span><select id="owner"></select></label>
@@ -317,7 +317,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
   </div></section>
   <div class="navline no-print"><button id="prev" type="button" title="이전 기간">◀</button><button id="today" type="button">오늘</button><button id="next" type="button" title="다음 기간">▶</button><strong id="period"></strong><label id="datePickerWrap" class="hide">날짜 선택 <input type="date" id="datePicker"></label></div>
 <section id="quickEntrySection" class="quick-entry no-print">
- <div class="quick-entry-heading"><strong>⚡ 빠른 상담 등록</strong><small>예: 홍길동 초기, 김철수 IAP · 날짜와 시간을 확인하고 바로 저장</small></div>
+ <div class="quick-entry-heading"><div><strong>빠른 상담 예약</strong><small>‘홍길동 초기’처럼 입력하면 상담구분 자동 인식</small></div><button id="mobileQuickClose" class="mobile-quick-close" type="button" aria-label="빠른 상담 예약 닫기">✕</button></div>
  <form id="quickEntryForm" class="quick-entry-form">
   <label class="quick-entry-text">이름 + 상담 구분<input id="quickEntryText" type="text" maxlength="110" required autocomplete="off" placeholder="홍길동 초기"></label>
   <label>날짜<input id="quickEntryDate" type="date" required></label>
@@ -334,7 +334,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
     <div class="scroll"><div id="calendar"></div></div><p id="summary" class="summary no-print"></p><div id="specialWorkSummary" class="special-work-summary no-print"></div>
   </section>
 </main>
-<div class="mobile-bottom-action no-print"><button id="mobileAddConsult" type="button" class="primary">＋ 상담 등록</button><button id="mobileAddWork" type="button">＋ 근무 일정</button></div>
+<div class="mobile-quick-backdrop no-print" id="mobileQuickBackdrop" aria-hidden="true"></div><div class="mobile-bottom-action no-print"><button id="mobileAddConsult" type="button" class="primary">＋ 빠른 예약</button><button id="mobileAddWork" type="button">＋ 근무 일정</button></div>
 
 <dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
  <header><div><h2>직원 계정관리</h2><p>관리자 전용 · 직원 발급·초기화·활성화 관리</p></div><button id="staffAdminClose" type="button">닫기</button></header>
@@ -359,7 +359,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
     <label class="field">날짜<input name="date" type="date" required></label>
     <label class="field" id="ftimeWrap"><span id="timeLabel">상담 시간 (30분 단위)</span><select name="time" id="ftime"></select></label>
     <div class="form-separator"></div>
-    <div class="field person-field"><label for="fperson" id="entryTitleLabel">내담자 이름</label><input id="fperson" name="title" maxlength="100" placeholder="예: 홍길동" autocomplete="off" required><div id="personSuggestions" class="person-popover hide" role="listbox" aria-label="기억된 참여자"></div><div class="person-inline" id="personInline"><span id="personStatus" class="person-status">이름을 입력하면 이전 상담자 중 최대 6명 추천</span><button type="button" id="personNew" class="hide">＋ 동명이인 별도 등록</button></div><span class="hint" id="personPrintHint">출력 시 상담 참여자명만 홍*동으로 가려져.</span></div>
+    <div class="field person-field"><label for="fperson" id="entryTitleLabel">내담자 이름</label><input id="fperson" name="title" maxlength="100" placeholder="홍길동 또는 홍길동 초기" autocomplete="off" required><span id="inlineTypePreview" class="hint">이름만 입력하거나 ‘홍길동 초기’처럼 한 줄로 입력 가능</span><div id="personSuggestions" class="person-popover hide" role="listbox" aria-label="기억된 참여자"></div><div class="person-inline" id="personInline"><span id="personStatus" class="person-status">이름을 입력하면 이전 상담자 중 최대 6명 추천</span><button type="button" id="personNew" class="hide">＋ 동명이인 별도 등록</button></div><span class="hint" id="personPrintHint">출력 시 상담 참여자명만 홍*동으로 가려져.</span></div>
     <label class="field"><span id="entryTypeLabel">상담 구분</span><select name="type" id="ftype"></select><span class="hint" id="typeHelp">초기 / 해석 / IAP / 컨설팅 등 선택</span></label>
     <div class="field full consult-trip-row" id="consultTripRow"><label class="check-card consult-trip"><input type="checkbox" id="consultTrip"><span><span class="txt">출장 상담</span><span class="desc">체크하면 상담은 30분 그대로, 일정표에는 보라색 출장상담으로 표시돼요.</span></span></label></div>
     <label class="field full hide custom-type-field" id="customTypeWrap"><span id="customTypeLabel">직접 입력할 상담 구분</span><input id="customType" type="text" maxlength="40" autocomplete="off" placeholder="예: 사후관리" aria-label="직접 입력할 일정 구분"><span class="hint">새 구분을 입력하면 일정표와 인쇄물에 동일하게 표시돼요.</span></label>
@@ -979,7 +979,7 @@ function save(){if(cloud.active){cloudQueue();return}try{localStorage.setItem(KE
 let preferences={center:'북부센터',owner:'',view:'personalWeek'};
 try{const x=JSON.parse(localStorage.getItem(PREF)||'null');if(x&&typeof x==='object')preferences={...preferences,...x}}catch{}
 let focusDate=new Date(),currentView=['personalDay','personalWeek','personalMonth','teamLeave','teamDay'].includes(preferences.view)?preferences.view:'personalWeek',editing=null,quickLeave=false,editorMode='consult';
-try{if(window.matchMedia('(max-width:760px)').matches&&!localStorage.getItem(PREF))currentView='personalDay'}catch{if(window.matchMedia('(max-width:760px)').matches)currentView='personalDay'}
+try{if(window.matchMedia('(max-width:760px)').matches)currentView='personalDay'}catch{}
 const currentCenter=()=>$('center').value;
 const currentOwner=()=>$('owner').value;
 let selectedParticipantId=null,newHomonym=false,shownPeople=[],highlightedPerson=0;
@@ -1036,6 +1036,7 @@ function personalDay(dayOverride){
  const filled=new Set();for(const ev of entries)for(const t of available)if(matchingAt(ev,t))filled.add(t);
  const consultCount=entries.filter(isConsultEvent).length,workCount=entries.filter(isWorkEvent).length;
  h+=`<div class="agenda-stats"><span>상담 <b>${consultCount}건</b></span><span>근무·외부 <b>${workCount}건</b></span><span>예약 가능 <b>${available.filter(t=>!filled.has(t)).length}칸</b></span></div>`;
+ h+=`<div class="mobile-compact-agenda">`+(entries.length?entries.map(ev=>`<button type="button" class="mobile-compact-item" data-agenda-edit="${escapeHtml(ev.id)}"><span>${escapeHtml(ev.allDay?"종일":ev.time)}</span><strong>${escapeHtml(ev.title||ev.type)}</strong><small>${escapeHtml(ev.type)}</small></button>`).join(""):`<div class="mobile-empty-agenda"><b>등록된 일정이 없어요</b><small>아래 빠른 예약으로 상담을 추가할 수 있어요.</small></div>`)+`</div>`;
  h+=`<div class="agenda-items">`;
  for(const t of available){const starting=entries.filter(ev=>!ev.allDay&&ev.time===t||(ev.allDay&&t===available[0]));const continuing=entries.some(ev=>matchingAt(ev,t)&&!starting.includes(ev));
  h+=`<div class="agenda-line"><span class="agenda-time">${t}</span><div class="agenda-actions">`;
@@ -1051,7 +1052,7 @@ function personalWeek(){
  const buttons=days.map((day,i)=>{const count=employeeEventsFor(day).filter(isConsultEvent).length;
   return `<button type="button" class="week-day ${day===active?'active':''}" data-week-day="${day}" aria-pressed="${day===active}" aria-label="${day} ${names[i]}요일 상담 ${count}건"><b>${names[i]}</b><strong>${Number(day.slice(8))}</strong><small>${isClosedDay(day)?'휴무':count+'건'}</small></button>`;
  }).join('');
- const mobile=`<div class="mobile-week"><div class="mobile-week-intro"><b>이번 주 일정</b><small>요일을 눌러 상담을 확인하세요</small></div><div class="mobile-week-tabs">${buttons}</div><div class="mobile-week-date">${active.slice(5).replace('-','/')} ${names[days.indexOf(active)]}요일 · 상담 ${employeeEventsFor(active).filter(isConsultEvent).length}건</div>${personalDay(active)}</div>`;
+ const mobile=`<div class="mobile-week"><div class="mobile-week-intro"><b>이번 주 일정</b><small>← 좌우로 밀어 날짜 이동 →</small></div><div class="mobile-week-tabs">${buttons}</div><div class="mobile-week-date">${active.slice(5).replace('-','/')} ${names[days.indexOf(active)]}요일 · 상담 ${employeeEventsFor(active).filter(isConsultEvent).length}건</div>${personalDay(active)}</div>`;
  let h='<div class="desktop-week"><table class="timetable"><thead><tr><th>시간</th>';for(let i=0;i<5;i++){const d=addDays(start,i);h+=headerDay(dateKey(d),['월','화','수','목','금'][i])}h+='</tr></thead><tbody>';
  for(const t of slots()){h+=`<tr><th class="time">${t}</th>`;for(let i=0;i<5;i++){const date=dateKey(addDays(start,i)),closed=isFridayClosed(date,t)||isClosedDay(date),tags=holidays(date),cellClass=closed?'blocked':'';h+=`<td class="slot ${cellClass}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(currentOwner())}">`;if(!closed){const evs=employeeEventsFor(date).filter(e=>matchingAt(e,t));for(const ev of evs){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return mobile+h+'</tbody></table></div>'}
 function teamDay(){const date=dateKey(focusDate),names=employees(currentCenter());let h=`<table class="timetable" style="--staff-count:${names.length};min-width:${Math.max(700,70+names.length*116)}px"><thead><tr><th>시간</th>`+names.map(n=>`<th>${escapeHtml(n)}</th>`).join('')+'</tr></thead><tbody>';
@@ -1156,7 +1157,18 @@ function setFormLayout(){const service=editorMode==='consult';if(service){$('all
  $('specialWorkBox').classList.toggle('hide',service);$('specialWork').disabled=service;const extra=!service&&$('specialWork').checked;if(extra)$('allDay').checked=false;$('allDay').disabled=service||extra;$('workChoices').classList.toggle('hide',service);$('durationBox').classList.toggle('hide',service||$('allDay').checked);$('fixedDuration').classList.toggle('hide',!service);$('ftimeWrap').classList.toggle('hide',!service&&$('allDay').checked);$('ftime').disabled=!service&&$('allDay').checked;$('ftrip').disabled=service;$('consultTrip').disabled=!service;updateProxyHint();
 } 
 function withinSameDay(date,t,mins,special=false){if(special){const start=minute(t),end=start+mins;return start>=6*60&&end<=24*60&&end>start;}if(isClosedDay(date,$('fcenter').value))return false;const end=minute(t)+mins;if(end>18*60)return false;const breakConflict=minute(t)<13*60&&end>12*60;return !breakConflict&&!isFridayClosed(date,t)&&(parseDate(date).getDay()!==5||end<=12*60)}
-async function saveEntry(ev){const f=$('editor'),data=Object.fromEntries(new FormData(f).entries());if(cloud.active){data.center=cloud.identity.center;if(editorMode!=='consult'||editing)data.owner=cloud.identity.name}const service=editorMode==='consult',specialWork=!service&&$('specialWork').checked,allDay=service||specialWork?false:$('allDay').checked,time=allDay?'09:00':data.time;
+async function saveEntry(ev){
+ if(editorMode==='consult'){
+  const parsed=quickParse($('fperson').value);
+  if(!parsed.error){
+   if(selectedParticipantId&&selectedParticipant()?.name!==parsed.title)clearPersonChoice();
+   $('fperson').value=parsed.title;
+   $('ftype').value=parsed.type;
+   $('ftype').dataset.lastType=parsed.type;
+   updateCustomTypeField();
+  }
+ }
+ const f=$('editor'),data=Object.fromEntries(new FormData(f).entries());if(cloud.active){data.center=cloud.identity.center;if(editorMode!=='consult'||editing)data.owner=cloud.identity.name}const service=editorMode==='consult',specialWork=!service&&$('specialWork').checked,allDay=service||specialWork?false:$('allDay').checked,time=allDay?'09:00':data.time;
  const type=(data.type===CUSTOM_TYPE?$('customType').value:data.type||'').trim();
  if(!type){alert('직접 입력할 '+(service?'상담':'개인 일정')+' 구분을 적어 줘.');$('customType').focus();return false}
  const end=allDay?'18:00':addMinutes(time,service?30:Number($('duration').value));const dest={id:editing||id(),center:normalizedCenter(data.center),owner:data.owner,date:data.date,kind:editorMode,type,title:String(data.title||'').trim()||(service?'':type),time,end,allDay,specialWork,trip:(service&&$('consultTrip').checked)||(!service&&$('ftrip').checked)||(!service&&type==='출장'),memo:data.memo||'',quick:false};
@@ -1296,6 +1308,13 @@ $('quickDayDlg').querySelectorAll('[data-quick-type]').forEach(b=>b.onclick=()=>
 $('quickExisting').onclick=e=>{const btn=e.target.closest('[data-remove-group]');if(!btn||currentView!=='personalMonth')return;const ids=btn.dataset.removeGroup.split(','),entries=model.events.filter(x=>ids.includes(x.id));if(!entries.length||entries.some(e=>e.readonly)||!confirm(entries.length+'개 칸의 '+entries[0].type+' 일정을 삭제할까?'))return;model.events=model.events.filter(x=>!ids.includes(x.id));save();render();renderQuickExisting()};
 $('quickAdvanced').onclick=()=>{const d=quickDate,owner=quickSelectedOwner();$('quickDayDlg').close();openEditor(d,'09:00',null,owner,'work')};
 $('fcenter').onchange=()=>formStaff('');$('fowner').onchange=()=>{if($('fowner').value!=='__new'){updateProxyHint();showPersonSuggestions();return;}const name=prompt('추가할 직원 이름을 입력해 줘.');const c=$('fcenter').value;if(name?.trim()){const n=name.trim().slice(0,30);model.staff[c]=[...new Set([...(model.staff[c]||[]),n])];save();formStaff(n);refreshEmployees(currentOwner())}else formStaff('')};
+$('fperson').addEventListener('input',()=>{
+ const view=$('inlineTypePreview'),parsed=quickParse($('fperson').value);
+ if(editorMode==='consult'){
+  view.textContent=!parsed.error?'자동 인식: '+parsed.title+' · '+parsed.type:'이름만 입력하거나 ‘홍길동 초기’처럼 한 줄로 입력 가능';
+  view.classList.toggle('recognized',!parsed.error);
+ }else{view.textContent='일정 제목 입력';view.classList.remove('recognized')}
+});
 $('ftype').onchange=()=>{const type=$('ftype').value,previous=$('ftype').dataset.lastType;
  updateCustomTypeField();
  if(type===CUSTOM_TYPE){$('customType').focus()}
