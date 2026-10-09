@@ -400,7 +400,7 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
 }
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.1 · 부드러운 일정 스와이프</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.2 · 상담구분 선택 입력</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -465,8 +465,8 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
     <label class="field">날짜<input name="date" type="date" required></label>
     <label class="field" id="ftimeWrap"><span id="timeLabel">상담 시간 (30분 단위)</span><select name="time" id="ftime"></select></label>
     <div class="form-separator"></div>
-    <div class="field person-field"><label for="fperson" id="entryTitleLabel">내담자 이름</label><input id="fperson" name="title" maxlength="100" placeholder="홍길동 또는 홍길동 초기" autocomplete="off" required><span id="inlineTypePreview" class="hint">이름만 입력하거나 ‘홍길동 초기’처럼 한 줄로 입력 가능</span><div id="personSuggestions" class="person-popover hide" role="listbox" aria-label="기억된 참여자"></div><div class="person-inline" id="personInline"><span id="personStatus" class="person-status">이름을 입력하면 이전 상담자 중 최대 6명 추천</span><button type="button" id="personNew" class="hide">＋ 동명이인 별도 등록</button></div><span class="hint" id="personPrintHint">출력 시 상담 참여자명만 홍*동으로 가려져.</span></div>
-    <label class="field"><span id="entryTypeLabel">상담 구분</span><select name="type" id="ftype"></select><span class="hint" id="typeHelp">초기 / 해석 / IAP / 컨설팅 등 선택</span></label>
+    <div class="field person-field"><label for="fperson" id="entryTitleLabel">내담자 이름</label><input id="fperson" name="title" maxlength="100" placeholder="홍길동 또는 홍길동 초기" autocomplete="off" required><span id="inlineTypePreview" class="hint">‘홍길동 초기’ 입력 시 자동 선택 · ‘홍길동’만 입력하면 오른쪽에서 구분 선택</span><div id="personSuggestions" class="person-popover hide" role="listbox" aria-label="기억된 참여자"></div><div class="person-inline" id="personInline"><span id="personStatus" class="person-status">이름을 입력하면 이전 상담자 중 최대 6명 추천</span><button type="button" id="personNew" class="hide">＋ 동명이인 별도 등록</button></div><span class="hint" id="personPrintHint">출력 시 상담 참여자명만 홍*동으로 가려져.</span></div>
+    <label class="field"><span id="entryTypeLabel">상담 구분 (선택사항)</span><select name="type" id="ftype"></select><span class="hint" id="typeHelp">이름에 구분을 함께 적으면 자동 설정 · 이름만 적었을 때 선택 (기본 초기)</span></label>
     <div class="field full consult-trip-row" id="consultTripRow"><label class="check-card consult-trip"><input type="checkbox" id="consultTrip"><span><span class="txt">출장 상담</span><span class="desc">체크하면 상담은 30분 그대로, 일정표에는 보라색 출장상담으로 표시돼요.</span></span></label></div>
     <label class="field full hide custom-type-field" id="customTypeWrap"><span id="customTypeLabel">직접 입력할 상담 구분</span><input id="customType" type="text" maxlength="40" autocomplete="off" placeholder="예: 사후관리" aria-label="직접 입력할 일정 구분"><span class="hint">새 구분을 입력하면 일정표와 인쇄물에 동일하게 표시돼요.</span></label>
     <label class="field full hide" id="personTagBox">동명이인 구분표시 (내부 확인용)<input id="personTag" maxlength="24" placeholder="예: A, 10월 신규 (생년월일·전화번호 입력 금지)"><span class="hint">동명이인을 새로 등록할 때만 사용하며, 출력물에는 나오지 않아.</span></label>
@@ -1347,9 +1347,9 @@ function changeEditorMode(mode,preserve=false){
  $('ftype').innerHTML=items.map(t=>`<option value="${escapeHtml(t[0])}">${escapeHtml(t[0])}</option>`).join('')+`<option value="${CUSTOM_TYPE}">＋ 직접입력</option>`;$('ftype').value=selected;$('ftype').dataset.lastType=selected;
  if(!preserve){$('customType').value='';$('customType').dataset.previous='';}updateCustomTypeField();
  document.querySelectorAll('[data-entry-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.entryMode===mode);b.disabled=!!editing&&b.dataset.entryMode!==mode;b.setAttribute('aria-pressed',String(b.dataset.entryMode===mode))});
- $('entryModeHelp').textContent=service?'내담자 이름과 상담 구분을 입력하세요. 시간은 선택한 30분으로 자동 등록돼요.':'상담 일정과 별도로 연차·교육·출장·외부홍보 등을 관리해요. 시간·종일 여부를 정할 수 있어요.';
- $('entryTitleLabel').textContent=service?'내담자 이름':'일정명 (선택)';$('fperson').placeholder=service?'예: 홍길동':'예: 연차 / 교육기관 방문 / 외부 홍보';
- $('fperson').required=service;$('entryTypeLabel').textContent=service?'상담 구분':'개인 일정 구분';$('typeHelp').textContent=service?'초기 · 해석 · IAP · 컨설팅 등':'연차 · 반차 · 출장 · 외부교육 · 외부홍보 등';
+ $('entryModeHelp').textContent=service?'‘홍길동 초기’처럼 함께 입력하거나, ‘홍길동’만 입력한 뒤 상담구분을 선택하세요. 시간은 30분으로 등록됩니다.':'상담 일정과 별도로 연차·교육·출장·외부홍보 등을 관리해요. 시간·종일 여부를 정할 수 있어요.';
+ $('entryTitleLabel').textContent=service?'내담자 이름 또는 이름 + 상담구분':'일정명 (선택)';$('fperson').placeholder=service?'예: 홍길동 초기 / 홍길동':'예: 연차 / 교육기관 방문 / 외부 홍보';
+ $('fperson').required=service;$('entryTypeLabel').textContent=service?'상담 구분 (선택사항)':'개인 일정 구분';$('typeHelp').textContent=service?'이름 뒤에 초기·해석·IAP 등을 입력하면 자동 인식 · 이름만 적으면 여기서 선택 (기본 초기)':'연차 · 반차 · 출장 · 외부교육 · 외부홍보 등';
  $('personInline').classList.toggle('hide',!service);$('personPrintHint').classList.toggle('hide',!service);$('memoLabel').textContent=service?'상담 메모 (선택)':'일정 메모 (선택)';
  $('workChoices').classList.toggle('hide',service);$('consultTripRow').classList.toggle('hide',!service);$('timeLabel').textContent=service?'상담 시간 (30분 단위)':'시작 시간 (30분 단위)';
  if(!preserve){
@@ -1360,6 +1360,42 @@ function changeEditorMode(mode,preserve=false){
  if(cloud.active){formStaff(service?$('fowner').value||cloud.identity.name:cloud.identity.name);$('fowner').disabled=!service||!!editing}
  setFormLayout();
 }
+
+/** Return the normalized name/type without forcing the user to use the dropdown. */
+function resolveConsultationInput(raw,chosenType,manualSelection=false){
+ const p=quickParse(raw);
+ if(p.error)return {name:String(raw||'').trim(),type:chosenType,recognized:false};
+ return {name:p.title,type:manualSelection?chosenType:p.type,recognized:true};
+}
+function updateConsultInlinePreview(){
+ const hint=$('inlineTypePreview'),input=$('fperson'),select=$('ftype');
+ if(editorMode!=='consult'){
+  hint.textContent='일정 제목 입력';
+  hint.classList.remove('recognized');return;
+ }
+ const parsed=quickParse(input.value);
+ const manual=input.dataset.manualType==='1';
+ if(!parsed.error){
+  if(!manual&&[...select.options].some(o=>o.value===parsed.type)){
+   select.value=parsed.type;
+   select.dataset.lastType=parsed.type;
+   input.dataset.autoType=parsed.type;
+   updateCustomTypeField();
+  }
+  hint.textContent=manual
+   ? '내담자: '+parsed.title+' · 직접 선택한 상담 구분: '+(select.value===CUSTOM_TYPE?'직접입력':select.value)
+   : '✓ 자동 인식: '+parsed.title+' · '+parsed.type+' (상담 구분 선택 불필요)';
+  hint.classList.toggle('recognized',!manual);
+ }else{
+  if(input.dataset.autoType&&!manual){
+   select.value='초기';select.dataset.lastType='초기';updateCustomTypeField();
+  }
+  input.dataset.autoType='';
+  hint.textContent='이름만 입력하면 상담구분을 직접 선택할 수 있어요. 미선택 시 기본 ‘초기’';
+  hint.classList.remove('recognized');
+ }
+}
+
 function updateCustomTypeField(){
  const custom=$('ftype').value===CUSTOM_TYPE;
  $('customTypeWrap').classList.toggle('hide',!custom);
@@ -1371,6 +1407,7 @@ function updateCustomTypeField(){
 function openEditor(date,time,eventId,owner,mode='consult',special=false){
  if(cloud.active && eventId && model.events.some(e=>e.id===eventId&&e.readonly)){alert('다른 상담사의 일정은 조회만 가능해요.');return}
  if(currentView==='teamLeave'||currentView==='teamDay')return;
+ $('fperson').dataset.manualType='';$('fperson').dataset.autoType='';
  editing=eventId||null;const e=eventId?model.events.find(x=>x.id===eventId):newDefault(date,time,owner);if(!e)return;if(isClosedDay(e.date,e.center)&&!(eventId&&e.specialWork)&&!(mode==='work'&&special)){closedDayAlert(e.date,e.center);return}
  editorMode=eventId?eventKind(e):mode;
  const f=$('editor');$('fcenter').value=cloud.active?cloud.identity.center:(CENTERS.includes(e.center)?e.center:currentCenter());formStaff(cloud.active&&editorMode==='work'?cloud.identity.name:e.owner);$('fcenter').disabled=cloud.active;$('fowner').disabled=cloud.active&&(editorMode==='work'||!!eventId);
@@ -1383,6 +1420,7 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  $('customType').value=eventId&&!standardType?e.type:'';
  $('ftype').dataset.lastType=f.elements.type.value;updateCustomTypeField();
  f.elements.title.value=e.title||(editorMode==='work'?f.elements.type.value:'');
+ updateConsultInlinePreview();
  if(!eventId&&editorMode==='work'){$('allDay').checked=!special&&currentView==='personalMonth';f.elements.title.value=f.elements.type.value;$('ftrip').checked=false;$('duration').value='30'}if(!eventId&&special){$('ftype').value=isClosedDay(e.date,e.center)?'휴일근무':'연장근무';$('fperson').value=$('ftype').value;$('allDay').checked=false;$('duration').value='120';}
  setFormLayout();$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
 }
@@ -1393,12 +1431,12 @@ function setFormLayout(){const service=editorMode==='consult';if(service){$('all
 function withinSameDay(date,t,mins,special=false){if(special){const start=minute(t),end=start+mins;return start>=6*60&&end<=24*60&&end>start;}if(isClosedDay(date,$('fcenter').value))return false;const end=minute(t)+mins;if(end>18*60)return false;const breakConflict=minute(t)<13*60&&end>12*60;return !breakConflict&&!isFridayClosed(date,t)&&(parseDate(date).getDay()!==5||end<=12*60)}
 async function saveEntry(ev){
  if(editorMode==='consult'){
-  const parsed=quickParse($('fperson').value);
-  if(!parsed.error){
-   if(selectedParticipantId&&selectedParticipant()?.name!==parsed.title)clearPersonChoice();
-   $('fperson').value=parsed.title;
-   $('ftype').value=parsed.type;
-   $('ftype').dataset.lastType=parsed.type;
+  const chosen=resolveConsultationInput($('fperson').value,$('ftype').value,$('fperson').dataset.manualType==='1');
+  if(chosen.recognized){
+   if(selectedParticipantId&&selectedParticipant()?.name!==chosen.name)clearPersonChoice();
+   $('fperson').value=chosen.name;
+   $('ftype').value=chosen.type;
+   $('ftype').dataset.lastType=chosen.type;
    updateCustomTypeField();
   }
  }
@@ -1542,15 +1580,11 @@ $('quickDayDlg').querySelectorAll('[data-quick-type]').forEach(b=>b.onclick=()=>
 $('quickExisting').onclick=e=>{const btn=e.target.closest('[data-remove-group]');if(!btn||currentView!=='personalMonth')return;const ids=btn.dataset.removeGroup.split(','),entries=model.events.filter(x=>ids.includes(x.id));if(!entries.length||entries.some(e=>e.readonly)||!confirm(entries.length+'개 칸의 '+entries[0].type+' 일정을 삭제할까?'))return;model.events=model.events.filter(x=>!ids.includes(x.id));save();render();renderQuickExisting()};
 $('quickAdvanced').onclick=()=>{const d=quickDate,owner=quickSelectedOwner();$('quickDayDlg').close();openEditor(d,'09:00',null,owner,'work')};
 $('fcenter').onchange=()=>formStaff('');$('fowner').onchange=()=>{if($('fowner').value!=='__new'){updateProxyHint();showPersonSuggestions();return;}const name=prompt('추가할 직원 이름을 입력해 줘.');const c=$('fcenter').value;if(name?.trim()){const n=name.trim().slice(0,30);model.staff[c]=[...new Set([...(model.staff[c]||[]),n])];save();formStaff(n);refreshEmployees(currentOwner())}else formStaff('')};
-$('fperson').addEventListener('input',()=>{
- const view=$('inlineTypePreview'),parsed=quickParse($('fperson').value);
- if(editorMode==='consult'){
-  view.textContent=!parsed.error?'자동 인식: '+parsed.title+' · '+parsed.type:'이름만 입력하거나 ‘홍길동 초기’처럼 한 줄로 입력 가능';
-  view.classList.toggle('recognized',!parsed.error);
- }else{view.textContent='일정 제목 입력';view.classList.remove('recognized')}
-});
+$('fperson').addEventListener('input',updateConsultInlinePreview);
 $('ftype').onchange=()=>{const type=$('ftype').value,previous=$('ftype').dataset.lastType;
+ if(editorMode==='consult'){$('fperson').dataset.manualType='1';$('fperson').dataset.autoType='';}
  updateCustomTypeField();
+ if(editorMode==='consult')updateConsultInlinePreview();
  if(type===CUSTOM_TYPE){$('customType').focus()}
  if(editorMode==='work'){
  if(type==='2시간 연차'){$('duration').value='120';$('allDay').checked=false}if(['연장근무','휴일근무'].includes(type)){$('specialWork').checked=true;$('allDay').checked=false}
