@@ -450,9 +450,95 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
  body[data-view="personalMonth"] .navline #today,
  body[data-view="teamLeave"] .navline #today{grid-column:1/4;grid-row:2;justify-self:center;width:auto;min-width:74px;margin:0;padding:7px 14px}
 }
+
+/* v23: role-gated executive dashboard; personal schedule is preserved */
+body.executive-mode .wrap > section.panel,
+body.executive-mode .wrap > .navline,
+body.executive-mode .wrap > #quickEntrySection,
+body.executive-mode .wrap > .toolline,
+body.executive-mode .wrap > .mobile-banner,
+body.executive-mode .wrap > .helper,
+body.executive-mode .wrap > .sheet,
+body.executive-mode .mobile-bottom-action{display:none!important}
+body.executive-mode #executiveDashboard{display:block!important}
+.executive-dashboard{width:100%;max-width:1300px;margin:12px auto 25px;box-sizing:border-box}
+.executive-dashboard .executive-head{display:flex;justify-content:space-between;align-items:center;gap:14px;background:#fff;border:1px solid #d9e6f2;border-radius:15px;padding:18px 20px}
+.executive-dashboard .executive-head h2{font-size:22px;margin:3px 0 5px;color:#1a334e}
+.executive-dashboard .executive-head p{font-size:12px;color:#71859a;margin:0}
+.executive-eyebrow{font-size:11px;color:#286db0;font-weight:750}
+.executive-head button{white-space:nowrap}
+.executive-controls{background:#fff;border:1px solid #dce7f1;border-radius:14px;padding:15px;margin:12px 0}
+.executive-centers{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.executive-centers button{font-size:13px;padding:9px 13px;border-radius:11px;background:#f4f7fb;border-color:#d9e5f0;color:#3a5671;white-space:nowrap}
+.executive-centers button.is-active{background:#2467b3;border-color:#2467b3;color:#fff}
+.executive-dates{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:12px}
+.executive-dates label{font-size:11px;color:#5e7489;display:grid;gap:3px;font-weight:650}
+.executive-dates input{padding:8px 10px;min-height:41px}
+.executive-dates button{min-height:41px}
+.executive-status{font-size:12px;color:#56738e;padding:5px 0 9px}
+.executive-totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.executive-kpi{border-radius:14px;background:#fff;border:1px solid #dce6f1;padding:17px 14px;min-width:0}
+.executive-kpi span{display:block;font-size:12px;color:#687f95}
+.executive-kpi strong{display:block;margin-top:6px;font-size:27px;line-height:1.2;color:#173e69}
+.executive-kpi small{display:block;font-size:10px;color:#8799aa;margin-top:3px}
+.executive-section-title{font-size:16px;color:#223d58;margin:20px 2px 10px}
+.executive-center-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.executive-center-card{border:1px solid #dce6f1;border-radius:14px;background:#fff;text-align:left;padding:16px 13px;min-width:0}
+.executive-center-card strong{display:block;font-size:15px;color:#214463;line-height:1.25;margin-bottom:11px}
+.executive-center-card .exec-number{font-size:20px;color:#2468af;font-weight:800}
+.executive-center-card p{font-size:12px;color:#667f95;line-height:1.6;margin:5px 0 0}
+.executive-two-column{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;margin-top:13px}
+.executive-panel{min-width:0;background:#fff;border:1px solid #dce6f1;border-radius:14px;padding:16px}
+.executive-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+.executive-panel h3{font-size:15px;color:#203e59;margin:0}
+.executive-panel label{font-size:12px;color:#5e768c;display:flex;align-items:center;gap:7px}
+.executive-panel input[type=date]{padding:7px 8px;font-size:13px;min-height:37px;min-width:0}
+.executive-daily,.executive-presence{display:grid;gap:8px}
+.executive-detail-group{padding:11px;border-radius:10px;background:#f5f8fc;border:1px solid #e2eaf3}
+.executive-detail-group h4{font-size:12px;color:#42627f;margin:0 0 8px}
+.executive-detail-row{display:flex;gap:9px;align-items:flex-start;justify-content:space-between;min-width:0;margin:5px 0;font-size:12px}
+.executive-detail-row span:first-child{font-weight:700;color:#263f56;flex:0 0 76px}
+.executive-detail-row span:last-child{flex:1;overflow-wrap:anywhere;color:#506b84}
+.executive-empty{background:#f6f9fc;padding:17px;border-radius:10px;color:#778da2;text-align:center;font-size:12px}
+.executive-person{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:7px;margin:6px 0;font-size:12px}
+.executive-person strong{color:#23445f}
+.executive-pill{border-radius:7px;font-size:11px;background:#e7f1fa;color:#315e85;padding:4px 7px}
+.executive-pill.is-unknown{background:#f0f2f4;color:#78899a}
+.executive-explain{margin:8px 0 0;font-size:11px;color:#71859a;line-height:1.6}
+@media screen and (max-width:760px){
+ body.executive-mode{padding-bottom:0!important}
+ .executive-dashboard{margin:4px auto 12px;padding:0}
+ .executive-dashboard .executive-head{padding:14px 12px;gap:8px}
+ .executive-dashboard .executive-head h2{font-size:17px}
+ .executive-dashboard .executive-head p{font-size:11px;line-height:1.4}
+ .executive-dashboard .executive-head button{font-size:11px;padding:8px;white-space:normal}
+ .executive-controls{padding:11px;border-radius:12px;margin:9px 0}
+ .executive-centers{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:3px 0 6px}
+ .executive-centers::-webkit-scrollbar{display:none}
+ .executive-centers button{flex:0 0 auto;font-size:12px;padding:10px 12px;min-height:42px}
+ .executive-dates{gap:6px;margin-top:7px}
+ .executive-dates button{font-size:11px;padding:7px;min-height:40px}
+ .executive-dates label{flex:1;min-width:125px}
+ .executive-dates input{width:100%;font-size:14px}
+ .executive-totals{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .executive-kpi{padding:13px 12px;border-radius:11px}
+ .executive-kpi strong{font-size:22px}
+ .executive-kpi span{font-size:11px}
+ .executive-section-title{font-size:14px;margin:15px 2px 8px}
+ .executive-center-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .executive-center-card{padding:11px 9px;border-radius:11px}
+ .executive-center-card strong{font-size:13px;margin-bottom:8px}
+ .executive-center-card .exec-number{font-size:18px}
+ .executive-center-card p{font-size:11px}
+ .executive-two-column{grid-template-columns:minmax(0,1fr);gap:9px}
+ .executive-panel{padding:12px;border-radius:12px}
+ .executive-panel-heading h3{font-size:14px}
+ .executive-detail-row span:first-child{flex-basis:66px}
+}
+@media print{#executiveDashboard{display:none!important}body.executive-mode .wrap > .sheet{display:block!important}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v22.5 · 모바일 월간표 개선</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v23 · 관리자·부장 총괄 현황판</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -461,7 +547,32 @@ body:not(.cloud-ready) .mobile-bottom-action{display:none!important}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+
+<section id="executiveDashboard" class="executive-dashboard hide no-print" aria-labelledby="executiveTitle">
+ <div class="executive-head"><div><span class="executive-eyebrow">좋은일자리 · 관리 현황</span><h2 id="executiveTitle">4개 지사 총괄 현황</h2><p>월별 등록 일정과 센터별 근무현황 · 조회 전용</p></div><button id="executiveBack" type="button">내 일정으로</button></div>
+ <div class="executive-controls">
+  <div class="executive-centers" id="executiveCenterChips" role="group" aria-label="조회할 지사"></div>
+  <div class="executive-dates"><button id="executivePrev" type="button" aria-label="이전 달">◀</button><label>조회 월<input id="executiveMonth" type="month" required></label><button id="executiveNext" type="button" aria-label="다음 달">▶</button><button id="executiveRefresh" type="button">새로고침</button></div>
+ </div>
+ <div id="executiveStatus" role="status" class="executive-status">조회 전입니다.</div>
+ <div id="executiveTotals" class="executive-totals"></div>
+ <h3 class="executive-section-title">센터별 월간 현황</h3>
+ <div id="executiveCenterCards" class="executive-center-cards"></div>
+ <div class="executive-two-column">
+  <section class="executive-panel">
+   <div class="executive-panel-heading"><h3>날짜별 등록 일정</h3><label>날짜 <input id="executiveDay" type="date"></label></div>
+   <div id="executiveDaily" class="executive-daily"></div>
+  </section>
+  <section class="executive-panel">
+   <div class="executive-panel-heading"><h3>오늘의 직원 근무현황</h3></div>
+   <p class="executive-explain">직원이 직접 선택한 상태만 표시됩니다. ‘미확인’은 결근을 뜻하지 않습니다.</p>
+   <div id="executivePresence" class="executive-presence"></div>
+  </section>
+ </div>
+ <p class="executive-explain">등록된 상담 일정 수는 취업·상담 실적이 아니며, 이 화면에는 내담자 이름이나 상담 메모가 표시되지 않습니다.</p>
+</section>
+
   <section class="panel no-print mobile-context-panel">
     <div class="context">
       <label class="control"><span>센터</span><select id="center"></select></label>
