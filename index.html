@@ -943,10 +943,8 @@ async function directorInviteSend(){
   await directorInviteRefresh();
   $('directorInviteStatus').textContent='초대 메일 발송 요청이 완료됐습니다. 실제 메일 수신 여부는 부장님께 확인해 주세요.';
  }catch(err){
-  $('directorInviteStatus').textContent='발송 실패: '+err.message+' · 메일 발송 설정이나 주소를 확인해 주세요.';
   await directorInviteRefresh();
- }finally{
-  btn.disabled=true;
+  $('directorInviteStatus').textContent='발송 실패: '+err.message+' · 메일 발송 설정이나 주소를 확인해 주세요.';
  }
 }
 
