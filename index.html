@@ -1619,6 +1619,96 @@ async function sharedRpc(action,payload={}){
  const {data,error}=await cloud.client.rpc('schedule_shared_action',{p_action:action,p_payload:payload});
  if(error)throw error;if(data?.error)throw Error(data.error);return data;
 }
+
+/* Select-first shared scheduling: presets map exclusively to existing safe title/detail fields. */
+const SHARED_TITLE_PRESETS={
+ cover:[['auto','상담 구분에 따라 자동 작성'],['urgent','긴급 상담 지원 요청'],['absent','외근 중 대체 상담 요청'],['proxy','예약 상담 대리 진행 요청'],['custom','직접 제목 작성']],
+ promotion:[['university','대학 설명회·홍보 인원 모집'],['school','학교 출장상담 인원 모집'],
+ ['training','직업훈련기관 설명회 인원 모집'],['fair','채용박람회·취업행사 인원 모집'],
+ ['booth','홍보부스 운영 인원 모집'],['camp','취업캠프·특강 운영 인원 모집'],
+ ['team','지사 공동 홍보활동 인원 모집'],['custom','직접 제목 작성']]
+};
+const SHARED_NOTE_PRESETS={
+ none:'',later:'장소와 세부 내용은 추후 안내하겠습니다.',
+ request:'진행 장소 및 준비사항은 요청자에게 확인해 주세요.',
+ gather:'센터에 집결하여 함께 이동합니다.',
+ direct:'행사 장소로 직접 집결해 주세요.'
+};
+const SHARED_CONSULT_TITLES={
+ 신청:'신청 상담 지원 요청',초기:'초기상담 지원 요청',해석:'심리검사 해석상담 지원 요청',
+ IAP:'IAP 수립상담 지원 요청',컨설팅:'취업 컨설팅 지원 요청',재진단:'재진단 상담 지원 요청',
+ 훈련등록:'직업훈련 등록 상담 지원 요청',카드발급:'내일배움카드 발급 상담 지원 요청',
+ 일경험:'일경험 상담 지원 요청',연계:'취업지원 연계 상담 지원 요청'
+};
+function sharedSelectedKind(){return document.querySelector('input[name="sharedKind"]:checked')?.value||'cover'}
+function sharedPresetTitle(kind,key){
+ if(kind==='cover'){
+  if(key==='auto')return SHARED_CONSULT_TITLES[$('sharedConsultType').value]||'상담 지원 요청';
+  return SHARED_TITLE_PRESETS.cover.find(x=>x[0]===key)?.[1]||'';
+ }
+ return SHARED_TITLE_PRESETS.promotion.find(x=>x[0]===key)?.[1]||'';
+}
+function sharedApplyPreset(){
+ const kind=sharedSelectedKind(),preset=$('sharedPreset').value,manual=preset==='custom';
+ $('sharedTitleWrap').classList.toggle('hide',!manual);
+ $('sharedTitlePreview').classList.toggle('hide',manual);
+ $('sharedTitle').required=true;
+ if(manual){
+  $('sharedTitle').placeholder=kind==='cover'?'예: 신청 상담 교대 요청':'예: 울산과학대 설명회 인원 모집';
+  if(!$('sharedTitle').value||$('sharedTitle').dataset.generated==='true')$('sharedTitle').value='';
+  $('sharedTitle').dataset.generated='false';
+  return;
+ }
+ const title=sharedPresetTitle(kind,preset);
+ $('sharedTitle').value=title;
+ $('sharedTitle').dataset.generated='true';
+ $('sharedTitlePreview').textContent='자동 제목 · '+title;
+}
+function sharedInitPreset(){
+ const kind=sharedSelectedKind(),field=$('sharedPreset');
+ if(field.dataset.kind===kind)return;
+ field.dataset.kind=kind;
+ field.innerHTML=SHARED_TITLE_PRESETS[kind].map(([value,label])=>
+  '<option value="'+escapeHtml(value)+'">'+escapeHtml(label)+'</option>').join('');
+ field.value=kind==='cover'?'auto':'university';
+ sharedApplyPreset();
+}
+function sharedApplyNote(){
+ const code=$('sharedNotePreset').value,manual=code==='custom';
+ $('sharedDetailsWrap').classList.toggle('hide',!manual);
+ if(!manual)$('sharedDetails').value=SHARED_NOTE_PRESETS[code]||'';
+ else if($('sharedDetails').dataset.generated==='true')$('sharedDetails').value='';
+ $('sharedDetails').dataset.generated=String(!manual);
+}
+function sharedTimeOptions(){
+ const field=$('sharedTime'),old=field.value||field.dataset.lastTime||'14:00',kind=sharedSelectedKind();
+ const duration=kind==='cover'?30:Number($('sharedDuration').value||120);
+ const date=$('sharedDate').value,friday=date&&new Date(date+'T12:00:00').getDay()===5;
+ const options=[];
+ for(let start=360;start<=1410;start+=30){
+  if(start+duration>1440)continue;
+  if(kind==='cover'&&(start<540||(start>=720&&start<780)||start+30>1080||(friday&&start+30>720)))continue;
+  options.push(String(Math.floor(start/60)).padStart(2,'0')+':'+String(start%60).padStart(2,'0'));
+ }
+ field.innerHTML=options.map(time=>'<option value="'+time+'">'+time+'</option>').join('');
+ const fallback=kind==='cover'&&friday?'10:00':'14:00';
+ field.value=options.includes(old)?old:options.includes(fallback)?fallback:options[0]||'';
+ field.dataset.lastTime=field.value;
+}
+function sharedSelectExistingPresets(p){
+ const kind=p.kind;
+ const match=SHARED_TITLE_PRESETS[kind].find(([key])=>key!=='custom'&&sharedPresetTitle(kind,key)===p.title);
+ $('sharedPreset').value=match?match[0]:'custom';
+ sharedApplyPreset();
+ $('sharedTitle').value=p.title;
+ if(!match)$('sharedTitle').dataset.generated='false';
+ const noteKey=Object.keys(SHARED_NOTE_PRESETS).find(key=>SHARED_NOTE_PRESETS[key]===(p.details||''));
+ $('sharedNotePreset').value=noteKey||'custom';
+ sharedApplyNote();
+ $('sharedDetails').value=p.details||'';
+ if(!noteKey)$('sharedDetails').dataset.generated='false';
+}
+
 function sharedFormScope(){
  const kind=document.querySelector('input[name="sharedKind"]:checked')?.value||'cover',old=$('sharedScope').value;
  const allowed=sharedExec()?['전체',...SHARED_CENTERS]:[cloud.identity?.center].filter(x=>SHARED_CENTERS.includes(x));
@@ -1627,7 +1717,8 @@ function sharedFormScope(){
  $('sharedScope').value=list.includes(old)?old:(list[0]||'');
  $('sharedConsultTypeWrap').classList.toggle('hide',kind!=='cover');
  $('sharedDurationWrap').classList.toggle('hide',kind==='cover');
- $('sharedTitle').placeholder=kind==='cover'?'예: 신청 상담 지원 요청':'예: 대학교 홍보행사';
+ sharedInitPreset();
+ sharedTimeOptions();
  sharedFormQuota();
 }
 function sharedFormQuota(){
@@ -1642,6 +1733,11 @@ function sharedFormQuota(){
 function sharedFormReset(){
  sharedState.editId=null;
  $('sharedForm').reset();
+ $('sharedPreset').dataset.kind='';
+ $('sharedTitle').dataset.generated='';
+ $('sharedDetails').dataset.generated='';
+ $('sharedNotePreset').value='none';
+ sharedApplyNote();
  $('sharedCreateLabel').textContent='새 공유 요청 등록';
  $('sharedCreateButton').textContent='공유 일정 올리기';
  $('sharedEditingHint').classList.add('hide');
@@ -1649,9 +1745,9 @@ function sharedFormReset(){
  document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.disabled=false);
  const date=new Date();while(date.getDay()===0||date.getDay()===6)date.setDate(date.getDate()+1);
  $('sharedDate').value=dateKey(date);$('sharedDate').min=dateKey(new Date());
- $('sharedTime').value='14:00';
  document.querySelector('input[name="sharedKind"][value="cover"]').checked=true;
  sharedFormScope();
+ $('sharedTime').value=$('sharedTime').querySelector('option[value="14:00"]')?'14:00':$('sharedTime').value;
 }
 
 function sharedNew(kind){
@@ -1666,8 +1762,10 @@ function sharedEdit(p){
  document.querySelector('input[name="sharedKind"][value="'+p.kind+'"]').checked=true;
  sharedFormScope();$('sharedScope').value=p.scope;sharedFormScope();
  $('sharedTitle').value=p.title;$('sharedDetails').value=p.details||'';
- $('sharedDate').value=p.date;$('sharedTime').value=p.time;
+ $('sharedDate').value=p.date;
  $('sharedDuration').value=String(p.duration);$('sharedConsultType').value=p.consultType||'신청';
+ sharedTimeOptions();$('sharedTime').value=p.time;
+ sharedSelectExistingPresets(p);
  if(p.kind==='promotion'){sharedFormQuota();for(const q of p.slots||[]){const el=$('sharedQuotaInputs').querySelector('[data-shared-quota="'+q.center+'"]');if(el)el.value=q.quota}}
  $('sharedCreateLabel').textContent='공유 요청 수정';
  $('sharedCreateButton').textContent='수정 저장';
@@ -1789,6 +1887,14 @@ function sharedInitialize(){
  $('sharedPromotionCreate').onclick=()=>sharedNew('promotion');
  document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.onchange=sharedFormScope);
  $('sharedScope').onchange=sharedFormQuota;
+ $('sharedPreset').onchange=sharedApplyPreset;
+ $('sharedNotePreset').onchange=sharedApplyNote;
+ $('sharedConsultType').onchange=()=>{
+  if(sharedSelectedKind()==='cover'&&$('sharedPreset').value==='auto')sharedApplyPreset();
+ };
+ $('sharedDate').addEventListener('change',sharedTimeOptions);
+ $('sharedDuration').addEventListener('change',sharedTimeOptions);
+ $('sharedTime').addEventListener('change',()=>{$('sharedTime').dataset.lastTime=$('sharedTime').value});
  $('sharedCancelForm').onclick=()=>{$('sharedCreateDetails').open=false;sharedFormReset()};
 }
 
