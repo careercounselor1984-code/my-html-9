@@ -1728,7 +1728,11 @@ function sharedFormQuota(){
  const centers=$('sharedScope').value==='전체'?SHARED_CENTERS:[$('sharedScope').value];
  const prev=Object.fromEntries([...$('sharedQuotaInputs').querySelectorAll('[data-shared-quota]')].map(x=>[x.dataset.sharedQuota,x.value]));
  $('sharedQuotaInputs').classList.add('shared-quota-inputs');
- $('sharedQuotaInputs').innerHTML=centers.map(c=>'<label>'+escapeHtml(c)+' (명)<input type="number" min="0" max="30" data-shared-quota="'+escapeHtml(c)+'" value="'+escapeHtml(prev[c]??'2')+'"></label>').join('');
+ $('sharedQuotaInputs').innerHTML=centers.map(c=>{
+  const selected=String(prev[c]??'2');
+  const options=Array.from({length:31},(_,n)=>'<option value="'+n+'"'+(selected===String(n)?' selected':'')+'>'+n+'명'+(n===0?' (모집 안 함)':'')+'</option>').join('');
+  return '<label>'+escapeHtml(c)+' 필요 인원<select data-shared-quota="'+escapeHtml(c)+'">'+options+'</select></label>';
+ }).join('');
 }
 function sharedFormReset(){
  sharedState.editId=null;
@@ -1766,7 +1770,15 @@ function sharedEdit(p){
  $('sharedDuration').value=String(p.duration);$('sharedConsultType').value=p.consultType||'신청';
  sharedTimeOptions();$('sharedTime').value=p.time;
  sharedSelectExistingPresets(p);
- if(p.kind==='promotion'){sharedFormQuota();for(const q of p.slots||[]){const el=$('sharedQuotaInputs').querySelector('[data-shared-quota="'+q.center+'"]');if(el)el.value=q.quota}}
+ if(p.kind==='promotion'){
+  sharedFormQuota();
+  // Previously excluded centers must stay at zero when an existing post is edited.
+  for(const el of $('sharedQuotaInputs').querySelectorAll('[data-shared-quota]'))el.value='0';
+  for(const q of p.slots||[]){
+   const el=$('sharedQuotaInputs').querySelector('[data-shared-quota="'+q.center+'"]');
+   if(el)el.value=String(q.quota);
+  }
+ }
  $('sharedCreateLabel').textContent='공유 요청 수정';
  $('sharedCreateButton').textContent='수정 저장';
  document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.disabled=true);
