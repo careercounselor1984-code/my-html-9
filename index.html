@@ -642,9 +642,10 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  .shared-post-actions select{min-width:110px;max-width:100%}
 }
 @media print{#sharedBoard{display:none!important}}
+.shared-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.shared-quick-actions button{min-height:44px;padding:9px 14px;font-weight:750}.shared-edit-hint{padding:10px;margin:10px 0;border-radius:9px;background:#eef5ff;color:#235b89;font-size:12px}.shared-post-actions button.danger{color:#ac4a51}@media(max-width:760px){.shared-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.shared-quick-actions button{font-size:12px;white-space:normal}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24 · 공유 상담·홍보 일정</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.1 · 공유 요청 관리</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -663,8 +664,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
   <div class="shared-top-buttons"><button id="sharedRefresh" type="button">새로고침</button><button id="sharedBack" type="button">내 일정으로</button></div>
  </div>
  <div class="shared-summary" id="sharedSummary"></div>
- <details id="sharedCreateDetails" class="shared-create">
-  <summary>＋ 상담 지원 요청 / 행사 인원 모집 등록</summary>
+ <div class="shared-quick-actions"><button id="sharedCoverCreate" class="primary" type="button">＋ 대신 상담 요청</button><button id="sharedPromotionCreate" type="button">＋ 홍보·행사 인원 모집</button></div><details id="sharedCreateDetails" class="shared-create"><summary id="sharedCreateLabel">새 공유 요청 등록</summary>
   <form id="sharedForm">
    <div class="shared-type-choice">
     <label><input type="radio" name="sharedKind" value="cover" checked> 대신 상담 요청 <small>다른 상담사 한 명이 수락</small></label>
@@ -681,7 +681,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
    </div>
    <div id="sharedQuotaBox" class="shared-quota-box hide"><strong>지사별 필요 인원</strong><p>전체 행사라면 지사별 인원을 입력하세요. 모집하지 않는 지사는 0명으로 두면 됩니다.</p><div id="sharedQuotaInputs"></div></div>
    <p class="shared-private-note"><icon name="shield-check" inline/> 내담자 실명·연락처 등 개인정보는 공유글에 적지 마세요. 상담 수락 후 담당 상담사가 별도로 확인하면 돼요.</p>
-   <div class="shared-form-actions"><button id="sharedCreateButton" class="primary" type="submit">공유 일정 올리기</button><button id="sharedCancelForm" type="button">닫기</button></div>
+   <div id="sharedEditingHint" class="shared-edit-hint hide"></div><div class="shared-form-actions"><button id="sharedCreateButton" class="primary" type="submit">공유 일정 올리기</button><button id="sharedCancelForm" type="button">닫기</button></div>
   </form>
  </details>
  <div class="shared-filters" id="sharedFilters" role="group" aria-label="공유 일정 분류">
@@ -1580,11 +1580,15 @@ function executiveInitialize(){
 }
 
 
-const sharedState={open:false,posts:[],staff:[],filter:'open',loading:false,busy:false};
+const sharedState={open:false,posts:[],staff:[],filter:'open',loading:false,busy:false,editId:null};
 const SHARED_CENTERS=['남부본사','북부센터','동구지사','서부센터'];
 function sharedExec(){return Boolean(cloud.identity?.isAdmin||cloud.identity?.role==='director')}
 function sharedManager(center){return sharedExec()||(cloud.identity?.role==='manager'&&cloud.identity?.center===center)}
 function sharedStatus(msg){$('sharedStatus').textContent=String(msg)}
+async function sharedManage(action,payload={}){
+ const {data,error}=await cloud.client.rpc('schedule_shared_manage',{p_action:action,p_payload:payload});
+ if(error)throw error;return data;
+}
 async function sharedRpc(action,payload={}){
  if(!cloud.active)throw Error('로그인이 필요합니다.');
  const {data,error}=await cloud.client.rpc('schedule_shared_action',{p_action:action,p_payload:payload});
@@ -1611,12 +1615,44 @@ function sharedFormQuota(){
  $('sharedQuotaInputs').innerHTML=centers.map(c=>'<label>'+escapeHtml(c)+' (명)<input type="number" min="0" max="30" data-shared-quota="'+escapeHtml(c)+'" value="'+escapeHtml(prev[c]??'2')+'"></label>').join('');
 }
 function sharedFormReset(){
+ sharedState.editId=null;
  $('sharedForm').reset();
+ $('sharedCreateLabel').textContent='새 공유 요청 등록';
+ $('sharedCreateButton').textContent='공유 일정 올리기';
+ $('sharedEditingHint').classList.add('hide');
+ for(const id of ['sharedScope','sharedDate','sharedTime','sharedDuration','sharedConsultType'])$(id).disabled=false;
+ document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.disabled=false);
  const date=new Date();while(date.getDay()===0||date.getDay()===6)date.setDate(date.getDate()+1);
  $('sharedDate').value=dateKey(date);$('sharedDate').min=dateKey(new Date());
  $('sharedTime').value='14:00';
  document.querySelector('input[name="sharedKind"][value="cover"]').checked=true;
  sharedFormScope();
+}
+
+function sharedNew(kind){
+ sharedFormReset();$('sharedCreateDetails').open=true;
+ document.querySelector('input[name="sharedKind"][value="'+kind+'"]').checked=true;
+ sharedFormScope();$('sharedCreateDetails').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function sharedEdit(p){
+ const me=cloud.identity;
+ if(!p||!(p.creatorId===me.id||sharedExec()||(me.role==='manager'&&me.center===p.scope)))return;
+ sharedFormReset();$('sharedCreateDetails').open=true;sharedState.editId=p.id;
+ document.querySelector('input[name="sharedKind"][value="'+p.kind+'"]').checked=true;
+ sharedFormScope();$('sharedScope').value=p.scope;sharedFormScope();
+ $('sharedTitle').value=p.title;$('sharedDetails').value=p.details||'';
+ $('sharedDate').value=p.date;$('sharedTime').value=p.time;
+ $('sharedDuration').value=String(p.duration);$('sharedConsultType').value=p.consultType||'신청';
+ if(p.kind==='promotion'){sharedFormQuota();for(const q of p.slots||[]){const el=$('sharedQuotaInputs').querySelector('[data-shared-quota="'+q.center+'"]');if(el)el.value=q.quota}}
+ $('sharedCreateLabel').textContent='공유 요청 수정';
+ $('sharedCreateButton').textContent='수정 저장';
+ document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.disabled=true);
+ $('sharedScope').disabled=true;
+ const joined=p.slots.some(q=>q.members.length);
+ $('sharedEditingHint').classList.remove('hide');
+ $('sharedEditingHint').textContent=joined?'참여자가 있어 제목과 안내 내용만 수정할 수 있습니다.':'종류·지사는 유지하고 제목·날짜·시간·인원을 수정할 수 있습니다.';
+ if(joined){for(const id of ['sharedDate','sharedTime','sharedDuration','sharedConsultType'])$(id).disabled=true;for(const el of $('sharedQuotaInputs').querySelectorAll('[data-shared-quota]'))el.disabled=true}
+ $('sharedCreateDetails').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function sharedSummary(){
  const arr=sharedState.posts,open=arr.filter(p=>p.status==='open'),me=cloud.identity?.id;
@@ -1641,9 +1677,11 @@ function sharedCard(p){
  if(open&&joined)actions+='<button data-shared-action="leave" data-staff-id="'+escapeHtml(me.id)+'" data-post-id="'+escapeHtml(p.id)+'">내 참여 취소</button>';
  const eligible=sharedState.staff.filter(x=>sharedManager(x.center)&&slots.some(q=>q.center===x.center&&q.members.length<q.quota&&!q.members.some(m=>m.staffId===x.id)));
  if(open&&eligible.length)actions+='<select aria-label="담당 직원" data-shared-select="'+escapeHtml(p.id)+'"><option value="">직원 선택</option>'+eligible.map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.center+' · '+x.name)+'</option>').join('')+'</select><button data-shared-action="assign" data-post-id="'+escapeHtml(p.id)+'">직원 배정</button>';
- if(open&&(own||sharedExec()||me.role==='manager'&&me.center===p.scope))actions+='<button class="danger" data-shared-action="cancel" data-post-id="'+escapeHtml(p.id)+'">모집 취소</button>';
+ const managed=own||sharedExec()||(me.role==='manager'&&me.center===p.scope);
+ if(open&&managed)actions+='<button data-shared-action="edit" data-post-id="'+escapeHtml(p.id)+'">수정</button><button data-shared-action="complete" data-post-id="'+escapeHtml(p.id)+'">완료</button><button class="danger" data-shared-action="cancel" data-post-id="'+escapeHtml(p.id)+'">모집 취소</button>';
+ if(managed)actions+='<button class="danger" data-shared-action="delete" data-post-id="'+escapeHtml(p.id)+'">삭제</button>';
  const duration=p.duration===30?'30분':p.duration%60?p.duration+'분':p.duration/60+'시간';
- return '<article class="shared-post"><div class="shared-post-top"><span class="shared-post-type '+(p.kind==='promotion'?'promotion':'')+'">'+(p.kind==='cover'?'대신 상담':'홍보·행사')+'</span><span class="shared-post-state">'+(!open?'취소됨':filled===total?'모집 완료':'모집 중')+' · '+filled+'/'+total+'명</span></div>'+
+ return '<article class="shared-post"><div class="shared-post-top"><span class="shared-post-type '+(p.kind==='promotion'?'promotion':'')+'">'+(p.kind==='cover'?'대신 상담':'홍보·행사')+'</span><span class="shared-post-state">'+(p.status==='completed'?'완료':p.status==='cancelled'?'취소됨':filled===total?'정원 충족':'모집 중')+' · '+filled+'/'+total+'명</span></div>'+
  '<h3>'+escapeHtml(p.title)+'</h3><div class="shared-post-meta">📅 '+escapeHtml(p.date+' '+p.time)+' · '+duration+' · '+escapeHtml(p.scope==='전체'?'4개 지사 전체':p.scope)+'<br>작성: '+escapeHtml(p.creator)+(p.kind==='cover'?' · '+escapeHtml(p.consultType||'신청'):'')+'</div>'+
  (p.details?'<p class="shared-post-details">'+escapeHtml(p.details)+'</p>':'')+
  '<div class="shared-post-slots">'+occupants+'</div><div class="shared-post-actions">'+(actions||'<span class="action-note">현재 신청할 수 없어요.</span>')+'</div></article>';
@@ -1688,26 +1726,28 @@ async function sharedPublish(e){
  const payload={kind,scope:$('sharedScope').value,title:$('sharedTitle').value.trim(),details:$('sharedDetails').value.trim(),
   date:$('sharedDate').value,time:$('sharedTime').value,duration:kind==='cover'?30:Number($('sharedDuration').value),
   consultType:$('sharedConsultType').value,quotas};
- if(!confirm('다음 공유 일정을 게시할까요?\n'+payload.title+'\n'+payload.date+' '+payload.time))return;
+ const editing=Boolean(sharedState.editId);if(editing)payload.postId=sharedState.editId;
+ if(!confirm((editing?'수정 내용을 저장할까요?':'공유 일정을 게시할까요?')+'\n'+payload.title+'\n'+payload.date+' '+payload.time))return;
  sharedState.busy=true;$('sharedCreateButton').disabled=true;
- try{await sharedRpc('create',payload);$('sharedCreateDetails').open=false;sharedState.filter='open';await sharedRefresh();sharedStatus('공유 요청 게시 완료 · 참여자는 수락하면 표시돼요.')}
+ try{if(editing)await sharedManage('edit',payload);else await sharedRpc('create',payload);$('sharedCreateDetails').open=false;sharedFormReset();sharedState.filter='open';await sharedRefresh();sharedStatus(editing?'공유 요청 수정 완료':'공유 요청 게시 완료 · 참여자는 수락하면 표시돼요.')}
  catch(e){sharedStatus('등록 실패: '+String(e.message||e))}
  finally{sharedState.busy=false;$('sharedCreateButton').disabled=false}
 }
 async function sharedAct(e){
  const btn=e.target.closest('[data-shared-action]');if(!btn||sharedState.busy)return;
  const action=btn.dataset.sharedAction,payload={postId:btn.dataset.postId};
+ if(action==='edit'){sharedEdit(sharedState.posts.find(p=>p.id===payload.postId));return;}
  if(action==='assign'){
   const sel=$('sharedPosts').querySelector('[data-shared-select="'+payload.postId+'"]');
   if(!sel?.value){sharedStatus('배정할 직원 선택이 필요합니다.');return}
   payload.staffId=sel.value;
  }
  if(action==='leave')payload.staffId=btn.dataset.staffId||cloud.identity.id;
- const question={join:'이 일정을 수락해 내 일정표에 넣을까요?',assign:'지정한 직원의 일정표에 등록할까요?',leave:'참여를 취소하고 연결된 일정도 삭제할까요?',cancel:'모집을 취소하고 모든 참여자 일정을 취소할까요?'}[action];
+ const question={join:'이 일정을 수락해 내 일정표에 넣을까요?',assign:'지정한 직원의 일정표에 등록할까요?',leave:'참여를 취소하고 연결된 일정도 삭제할까요?',cancel:'모집을 취소하고 모든 참여자 일정을 취소할까요?',complete:'완료 처리하고 모집을 마칠까요? 수락자의 기존 일정은 유지됩니다.',delete:'삭제하면 수락자의 연결 일정도 삭제됩니다. 정말 삭제할까요?'}[action];
  if(!question||!confirm(question))return;
  sharedState.busy=true;btn.disabled=true;
- try{const result=await sharedRpc(action,payload);await sharedRefresh();try{await cloudReload()}catch(err){console.warn('일정 새로고침 지연',err)}
-  sharedStatus((result.staff?result.staff+' · ':'')+({joined:'수락 완료',assigned:'배정 완료',alreadyJoined:'이미 참여 중',left:'참여 취소',cancelled:'모집 취소'}[result.action]||'처리 완료')+' · 서버에 반영되었습니다.');
+ try{const result=await (['complete','delete'].includes(action)?sharedManage(action,payload):sharedRpc(action,payload));await sharedRefresh();try{await cloudReload()}catch(err){console.warn('일정 새로고침 지연',err)}
+  sharedStatus((result.staff?result.staff+' · ':'')+({joined:'수락 완료',assigned:'배정 완료',alreadyJoined:'이미 참여 중',left:'참여 취소',cancelled:'모집 취소',completed:'완료 처리',deleted:'삭제 완료'}[result.action]||'처리 완료')+' · 서버에 반영되었습니다.');
  }catch(e){sharedStatus('처리 실패: '+String(e.message||e))}
  finally{sharedState.busy=false;btn.disabled=false}
 }
@@ -1719,10 +1759,12 @@ function sharedInitialize(){
  $('sharedForm').onsubmit=sharedPublish;
  $('sharedPosts').onclick=sharedAct;
  $('sharedFilters').onclick=e=>{const b=e.target.closest('[data-shared-filter]');if(b){sharedState.filter=b.dataset.sharedFilter;sharedRender()}};
- $('sharedCreateDetails').addEventListener('toggle',()=>{if($('sharedCreateDetails').open)sharedFormReset()});
+ $('sharedCreateDetails').addEventListener('toggle',()=>{if($('sharedCreateDetails').open&&!sharedState.editId&&!$('sharedTitle').value)sharedFormReset()});
+ $('sharedCoverCreate').onclick=()=>sharedNew('cover');
+ $('sharedPromotionCreate').onclick=()=>sharedNew('promotion');
  document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.onchange=sharedFormScope);
  $('sharedScope').onchange=sharedFormQuota;
- $('sharedCancelForm').onclick=()=>$('sharedCreateDetails').open=false;
+ $('sharedCancelForm').onclick=()=>{$('sharedCreateDetails').open=false;sharedFormReset()};
 }
 
 async function cloudBoot(){
