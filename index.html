@@ -1781,11 +1781,53 @@ function sharedInitialize(){
 
 const alerts={items:[],busy:false,shown:new Set(),snoozedUntil:0,staffId:null,initialized:false};
 function alertUnread(){return alerts.items.filter(x=>!x.seen)}
+
+/* Alert bridge to the trusted organization counseling journal (same GitHub origin).
+   Never exposes auth tokens, client names, or request bodies. */
+const ALERT_BRIDGE_ORIGIN='https://careercounselor1984-code.github.io';
+let alertBridgeParent=null;
+function alertBridgeSend(message){
+ if(!alertBridgeParent)return;
+ try{alertBridgeParent.postMessage(message,ALERT_BRIDGE_ORIGIN)}catch(e){}
+}
+function alertBridgeUpdate(){
+ if(!alertBridgeParent)return;
+ if(!cloud.active){
+  alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:false,items:[]});return;
+ }
+ const items=alerts.items.slice(0,80).map(x=>({
+  key:String(x.key||'').slice(0,180),
+  title:String(x.title||'').slice(0,100),
+  date:String(x.date||'').slice(0,16),
+  scope:String(x.scope||'전체').slice(0,20),
+  source:x.source==='shared'?'shared':x.source==='board'?'board':'notice',
+  seen:!!x.seen
+ })).filter(x=>x.key&&x.title);
+ alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:true,items});
+}
+window.addEventListener('message',async event=>{
+ if(event.source!==window.parent||event.origin!==ALERT_BRIDGE_ORIGIN||!event.data)return;
+ if(event.data.type==='goodjob:alert-subscribe:v1'){
+  alertBridgeParent=event.source;
+  if(cloud.active)await alertPoll(false);
+  else alertBridgeUpdate();
+ }else if(event.data.type==='goodjob:alert-ack:v1'&&event.source===alertBridgeParent){
+  if(!cloud.active)return;
+  const keys=Array.isArray(event.data.keys)?event.data.keys.filter(x=>typeof x==='string'&&x.length<=180).slice(0,40):[];
+  if(!keys.length)return;
+  try{await alertAck(keys);alertBridgeUpdate()}
+  catch(e){alertBridgeSend({type:'goodjob:alert-error:v1',message:'알림 읽음 저장에 실패했습니다.'})}
+ }else if(event.data.type==='goodjob:alert-refresh:v1'&&event.source===alertBridgeParent){
+  if(cloud.active)await alertPoll(false);
+ }
+});
+
 function alertDraw(){
  const unseen=alertUnread(),badge=$('alertBadge');
  badge.textContent=unseen.length>99?'99+':String(unseen.length);
  badge.classList.toggle('hide',unseen.length===0);
  $('alertReadAll').disabled=!unseen.length;
+ alertBridgeUpdate();
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
   const source=x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
@@ -1840,7 +1882,7 @@ async function alertPoll(pop=true){
   alerts.items=[...(Array.isArray(data?.items)?data.items:[]),...board];
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
-  if(pop&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
+  if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
    fresh.forEach(x=>alerts.shown.add(x.key));$('alertDialog').showModal();
   }
  }catch(e){console.warn('업무 알림 조회 지연',e?.message||'')}
