@@ -2258,6 +2258,7 @@ const HOL={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설�
 const $=id=>document.getElementById(id),q=s=>document.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const dateKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const dateWithWeekday=d=>dateKey(d)+' ('+['일','월','화','수','목','금','토'][d.getDay()]+')';
 const parseDate=s=>new Date(s+'T12:00:00');
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const monday=d=>addDays(d,-((d.getDay()+6)%7));
@@ -2489,7 +2490,7 @@ function changeView(v){
  if(v==='sharedBoard'){sharedOpen();return}
  if(sharedState.open){sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide')}
  currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
-function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateKey(start)+' ~ '+dateKey(addDays(start,4)):(isDay||isAgenda)?date:month;
+function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateWithWeekday(start)+' ~ '+dateWithWeekday(addDays(start,4)):(isDay||isAgenda)?dateWithWeekday(focusDate):month;
  $('period').textContent=period;$('datePickerWrap').classList.toggle('hide',!(isDay||isAgenda));$('datePicker').value=date;
  const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
