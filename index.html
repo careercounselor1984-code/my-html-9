@@ -1731,6 +1731,7 @@ async function cloudBoot(){
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
  executiveInitialize();
+ sharedInitialize();
  $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
  $('presenceClose').onclick=()=>$('presenceDlg').close();
  $('presenceRefresh').onclick=refreshPresence;
@@ -1891,7 +1892,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}await cloud.client.auth.signOut();executiveClose(true);cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>cloudCommit();
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
@@ -2152,7 +2153,10 @@ function mobileSwipeSize(){
  const page=area?.querySelector('[data-swipe-page="current"]');
  if(page)area.style.height=Math.ceil(page.getBoundingClientRect().height)+'px';
 }
-function changeView(v){currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
+function changeView(v){
+ if(v==='sharedBoard'){sharedOpen();return}
+ if(sharedState.open){sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide')}
+ currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
 function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateKey(start)+' ~ '+dateKey(addDays(start,4)):(isDay||isAgenda)?date:month;
  $('period').textContent=period;$('datePickerWrap').classList.toggle('hide',!(isDay||isAgenda));$('datePicker').value=date;
  const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
