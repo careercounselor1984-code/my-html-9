@@ -1579,6 +1579,152 @@ function executiveInitialize(){
  };
 }
 
+
+const sharedState={open:false,posts:[],staff:[],filter:'open',loading:false,busy:false};
+const SHARED_CENTERS=['남부본사','북부센터','동구지사','서부센터'];
+function sharedExec(){return Boolean(cloud.identity?.isAdmin||cloud.identity?.role==='director')}
+function sharedManager(center){return sharedExec()||(cloud.identity?.role==='manager'&&cloud.identity?.center===center)}
+function sharedStatus(msg){$('sharedStatus').textContent=String(msg)}
+async function sharedRpc(action,payload={}){
+ if(!cloud.active)throw Error('로그인이 필요합니다.');
+ const {data,error}=await cloud.client.rpc('schedule_shared_action',{p_action:action,p_payload:payload});
+ if(error)throw error;if(data?.error)throw Error(data.error);return data;
+}
+function sharedFormScope(){
+ const kind=document.querySelector('input[name="sharedKind"]:checked')?.value||'cover',old=$('sharedScope').value;
+ const allowed=sharedExec()?['전체',...SHARED_CENTERS]:[cloud.identity?.center].filter(x=>SHARED_CENTERS.includes(x));
+ const list=kind==='cover'?allowed.filter(x=>x!=='전체'):allowed;
+ $('sharedScope').innerHTML=list.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x==='전체'?'전체 4개 지사':x)+'</option>').join('');
+ $('sharedScope').value=list.includes(old)?old:(list[0]||'');
+ $('sharedConsultTypeWrap').classList.toggle('hide',kind!=='cover');
+ $('sharedDurationWrap').classList.toggle('hide',kind==='cover');
+ $('sharedTitle').placeholder=kind==='cover'?'예: 신청 상담 지원 요청':'예: 대학교 홍보행사';
+ sharedFormQuota();
+}
+function sharedFormQuota(){
+ const promotion=document.querySelector('input[name="sharedKind"]:checked')?.value==='promotion';
+ $('sharedQuotaBox').classList.toggle('hide',!promotion);
+ if(!promotion){$('sharedQuotaInputs').innerHTML='';return}
+ const centers=$('sharedScope').value==='전체'?SHARED_CENTERS:[$('sharedScope').value];
+ const prev=Object.fromEntries([...$('sharedQuotaInputs').querySelectorAll('[data-shared-quota]')].map(x=>[x.dataset.sharedQuota,x.value]));
+ $('sharedQuotaInputs').classList.add('shared-quota-inputs');
+ $('sharedQuotaInputs').innerHTML=centers.map(c=>'<label>'+escapeHtml(c)+' (명)<input type="number" min="0" max="30" data-shared-quota="'+escapeHtml(c)+'" value="'+escapeHtml(prev[c]??'2')+'"></label>').join('');
+}
+function sharedFormReset(){
+ $('sharedForm').reset();
+ const date=new Date();while(date.getDay()===0||date.getDay()===6)date.setDate(date.getDate()+1);
+ $('sharedDate').value=dateKey(date);$('sharedDate').min=dateKey(new Date());
+ $('sharedTime').value='14:00';
+ document.querySelector('input[name="sharedKind"][value="cover"]').checked=true;
+ sharedFormScope();
+}
+function sharedSummary(){
+ const arr=sharedState.posts,open=arr.filter(p=>p.status==='open'),me=cloud.identity?.id;
+ const own=arr.filter(p=>p.creatorId===me||p.slots.some(s=>s.members.some(m=>m.staffId===me)));
+ $('sharedSummary').innerHTML=[['대신 상담 모집',open.filter(p=>p.kind==='cover').length],['홍보·행사 모집',open.filter(p=>p.kind==='promotion').length],['나의 관련 일정',own.length]].map(([a,b])=>'<div class="shared-kpi"><span>'+escapeHtml(a)+'</span><strong>'+b+'건</strong></div>').join('');
+}
+function sharedCard(p){
+ const me=cloud.identity,slots=p.slots||[],joined=slots.some(q=>q.members.some(m=>m.staffId===me.id));
+ const total=slots.reduce((a,q)=>a+q.quota,0),filled=slots.reduce((a,q)=>a+q.members.length,0);
+ const mySlot=slots.find(q=>q.center===me.center),open=p.status==='open',own=p.creatorId===me.id;
+ const occupants=slots.map(q=>{
+  const names=q.members.map(m=>{
+   const canRemove=open&&(m.staffId===me.id||sharedManager(q.center));
+   const remove=canRemove?' <button title="참여 취소" data-shared-action="leave" data-post-id="'+escapeHtml(p.id)+'" data-staff-id="'+escapeHtml(m.staffId)+'">×</button>':'';
+   return '<span class="shared-member">'+escapeHtml(m.name)+(m.own?' · 본인 수락':' · '+escapeHtml(m.by||'')+' 배정')+remove+'</span>';
+  }).join('');
+  return '<div class="shared-post-slot"><div class="shared-slot-header"><b>'+escapeHtml(q.center)+'</b><span>'+q.members.length+'/'+q.quota+'명</span></div><div class="shared-slot-members">'+(names||'<span class="shared-empty-member">참여자 없음</span>')+'</div></div>';
+ }).join('');
+ let actions='';
+ if(open&&mySlot&&!joined&&mySlot.members.length<mySlot.quota&&!(p.kind==='cover'&&own))
+  actions+='<button class="primary" data-shared-action="join" data-post-id="'+escapeHtml(p.id)+'">'+(p.kind==='cover'?'✓ 내가 상담 맡기':'✓ 참여 신청')+'</button>';
+ if(open&&joined)actions+='<button data-shared-action="leave" data-staff-id="'+escapeHtml(me.id)+'" data-post-id="'+escapeHtml(p.id)+'">내 참여 취소</button>';
+ const eligible=sharedState.staff.filter(x=>sharedManager(x.center)&&slots.some(q=>q.center===x.center&&q.members.length<q.quota&&!q.members.some(m=>m.staffId===x.id)));
+ if(open&&eligible.length)actions+='<select aria-label="담당 직원" data-shared-select="'+escapeHtml(p.id)+'"><option value="">직원 선택</option>'+eligible.map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.center+' · '+x.name)+'</option>').join('')+'</select><button data-shared-action="assign" data-post-id="'+escapeHtml(p.id)+'">직원 배정</button>';
+ if(open&&(own||sharedExec()||me.role==='manager'&&me.center===p.scope))actions+='<button class="danger" data-shared-action="cancel" data-post-id="'+escapeHtml(p.id)+'">모집 취소</button>';
+ const duration=p.duration===30?'30분':p.duration%60?p.duration+'분':p.duration/60+'시간';
+ return '<article class="shared-post"><div class="shared-post-top"><span class="shared-post-type '+(p.kind==='promotion'?'promotion':'')+'">'+(p.kind==='cover'?'대신 상담':'홍보·행사')+'</span><span class="shared-post-state">'+(!open?'취소됨':filled===total?'모집 완료':'모집 중')+' · '+filled+'/'+total+'명</span></div>'+
+ '<h3>'+escapeHtml(p.title)+'</h3><div class="shared-post-meta">📅 '+escapeHtml(p.date+' '+p.time)+' · '+duration+' · '+escapeHtml(p.scope==='전체'?'4개 지사 전체':p.scope)+'<br>작성: '+escapeHtml(p.creator)+(p.kind==='cover'?' · '+escapeHtml(p.consultType||'신청'):'')+'</div>'+
+ (p.details?'<p class="shared-post-details">'+escapeHtml(p.details)+'</p>':'')+
+ '<div class="shared-post-slots">'+occupants+'</div><div class="shared-post-actions">'+(actions||'<span class="action-note">현재 신청할 수 없어요.</span>')+'</div></article>';
+}
+function sharedRender(){
+ sharedSummary();
+ $('sharedFilters').querySelectorAll('[data-shared-filter]').forEach(b=>b.classList.toggle('active',b.dataset.sharedFilter===sharedState.filter));
+ const f=sharedState.filter,me=cloud.identity?.id;
+ const arr=sharedState.posts.filter(p=>f==='all'||f==='open'&&p.status==='open'||
+ f==='cover'&&p.kind==='cover'&&p.status==='open'||f==='promotion'&&p.kind==='promotion'&&p.status==='open'||
+ f==='mine'&&(p.creatorId===me||p.slots.some(q=>q.members.some(m=>m.staffId===me))));
+ arr.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ $('sharedPosts').innerHTML=arr.length?arr.map(sharedCard).join(''):'<div class="shared-empty-list">해당 조건의 공유 일정이 없어요. 새 요청을 등록해 보세요.</div>';
+}
+async function sharedRefresh(){
+ if(!cloud.active||sharedState.loading)return;
+ sharedState.loading=true;$('sharedRefresh').disabled=true;sharedStatus('공유 일정을 불러오는 중…');
+ try{const data=await sharedRpc('list');sharedState.posts=data.posts||[];sharedState.staff=data.staff||[];sharedRender();sharedStatus('서버 조회 완료 · 공유 일정 '+sharedState.posts.length+'건')}
+ catch(e){sharedStatus('조회 실패: '+String(e.message||e))}
+ finally{sharedState.loading=false;$('sharedRefresh').disabled=false}
+}
+async function sharedOpen(){
+ if(!cloud.active){alert('로그인 후 이용하세요.');return}
+ if(document.body.classList.contains('executive-mode'))executiveClose(true);
+ sharedState.open=true;document.body.classList.add('shared-board-mode');$('sharedBoard').classList.remove('hide');
+ $('sharedCreateDetails').open=false;sharedFormReset();
+ await sharedRefresh();window.scrollTo?.({top:0,behavior:'instant'});
+}
+function sharedClose(){
+ sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');
+ if(cloud.identity?.role==='director')executiveOpen();
+ else{render();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===currentView))}
+}
+async function sharedPublish(e){
+ e.preventDefault();if(sharedState.busy)return;
+ const kind=document.querySelector('input[name="sharedKind"]:checked')?.value,quotas={};
+ if(kind==='promotion')for(const el of $('sharedQuotaInputs').querySelectorAll('[data-shared-quota]')){
+  const n=Number(el.value);if(!Number.isInteger(n)||n<0||n>30){sharedStatus('인원은 0~30명으로 입력해 주세요.');return}
+  if(n>0)quotas[el.dataset.sharedQuota]=n;
+ }
+ if(kind==='promotion'&&!Object.keys(quotas).length){sharedStatus('모집 인원을 한 지사 이상 입력해 주세요.');return}
+ const payload={kind,scope:$('sharedScope').value,title:$('sharedTitle').value.trim(),details:$('sharedDetails').value.trim(),
+  date:$('sharedDate').value,time:$('sharedTime').value,duration:kind==='cover'?30:Number($('sharedDuration').value),
+  consultType:$('sharedConsultType').value,quotas};
+ if(!confirm('다음 공유 일정을 게시할까요?\n'+payload.title+'\n'+payload.date+' '+payload.time))return;
+ sharedState.busy=true;$('sharedCreateButton').disabled=true;
+ try{await sharedRpc('create',payload);$('sharedCreateDetails').open=false;sharedState.filter='open';await sharedRefresh();sharedStatus('공유 요청 게시 완료 · 참여자는 수락하면 표시돼요.')}
+ catch(e){sharedStatus('등록 실패: '+String(e.message||e))}
+ finally{sharedState.busy=false;$('sharedCreateButton').disabled=false}
+}
+async function sharedAct(e){
+ const btn=e.target.closest('[data-shared-action]');if(!btn||sharedState.busy)return;
+ const action=btn.dataset.sharedAction,payload={postId:btn.dataset.postId};
+ if(action==='assign'){
+  const sel=$('sharedPosts').querySelector('[data-shared-select="'+payload.postId+'"]');
+  if(!sel?.value){sharedStatus('배정할 직원 선택이 필요합니다.');return}
+  payload.staffId=sel.value;
+ }
+ if(action==='leave')payload.staffId=btn.dataset.staffId||cloud.identity.id;
+ const question={join:'이 일정을 수락해 내 일정표에 넣을까요?',assign:'지정한 직원의 일정표에 등록할까요?',leave:'참여를 취소하고 연결된 일정도 삭제할까요?',cancel:'모집을 취소하고 모든 참여자 일정을 취소할까요?'}[action];
+ if(!question||!confirm(question))return;
+ sharedState.busy=true;btn.disabled=true;
+ try{const result=await sharedRpc(action,payload);await sharedRefresh();try{await cloudReload()}catch(err){console.warn('일정 새로고침 지연',err)}
+  sharedStatus((result.staff?result.staff+' · ':'')+({joined:'수락 완료',assigned:'배정 완료',alreadyJoined:'이미 참여 중',left:'참여 취소',cancelled:'모집 취소'}[result.action]||'처리 완료')+' · 서버에 반영되었습니다.');
+ }catch(e){sharedStatus('처리 실패: '+String(e.message||e))}
+ finally{sharedState.busy=false;btn.disabled=false}
+}
+function sharedInitialize(){
+ $('sharedBack').onclick=sharedClose;
+ $('sharedTopButton').onclick=()=>sharedState.open?sharedClose():sharedOpen();
+ $('executiveSharedOpen').onclick=sharedOpen;
+ $('sharedRefresh').onclick=sharedRefresh;
+ $('sharedForm').onsubmit=sharedPublish;
+ $('sharedPosts').onclick=sharedAct;
+ $('sharedFilters').onclick=e=>{const b=e.target.closest('[data-shared-filter]');if(b){sharedState.filter=b.dataset.sharedFilter;sharedRender()}};
+ $('sharedCreateDetails').addEventListener('toggle',()=>{if($('sharedCreateDetails').open)sharedFormReset()});
+ document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.onchange=sharedFormScope);
+ $('sharedScope').onchange=sharedFormQuota;
+ $('sharedCancelForm').onclick=()=>$('sharedCreateDetails').open=false;
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
