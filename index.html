@@ -655,7 +655,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 @media(max-width:760px){.alert-content{padding:12px}.alert-actions button{flex:1;min-height:43px}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.2 · 공유 일정·새 글 알림</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.3 · 공유 일정·게시판 알림</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -760,7 +760,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </main>
 <div class="mobile-quick-backdrop no-print" id="mobileQuickBackdrop" aria-hidden="true"></div><div class="mobile-bottom-action no-print"><button id="mobileAddConsult" type="button" class="primary">＋ 빠른 예약</button><button id="mobileAddWork" type="button">＋ 근무 일정</button></div>
 
-<dialog id="alertDialog" class="alert-dialog" aria-labelledby="alertHeading"><div class="alert-content"><header class="alert-head"><div><h2 id="alertHeading">🔔 새 업무 알림</h2><p>내 지사 공유 요청 · 공통 공지</p></div><button id="alertClose" type="button">닫기</button></header><div id="alertItems" class="alert-items"></div><div class="alert-actions"><button id="alertLater" type="button">나중에 확인</button><button id="alertReadAll" class="primary" type="button">모두 읽음 처리</button></div><p class="alert-note">읽은 글은 반복해서 뜨지 않아요. 나중에 확인을 누르면 30분 동안 팝업을 숨깁니다.</p></div></dialog><dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
+<dialog id="alertDialog" class="alert-dialog" aria-labelledby="alertHeading"><div class="alert-content"><header class="alert-head"><div><h2 id="alertHeading">🔔 새 업무 알림</h2><p>내 지사 공유 일정 · 공통 공지 · 공용 게시판 새 글</p></div><button id="alertClose" type="button">닫기</button></header><div id="alertItems" class="alert-items"></div><div class="alert-actions"><button id="alertLater" type="button">나중에 확인</button><button id="alertReadAll" class="primary" type="button">모두 읽음 처리</button></div><p class="alert-note">읽은 글은 반복해서 뜨지 않아요. 나중에 확인을 누르면 30분 동안 팝업을 숨깁니다.</p></div></dialog><dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
  <header><div><h2>직원 계정관리</h2><p>관리자 전용 · 직원 발급·초기화·활성화 관리</p></div><button id="staffAdminClose" type="button">닫기</button></header>
  <div class="staff-admin-actions"><button type="button" id="staffAdminRefresh">명단 새로고침</button><button type="button" class="primary" id="staffAdminBulk">미발급 직원 전체 계정 발급</button></div>
  <p id="staffAdminSummary" role="status">명단을 불러오는 중…</p>
@@ -1787,11 +1787,48 @@ function alertDraw(){
  badge.classList.toggle('hide',unseen.length===0);
  $('alertReadAll').disabled=!unseen.length;
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
-  const source=x.source==='shared'?'팀 공유 일정':'공통 공지·행사';
+  const source=x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
   return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">읽음</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
 }
+
+/* Companion board is the existing organization-wide Apps Script bulletin system.
+   Fetches only recent list metadata, never passwords or session tokens. */
+const BOARD_LIST_URL='https://script.google.com/macros/s/AKfycbwwL1k5Nm82FzuZNh58zFSZu5jbF4ttgCWrkrxsQ8_um2WIxDhqyJJSTQyFcgaHobqSUw/exec';
+const BOARD_WEB_URL='https://careercounselor1984-code.github.io/my-html-4/';
+async function alertBoardFetch(){
+ let timeout;
+ const controller=new AbortController();
+ try{
+  timeout=setTimeout(()=>controller.abort(),6000);
+  const url=BOARD_LIST_URL+'?action=list&_='+Date.now();
+  const response=await fetch(url,{method:'GET',signal:controller.signal,cache:'no-store',credentials:'omit'});
+  if(!response.ok)throw new Error('게시판 서버 연결 실패');
+  const obj=await response.json();
+  if(!Array.isArray(obj?.items))return [];
+  const weekAgo=Date.now()-7*24*3600*1000;
+  const recent=obj.items.filter(x=>{
+   const time=new Date(x.updatedAt||x.createdAt).getTime();
+   return Boolean(x.id&&x.title)&&Number.isFinite(time)&&time>=weekAgo&&time<=Date.now()+60000;
+  }).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)).slice(0,30);
+  const items=recent.map(x=>{
+   const epoch=new Date(x.updatedAt||x.createdAt).getTime();
+   return {key:'board:'+String(x.id).slice(0,100)+':'+epoch,
+    source:'board',scope:'전체',kind:String(x.category||'게시판'),
+    title:String(x.title).slice(0,100),date:String(x.updatedAt||x.createdAt).slice(0,10),seen:false};
+  }).filter(x=>x.key.length<=180);
+  if(items.length){
+   const {data,error}=await cloud.client.rpc('schedule_alert_seen_keys',{p_keys:items.map(x=>x.key)});
+   if(error)throw error;
+   const seen=new Set(data?.keys||[]);
+   items.forEach(x=>x.seen=seen.has(x.key));
+  }
+  return items;
+ }catch(error){console.warn('공용 게시판 조회 지연',error?.message||'');return []}
+ finally{if(timeout)clearTimeout(timeout)}
+}
+
 async function alertPoll(pop=true){
  if(!cloud.active||!cloud.identity?.id||alerts.busy)return;
  if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
@@ -1799,7 +1836,8 @@ async function alertPoll(pop=true){
  try{
   const {data,error}=await cloud.client.rpc('schedule_alert_feed');
   if(error)throw error;
-  alerts.items=Array.isArray(data?.items)?data.items:[];
+  const board=await alertBoardFetch();
+  alerts.items=[...(Array.isArray(data?.items)?data.items:[]),...board];
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
   if(pop&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -1834,6 +1872,7 @@ function alertInitialize(){
   if(!button.dataset.alertOpen)return;
   if($('alertDialog').open)$('alertDialog').close();
   if(item.source==='shared')await sharedOpen();
+  else if(item.source==='board')window.open(BOARD_WEB_URL,'_blank','noopener,noreferrer');
   else{if(sharedState.open)sharedClose();if(document.body.classList.contains('executive-mode'))executiveClose();window.scrollTo?.({top:0,behavior:'smooth'})}
  };
  $('alertDialog').addEventListener('cancel',e=>{e.preventDefault();alertLater()});
