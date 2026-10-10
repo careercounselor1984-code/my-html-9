@@ -1770,7 +1770,7 @@ function sharedInitialize(){
  $('sharedForm').onsubmit=sharedPublish;
  $('sharedPosts').onclick=sharedAct;
  $('sharedFilters').onclick=e=>{const b=e.target.closest('[data-shared-filter]');if(b){sharedState.filter=b.dataset.sharedFilter;sharedRender()}};
- $('sharedCreateDetails').addEventListener('toggle',()=>{if($('sharedCreateDetails').open&&!sharedState.editId&&!$('sharedTitle').value)sharedFormReset()});
+ // Reset is handled exclusively by the create/edit buttons to preserve the selected request type.
  $('sharedCoverCreate').onclick=()=>sharedNew('cover');
  $('sharedPromotionCreate').onclick=()=>sharedNew('promotion');
  document.querySelectorAll('input[name="sharedKind"]').forEach(x=>x.onchange=sharedFormScope);
