@@ -683,6 +683,16 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 #calendar .week-panel .timetable tbody tr.hour-start > td{border-top:2px solid #afc1d5}
 #calendar .week-panel .timetable tbody tr:hover .time,
 #calendar .week-panel .timetable tbody tr:hover td.slot:not(.blocked){background:#dcecff!important}
+/* 해당 칸은 가로 시간대보다 선명한 파란색·내부 테두리로 구분 */
+#calendar .week-panel .timetable tbody tr > td.slot:hover:not(.blocked):not(.paint-preview){
+ background:#b9d9ff!important;
+ box-shadow:inset 0 0 0 3px #2563eb,0 0 0 1px rgba(37,99,235,.18)!important;
+ position:relative;
+ z-index:1;
+}
+#calendar .week-panel .timetable tbody tr > td.slot:hover:not(.blocked):not(.paint-preview) .entry{
+ border-color:#3b82f6;
+}
 #calendar .week-panel .timetable tbody tr .time{color:#344e6c;font-weight:800}
 .day-print-date{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:750;color:#58708d}
 .day-print-date input{width:147px;min-height:37px;padding:5px 8px;border:1px solid #cbd9e9;border-radius:9px;background:white;color:#395877;font-size:12px}
