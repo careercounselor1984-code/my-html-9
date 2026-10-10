@@ -759,7 +759,14 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  body[data-view="personalWeek"] #calendar .week-panel .timetable .entry .pilltype{font-size:13px}
 }
 </style>
-</head>
+<style id="goodjob-schedule-move-appointment">
+#moveScheduleDlg{border:0;border-radius:16px;padding:0;max-width:95vw;box-shadow:0 20px 55px #123a6655}
+#moveScheduleDlg::backdrop{background:#172a4f82}
+#moveScheduleDlg .move-summary{padding:11px 13px;border:1px solid #cfe0f1;background:#f1f7ff;color:#275b89;border-radius:9px;font-size:13px;font-weight:800}
+#moveScheduleDlg .field input,#moveScheduleDlg .field select{min-height:43px;min-width:0;width:100%}
+#moveScheduleBtn{color:#1d5b9d;background:#ecf5ff;border-color:#b8d2f0;font-weight:850}
+#moveScheduleApply:disabled{opacity:.5;cursor:not-allowed}
+</style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.4 · 공유 일정 선택형 등록</span></header>
 <section id="cloudGate" class="cloud-gate">
@@ -909,9 +916,20 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
     <div class="field full" id="personManageWrap"><div class="person-note">이전 상담자 추천은 <b>현재 센터·담당 상담사</b> 기준이야. 전체 명단을 펼치지 않고 입력한 이름만 검색해. 공용 PC라면 실명 저장과 백업 파일 취급에 유의해. <button type="button" id="personManage" style="float:right;padding:3px 8px;font-size:11px">기억된 이름 관리</button></div></div>
     <label class="field full"><span id="memoLabel">상담 메모 (선택)</span><textarea name="memo" maxlength="600" placeholder="필요한 내용만 입력 (선택)"></textarea></label>
   </div>
-  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
+  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="moveScheduleBtn" class="hide">↪ 상담 날짜·시간 변경</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
 </form></dialog>
-
+<dialog id="moveScheduleDlg" aria-labelledby="moveScheduleTitle">
+ <div class="modal" style="width:min(520px,calc(100vw - 25px));max-height:90dvh;overflow:auto">
+  <div class="modal-head"><div><h2 id="moveScheduleTitle">상담 일정 변경</h2><span class="modal-sub">기존 상담은 그대로 유지하고 날짜·시간만 이동합니다.</span></div><button type="button" id="moveScheduleClose" aria-label="닫기">×</button></div>
+  <div class="move-summary" id="moveScheduleBefore"></div>
+  <div class="form-layout" style="grid-template-columns:1fr 1fr;margin:12px 0">
+   <label class="field">변경할 날짜<input type="date" id="moveScheduleDate" required></label>
+   <label class="field">변경할 시간<select id="moveScheduleTime"></select></label>
+  </div>
+  <p id="moveScheduleHelp" class="hint" role="status">다른 상담 일정과 겹치는 경우 저장 전에 확인합니다.</p>
+  <div class="actions"><button type="button" id="moveScheduleCancel">취소</button><button type="button" id="moveScheduleApply" class="primary">변경 후 이동</button></div>
+ </div>
+</dialog>
 <dialog id="quickDayDlg"><div class="modal quick-modal">
   <div class="modal-head"><div><h2 id="quickDateLabel">하루 전체 일정</h2><span class="modal-sub">나의 일정에만 종일 연차·교육 등을 간편 등록해요</span></div><button type="button" id="quickDayClose" aria-label="닫기">✕</button></div>
   <div class="personal-quick-note">선택한 <strong>내 일정</strong>에만 등록돼요. 다른 직원의 연차·교육은 각자의 나의 일정에서 입력해 주세요.</div>
@@ -2729,7 +2747,7 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  f.elements.title.value=e.title||(editorMode==='work'?f.elements.type.value:'');
  updateConsultInlinePreview();
  if(!eventId&&editorMode==='work'){$('allDay').checked=!special&&currentView==='personalMonth';f.elements.title.value=f.elements.type.value;$('ftrip').checked=false;$('duration').value='30'}if(!eventId&&special){$('ftype').value=isClosedDay(e.date,e.center)?'휴일근무':'연장근무';$('fperson').value=$('ftype').value;$('allDay').checked=false;$('duration').value='120';}
- setFormLayout();$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
+ setFormLayout();$('moveScheduleBtn').classList.toggle('hide',!eventId||editorMode!=='consult');$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
 }
 function setFormLayout(){const service=editorMode==='consult';if(service){$('allDay').checked=false;$('duration').value='30';$('ftrip').checked=false}
  $('personManageWrap').classList.toggle('hide',!service);$('consultTripRow').classList.toggle('hide',!service);$('personNew').classList.toggle('hide',!service||!hasSameName());$('personTagBox').classList.toggle('hide',!service||!newHomonym);if(!service)hidePersonSuggestions();
@@ -2921,7 +2939,50 @@ $('customType').addEventListener('input',()=>{
  $('customType').dataset.previous=$('customType').value;
 });
 $('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;changeEditorMode(b.dataset.entryMode)});
-$('allDay').onchange=setFormLayout;$('specialWork').onchange=setFormLayout;$('editor').onsubmit=e=>{e.preventDefault();saveEntry()};
+$('allDay').onchange=setFormLayout;$('specialWork').onchange=setFormLayout;
+function moveScheduleOpen(){
+ if(!editing||editorMode!=='consult')return;
+ const current=model.events.find(e=>e.id===editing);
+ if(!current||current.readonly)return;
+ const dlg=$('moveScheduleDlg');
+ $('moveScheduleBefore').textContent='현재 예약: '+current.title+' · '+current.type+' · '+current.date+' '+current.time;
+ $('moveScheduleDate').value=current.date;
+ moveScheduleRefreshTimes(current.time);
+ dlg.showModal();
+}
+function moveScheduleRefreshTimes(wanted){
+ const date=$('moveScheduleDate').value,sel=$('moveScheduleTime');
+ const choices=slots().filter(t=>date&&!isClosedDay(date,$('fcenter').value)&&withinSameDay(date,t,30,false));
+ sel.innerHTML=choices.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
+ if(choices.includes(wanted))sel.value=wanted;
+ const available=choices.length>0;
+ $('moveScheduleApply').disabled=!available;
+ $('moveScheduleHelp').textContent=available?'해당 날짜의 근무 가능한 시간만 표시됩니다. 예약 중복 여부는 저장할 때 확인합니다.':'휴무일이거나 상담 등록이 불가능한 날짜입니다. 다른 날짜를 선택해 주세요.';
+}
+async function moveScheduleApply(){
+ if(!editing||editorMode!=='consult')return;
+ const date=$('moveScheduleDate').value,time=$('moveScheduleTime').value;
+ const beforeDate=$('editor').elements.date.value,beforeTime=$('editor').elements.time.value;
+ if(!date||!time||!withinSameDay(date,time,30,false))return;
+ const current=model.events.find(e=>e.id===editing);
+ if(!current)return;
+ if(current.date===date&&current.time===time){alert('기존 예약과 날짜·시간이 같습니다.');return}
+ if(!confirm('기존 '+current.date+' '+current.time+' 예약을 '+date+' '+time+'으로 이동할까요?'))return;
+ $('editor').elements.date.value=date;
+ $('editor').elements.time.value=time;
+ const btn=$('moveScheduleApply');btn.disabled=true;btn.textContent='이동 중…';
+ try{
+  const moved=await saveEntry();
+  if(moved){$('moveScheduleDlg').close();alert('상담 일정이 '+date+' '+time+'으로 변경되었습니다. 기존 시간의 예약은 남지 않습니다.')}
+  else{$('editor').elements.date.value=beforeDate;$('editor').elements.time.value=beforeTime}
+ }finally{btn.disabled=false;btn.textContent='변경 후 이동'}
+}
+$('moveScheduleBtn').onclick=moveScheduleOpen;
+$('moveScheduleDate').addEventListener('change',()=>moveScheduleRefreshTimes(''));
+$('moveScheduleApply').onclick=()=>moveScheduleApply().catch(err=>alert('일정 이동 실패: '+(err.message||String(err))));
+$('moveScheduleClose').onclick=$('moveScheduleCancel').onclick=()=>$('moveScheduleDlg').close();
+
+$('editor').onsubmit=e=>{e.preventDefault();saveEntry()};
 $('remove').onclick=()=>{if(editing&&confirm('일정을 삭제할까?')){model.events=model.events.filter(x=>x.id!==editing);save();$('dlg').close();render()}};
 $('cancel').onclick=$('closeModal').onclick=()=>$('dlg').close();
 $('dayoff').onclick=()=>{if(cloud.active&&!['manager','director'].includes(cloud.identity.role))return;if(currentView!=='teamLeave'&&currentView!=='teamDay')return;const f=$('offForm');f.elements.start.value=dateKey(focusDate);f.elements.end.value=dateKey(focusDate);f.elements.center.value=currentCenter();updateOffs();$('offDlg').showModal()};$('offCancel').onclick=()=>$('offDlg').close();
