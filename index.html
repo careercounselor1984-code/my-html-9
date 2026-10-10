@@ -643,9 +643,19 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 }
 @media print{#sharedBoard{display:none!important}}
 .shared-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.shared-quick-actions button{min-height:44px;padding:9px 14px;font-weight:750}.shared-edit-hint{padding:10px;margin:10px 0;border-radius:9px;background:#eef5ff;color:#235b89;font-size:12px}.shared-post-actions button.danger{color:#ac4a51}@media(max-width:760px){.shared-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.shared-quick-actions button{font-size:12px;white-space:normal}}
+
+#alertTopButton{white-space:nowrap}.alert-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;min-height:18px;border-radius:10px;background:#c83749;color:#fff;padding:1px 5px;font-size:10px;font-weight:800}
+.alert-dialog{border:0;padding:0;border-radius:15px;max-width:calc(100vw - 16px);box-shadow:0 20px 55px #132d4b55}.alert-dialog::backdrop{background:#12284088}
+.alert-content{width:min(550px,calc(100vw - 25px));max-height:80dvh;overflow-y:auto;box-sizing:border-box;padding:17px}
+.alert-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.alert-head h2{margin:0;font-size:19px}.alert-head p{font-size:12px;color:#657d94;margin:4px 0}
+.alert-items{display:grid;gap:8px;margin:13px 0}.alert-item{padding:11px;background:#f7faff;border:1px solid #dfeaf5;border-radius:10px}
+.alert-item strong{display:block;color:#244968;font-size:13px;overflow-wrap:anywhere}.alert-item p{font-size:11px;color:#6d8297;margin:6px 0}
+.alert-item>div{display:flex;gap:7px;flex-wrap:wrap}.alert-item button{font-size:12px;padding:7px 10px}
+.alert-actions{display:flex;justify-content:flex-end;gap:9px}.alert-note{font-size:11px;color:#758ba0;margin:10px 0 0;line-height:1.5}
+@media(max-width:760px){.alert-content{padding:12px}.alert-actions button{flex:1;min-height:43px}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.1 · 공유 요청 관리</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.2 · 공유 일정·새 글 알림</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -654,7 +664,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
 
 
 <section id="sharedBoard" class="shared-board hide no-print" aria-labelledby="sharedBoardTitle">
@@ -750,7 +760,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </main>
 <div class="mobile-quick-backdrop no-print" id="mobileQuickBackdrop" aria-hidden="true"></div><div class="mobile-bottom-action no-print"><button id="mobileAddConsult" type="button" class="primary">＋ 빠른 예약</button><button id="mobileAddWork" type="button">＋ 근무 일정</button></div>
 
-<dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
+<dialog id="alertDialog" class="alert-dialog" aria-labelledby="alertHeading"><div class="alert-content"><header class="alert-head"><div><h2 id="alertHeading">🔔 새 업무 알림</h2><p>내 지사 공유 요청 · 공통 공지</p></div><button id="alertClose" type="button">닫기</button></header><div id="alertItems" class="alert-items"></div><div class="alert-actions"><button id="alertLater" type="button">나중에 확인</button><button id="alertReadAll" class="primary" type="button">모두 읽음 처리</button></div><p class="alert-note">읽은 글은 반복해서 뜨지 않아요. 나중에 확인을 누르면 30분 동안 팝업을 숨깁니다.</p></div></dialog><dialog id="staffAdminDlg" class="staff-admin-dialog"><section class="staff-admin-body">
  <header><div><h2>직원 계정관리</h2><p>관리자 전용 · 직원 발급·초기화·활성화 관리</p></div><button id="staffAdminClose" type="button">닫기</button></header>
  <div class="staff-admin-actions"><button type="button" id="staffAdminRefresh">명단 새로고침</button><button type="button" class="primary" id="staffAdminBulk">미발급 직원 전체 계정 발급</button></div>
  <p id="staffAdminSummary" role="status">명단을 불러오는 중…</p>
@@ -962,6 +972,7 @@ async function cloudStartSession(){
  cloud.initialPasswordChange=false;
  cloudApplyIdentity(data);
  await cloudReload();
+ await alertPoll(true);
  if(cloud.identity?.role==='director')await executiveOpen();
  journalBookingAnnounce();
  journalBookingMaybeOpen();
@@ -1767,6 +1778,70 @@ function sharedInitialize(){
  $('sharedCancelForm').onclick=()=>{$('sharedCreateDetails').open=false;sharedFormReset()};
 }
 
+
+const alerts={items:[],busy:false,shown:new Set(),snoozedUntil:0,staffId:null,initialized:false};
+function alertUnread(){return alerts.items.filter(x=>!x.seen)}
+function alertDraw(){
+ const unseen=alertUnread(),badge=$('alertBadge');
+ badge.textContent=unseen.length>99?'99+':String(unseen.length);
+ badge.classList.toggle('hide',unseen.length===0);
+ $('alertReadAll').disabled=!unseen.length;
+ $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
+  const source=x.source==='shared'?'팀 공유 일정':'공통 공지·행사';
+  const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
+  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">읽음</button></div></article>';
+ }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
+}
+async function alertPoll(pop=true){
+ if(!cloud.active||!cloud.identity?.id||alerts.busy)return;
+ if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
+ alerts.busy=true;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_alert_feed');
+  if(error)throw error;
+  alerts.items=Array.isArray(data?.items)?data.items:[];
+  alertDraw();
+  const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
+  if(pop&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
+   fresh.forEach(x=>alerts.shown.add(x.key));$('alertDialog').showModal();
+  }
+ }catch(e){console.warn('업무 알림 조회 지연',e?.message||'')}
+ finally{alerts.busy=false}
+}
+async function alertAck(keys){
+ if(!keys.length)return;
+ const {error}=await cloud.client.rpc('schedule_alert_ack',{p_keys:keys.slice(0,40)});
+ if(error)throw error;
+ const acknowledged=new Set(keys);
+ alerts.items.forEach(x=>{if(acknowledged.has(x.key))x.seen=true});
+ alertDraw();
+ if(!alertUnread().length&&$('alertDialog').open)$('alertDialog').close();
+}
+function alertLater(){
+ alerts.snoozedUntil=Date.now()+30*60*1000;
+ $('alertDialog').close();
+}
+function alertInitialize(){
+ if(alerts.initialized)return;alerts.initialized=true;
+ $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
+ $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
+ $('alertReadAll').onclick=async()=>{try{await alertAck(alertUnread().map(x=>x.key))}catch(e){alert('읽음 저장 실패: '+e.message)}};
+ $('alertItems').onclick=async e=>{
+  const button=e.target.closest('[data-alert-ack],[data-alert-open]');if(!button)return;
+  const key=button.dataset.alertAck||button.dataset.alertOpen;
+  const item=alerts.items.find(x=>x.key===key);if(!item)return;
+  try{await alertAck([key])}catch(err){alert('읽음 처리 실패: '+err.message);return}
+  if(!button.dataset.alertOpen)return;
+  if($('alertDialog').open)$('alertDialog').close();
+  if(item.source==='shared')await sharedOpen();
+  else{if(sharedState.open)sharedClose();if(document.body.classList.contains('executive-mode'))executiveClose();window.scrollTo?.({top:0,behavior:'smooth'})}
+ };
+ $('alertDialog').addEventListener('cancel',e=>{e.preventDefault();alertLater()});
+ window.addEventListener('focus',()=>{if(cloud.active)alertPoll(true)});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)alertPoll(true)});
+ window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},90000);
+}
+
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
  const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
@@ -1774,6 +1849,7 @@ async function cloudBoot(){
  $('cloudRemember').checked=cloudRemember();
  executiveInitialize();
  sharedInitialize();
+ alertInitialize();
  $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
  $('presenceClose').onclick=()=>$('presenceDlg').close();
  $('presenceRefresh').onclick=refreshPresence;
