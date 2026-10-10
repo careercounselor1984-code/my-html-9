@@ -653,9 +653,20 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 .alert-item>div{display:flex;gap:7px;flex-wrap:wrap}.alert-item button{font-size:12px;padding:7px 10px}
 .alert-actions{display:flex;justify-content:flex-end;gap:9px}.alert-note{font-size:11px;color:#758ba0;margin:10px 0 0;line-height:1.5}
 @media(max-width:760px){.alert-content{padding:12px}.alert-actions button{flex:1;min-height:43px}}
+
+/* v24.4: quick-pick controls for staff-created shared schedules */
+.shared-title-preview{padding:10px 12px;min-height:41px;border:1px solid #cfe1f0;border-radius:10px;background:#eef6fd;color:#235b88;line-height:1.45;font-weight:700;font-size:13px;overflow-wrap:anywhere}
+#sharedPresetHelp{font-weight:400;color:#7086a0;font-size:11px;line-height:1.45}
+#sharedForm #sharedPreset,#sharedForm #sharedNotePreset,#sharedForm #sharedTime{min-height:44px;width:100%;max-width:100%;min-width:0;border-radius:9px}
+#sharedForm #sharedTitleWrap,#sharedForm #sharedDetailsWrap{min-width:0}
+#sharedForm #sharedTitleWrap input,#sharedForm #sharedDetailsWrap textarea{min-width:0}
+@media(max-width:760px){
+ .shared-form-grid #sharedTitlePreview{font-size:12px}
+ .shared-form-grid #sharedPresetHelp{font-size:11px}
+}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.3 · 공유 일정·게시판 알림</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.4 · 공유 일정 선택형 등록</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -681,13 +692,16 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
     <label><input type="radio" name="sharedKind" value="promotion"> 홍보·행사 인원 모집 <small>지사별 정원과 참여자 관리</small></label>
    </div>
    <div class="shared-form-grid">
-    <label class="shared-wide">제목<input id="sharedTitle" maxlength="100" required placeholder="예: 10월 신청 상담 지원 요청"></label>
+    <label class="shared-wide">요청 내용 고르기<select id="sharedPreset" aria-describedby="sharedPresetHelp"></select><small id="sharedPresetHelp">자주 쓰는 내용은 선택만 하면 제목이 자동으로 만들어져요.</small></label>
+    <label id="sharedTitleWrap" class="shared-wide hide">제목 직접 입력<input id="sharedTitle" maxlength="100" required placeholder="직접 작성할 제목"></label>
+    <div id="sharedTitlePreview" class="shared-wide shared-title-preview" role="status"></div>
     <label>모집 대상<select id="sharedScope" required></select></label>
     <label id="sharedConsultTypeWrap">상담 구분<select id="sharedConsultType"><option value="신청">신청 상담</option><option value="초기">초기상담</option><option value="해석">심리검사 해석</option><option value="IAP">IAP</option><option value="컨설팅">컨설팅</option><option value="재진단">재진단</option><option value="연계">연계</option><option value="훈련등록">훈련등록</option></select></label>
     <label>일정 날짜<input id="sharedDate" type="date" required></label>
-    <label>시작 시간<input id="sharedTime" type="time" step="1800" value="14:00" required></label>
+    <label>시작 시간<select id="sharedTime" required aria-label="30분 단위 시작 시간"></select></label>
     <label id="sharedDurationWrap" class="hide">행사 소요시간<select id="sharedDuration"><option value="60">1시간</option><option value="120" selected>2시간</option><option value="180">3시간</option><option value="240">4시간</option><option value="360">6시간</option><option value="480">8시간</option></select></label>
-    <label class="shared-wide">안내 내용 (선택)<textarea id="sharedDetails" maxlength="300" rows="2" placeholder="집결 장소·준비물 등 업무에 필요한 내용만 적어주세요."></textarea></label>
+    <label class="shared-wide">추가 안내 (선택)<select id="sharedNotePreset"><option value="none">별도 안내 없음</option><option value="later">세부 장소·내용 추후 안내</option><option value="request">세부사항은 요청자에게 확인</option><option value="gather">센터에 집결 후 함께 이동</option><option value="direct">행사 장소로 직접 집결</option><option value="custom">직접 작성</option></select></label>
+    <label id="sharedDetailsWrap" class="shared-wide hide">추가 안내 직접 입력<textarea id="sharedDetails" maxlength="300" rows="2" placeholder="집결 장소·준비물 등 업무에 필요한 내용만 적어주세요. (개인정보 제외)"></textarea></label>
    </div>
    <div id="sharedQuotaBox" class="shared-quota-box hide"><strong>지사별 필요 인원</strong><p>전체 행사라면 지사별 인원을 입력하세요. 모집하지 않는 지사는 0명으로 두면 됩니다.</p><div id="sharedQuotaInputs"></div></div>
    <p class="shared-private-note"><icon name="shield-check" inline/> 내담자 실명·연락처 등 개인정보는 공유글에 적지 마세요. 상담 수락 후 담당 상담사가 별도로 확인하면 돼요.</p>
