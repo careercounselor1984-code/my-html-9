@@ -3503,6 +3503,7 @@ async function saveEntry(ev){
  }
  // A colleague can only create a 30-minute reservation via a checked server function. No local participant list or owner-write access.
  if(cloud.active&&service&&!editing&&dest.owner!==cloud.identity.name){
+   if(dest.energySchool){alert('에너지고 출장상담 체크는 실제 담당 상담사가 자신의 일정에서 등록해야 합니다. 대리 예약에는 이 체크를 전달할 수 없습니다.');return false;}
    const btn=$('saveEntryBtn');btn.disabled=true;btn.textContent='대신 예약 중…';
    try{
      const {data,error}=await cloud.client.rpc('schedule_book_for_colleague',{
@@ -3787,7 +3788,7 @@ $('fperson').addEventListener('keydown',e=>{if($('personSuggestions').classList.
 $('personSuggestions').addEventListener('pointerdown',e=>e.preventDefault());
 $('personSuggestions').onclick=e=>{const b=e.target.closest('[data-person-index]');if(b)choosePerson(shownPeople[Number(b.dataset.personIndex)])};
 $('personNew').onclick=createNewHomonym;
-$('fcenter').addEventListener('change',()=>{clearPersonChoice();hidePersonSuggestions()});
+$('fcenter').addEventListener('change',()=>{clearPersonChoice();hidePersonSuggestions();setFormLayout()});
 $('fowner').addEventListener('change',()=>{clearPersonChoice();hidePersonSuggestions()});
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.person-field'))hidePersonSuggestions()});
 $('personManage').onclick=()=>{$('peopleScope').textContent=$('fcenter').value+' · '+$('fowner').value+' 상담사';$('peopleSearch').value='';renderPeopleList();$('peopleDlg').showModal()};
