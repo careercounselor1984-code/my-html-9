@@ -2502,7 +2502,7 @@ function alertDraw(){
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
   const source=x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
-  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='work'?'확인 ✓':'읽음')+'</button></div></article>';
+  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='work'||x.source==='report'?'확인 ✓':'읽음')+'</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
 }
 
