@@ -1274,8 +1274,10 @@ async function cloudReload(){
  $('noteBtn').title=manager?'센터 공통 행사 관리':'팀장·부장만 공통 행사 등록 가능';
  $('staffAdd').disabled=true;
  cloud.base=cloudBaseline();
+ let draftBackupFailed=false;
  const pending=localStorage.getItem(cloudDraftKey());
  if(pending){try{const x=JSON.parse(pending);if(confirm('이 기기에 서버로 전송되지 않은 기록이 있습니다. 서버에 이미 있는 일정을 보호하면서 새 항목만 복구할까요? 기존 항목의 수정·삭제는 자동 적용하지 않습니다.')){
+  const serverBeforeRecovery={events:model.events,participants:model.participants,offs:model.offs,notices:model.notices};
   const ownEvent=e=>e&&!e.readonly&&e.center===cloud.identity.center&&e.owner===cloud.identity.name;
   const ownPerson=p=>p&&p.center===cloud.identity.center&&p.owner===cloud.identity.name;
   const events=cloudRecoverPendingRows(model.events,x.events,ownEvent,x.baseIds?.events);
@@ -1288,16 +1290,18 @@ async function cloudReload(){
    model.offs=offs.rows;model.notices=notices.rows;
    recovered+=offs.added+notices.added;conflicts+=offs.conflicts+notices.conflicts;
   }
+  let backupReady=true;
   if(conflicts){
-   try{localStorage.setItem('schedule_recovery_conflict_backup_'+cloud.identity.id,pending)}catch{}
-   alert('서버 삭제·수정 여부를 판별할 수 없는 초안 '+conflicts+'건은 자동 복구하지 않았습니다. 별도 기기 백업에 보관했으며, 확인 후 수동으로 복원해야 합니다.');
+   try{const backupKey='schedule_recovery_conflict_backup_'+cloud.identity.id+'_'+Date.now();localStorage.setItem(backupKey,pending);backupReady=localStorage.getItem(backupKey)===pending;}catch{backupReady=false;}
+   if(backupReady)alert('서버 삭제·수정 여부를 판별할 수 없는 초안 '+conflicts+'건은 자동 복구하지 않았습니다. 별도 기기 백업에 보관했으며, 확인 후 수동으로 복원해야 합니다.');
+   else {draftBackupFailed=true;model.events=serverBeforeRecovery.events;model.participants=serverBeforeRecovery.participants;model.offs=serverBeforeRecovery.offs;model.notices=serverBeforeRecovery.notices;alert('충돌 초안을 별도 저장하지 못했습니다. 데이터 손실을 막기 위해 자동 복원을 취소하고 기존 미전송 초안을 그대로 보관합니다. 기기 저장공간을 확인하세요.');}
   }
-  if(recovered)cloudQueue();
-  else try{localStorage.removeItem(cloudDraftKey())}catch{} // Conflict draft already retained separately: never prompt on every refresh.
+  if(backupReady&&recovered)cloudQueue();
+  else if(backupReady)try{localStorage.removeItem(cloudDraftKey())}catch{} // Only discard once conflicts have a verified backup.
  }}catch(err){console.warn('미전송 일정 안전 복구 실패',err)}}
  render();
  $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
- if(!cloud.needsSave)cloudStatus('동기화 완료 ✓');
+ if(!cloud.needsSave)cloudStatus(draftBackupFailed?'미전송 초안 백업 실패 · 원본을 보관 중입니다':'동기화 완료 ✓',draftBackupFailed);
  }catch(err){cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
 }
 function cloudApplyIdentity(info){
