@@ -2150,6 +2150,10 @@ async function pushToggle(){
  if(pushIosUninstalled()){alert('아이폰에서는 Safari 공유 버튼 → 홈 화면에 추가한 뒤, 홈 화면의 상담 일정 앱에서 알림 켜기를 눌러 주세요.');return}
  phonePush.working=true;pushLabel();
  try{
+  // iOS and Chrome require the permission prompt in the same tap (before any async network call).
+  const requestToEnable=!phonePush.enabled;
+  const permission=requestToEnable?(Notification.permission==='granted'?'granted':await Notification.requestPermission()):Notification.permission;
+  if(requestToEnable&&permission!=='granted')throw Error('알림 권한이 허용되지 않았습니다. 기기 설정에서 상담 일정 알림을 허용해 주세요.');
   const registration=await navigator.serviceWorker.ready;
   let sub=await registration.pushManager.getSubscription();
   if(sub&&phonePush.enabled){
@@ -2158,9 +2162,6 @@ async function pushToggle(){
    phonePush.enabled=false;
    alert('이 휴대폰의 상담 일정 알림을 껐습니다.');
   }else{
-   // Request permission in the direct click path before any network await.
-   const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();
-   if(permission!=='granted')throw Error('휴대폰 알림 권한이 허용되지 않았습니다. 브라우저 또는 기기 설정에서 알림을 허용해 주세요.');
    const key=await pushServer('key');
    if(!key?.publicKey)throw Error('알림 서버의 공개키를 받지 못했습니다.');
    if(!sub){
@@ -2169,7 +2170,10 @@ async function pushToggle(){
    }
    await pushServer('register',{subscription:sub.toJSON(),deviceHint:'상담일정 앱'});
    phonePush.enabled=true;
-   alert('알림을 켰습니다. 인계 요청·수락·새 상담 예약 등이 생기면 이 기기로 알려드립니다.');
+   let message='알림을 켰습니다. 상담 인계·공유 일정·새 상담 예약 알림을 받습니다.';
+   try{const test=await pushServer('test');message=test?.sent?'알림을 켰습니다. 연결 확인 알림도 발송했습니다.':'알림 구독은 등록됐지만 테스트 알림 전송은 확인되지 않았습니다.'}
+   catch(e){message='알림 구독은 저장됐습니다. 테스트 전송 확인은 잠시 후 다시 시도해 주세요.';console.warn('알림 테스트 지연',e?.message||'')}
+   alert(message);
   }
  }catch(error){alert('알림 설정 실패: '+String(error?.message||error))}
  finally{phonePush.working=false;pushLabel()}
