@@ -2645,7 +2645,7 @@ function workReportRender(data){
  if(!data){el.textContent='현재 보고 자료를 불러오지 못했습니다.';return}
  const entries=Array.isArray(data.entries)?data.entries:[],centers=Array.isArray(data.centers)?data.centers:[];
  const card=(number,name)=>'<div style="padding:10px;background:#f1f5f9;border-radius:10px;flex:1;min-width:90px"><strong style="font-size:20px">'+Number(number||0)+'</strong><div style="font-size:12px">'+name+'</div></div>';
- const branchHtml='<div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>지사</th><th>인원</th><th>연차·반차</th><th>외부일정</th></tr></thead><tbody>'+
+ const branchHtml='<div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>지사</th><th>인원</th><th>연차·반차(일자·종류별)</th><th>외부일정(일자·종류별)</th></tr></thead><tbody>'+
  centers.map(x=>'<tr><td>'+escapeHtml(x.center)+'</td><td>'+Number(x.staff||0)+'명</td><td>'+Number(x.leave||0)+'건</td><td>'+Number(x.external||0)+'건</td></tr>').join('')+
  '</tbody></table></div>';
  const groups=new Map();
@@ -2653,8 +2653,8 @@ function workReportRender(data){
  const detail=[...groups.entries()].map(([date,rows])=>'<div style="margin-top:12px"><strong>'+escapeHtml(date)+'</strong><div style="margin-top:5px">'+rows.map(x=>
  '<div style="border-bottom:1px solid #e2e8f0;padding:7px 2px;line-height:1.5"><b>'+escapeHtml(x.staff)+'</b> <span style="color:#475569">['+escapeHtml(x.center)+']</span> · '+escapeHtml(x.type)+' · '+(x.allDay?'종일':escapeHtml(x.start||'')+'~'+escapeHtml(x.end||''))+'</div>').join('')+'</div></div>').join('');
  el.innerHTML='<strong>'+escapeHtml(workReportPeriodLabel(data.period))+' · '+escapeHtml(data.from)+(data.to!==data.from?' ~ '+escapeHtml(data.to):'')+' · '+escapeHtml(data.scope)+'</strong>'+
-  '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">'+card(data.totalStaff,'일정 등록 인원')+card(data.leaveEntries,'연차·반차')+card(data.externalEntries,'출장·교육·외근')+'</div>'+
-  branchHtml+'<div style="margin-top:14px"><strong>직원별 등록 내역</strong>'+(entries.length?detail:'<p style="color:#64748b">이 기간에는 등록된 연차·외부일정이 없습니다.</p>')+'</div>';
+  '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">'+card(data.totalStaff,'일정 등록 인원')+card(data.actualLeaveEntries??data.leaveEntries,'연차·반차 실제 등록 건수')+card(data.actualExternalEntries??data.externalEntries,'외부일정 실제 등록 건수')+'</div>'+
+  branchHtml+'<p style="font-size:11px;color:#64748b">지사별 표와 직원별 상세는 같은 날·동일 유형을 하나로 묶은 요약입니다. 위 카드의 건수는 실제 등록된 일정 수를 표시합니다. 요약에 보이는 첫~마지막 시간은 연속 근무를 의미하지 않을 수 있습니다.</p><div style="margin-top:14px"><strong>직원별 등록 내역(날짜·종류별 합산)</strong>'+(entries.length?detail:'<p style="color:#64748b">이 기간에는 등록된 연차·외부일정이 없습니다.</p>')+'</div>';
 }
 async function workReportLoad(period){
  if(workReportState.busy||!cloud.active)return;
