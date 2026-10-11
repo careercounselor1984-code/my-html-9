@@ -1197,6 +1197,15 @@ async function cloudStartSession(){
  directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
  if(cloud.identity?.role==='director')await executiveOpen();
+ const energyFromLink=new URLSearchParams(location.search).get('energySchool')==='1';
+ if(energyFromLink){
+   const u=new URL(location.href);u.searchParams.delete('energySchool');
+   history.replaceState(null,'',u.pathname+u.search+u.hash);
+   if(energySchoolAllowed()){
+     if($('alertDialog').open)$('alertDialog').close();
+     energySchoolOpen().catch(()=>{});
+   }
+ }
  const reportFromLink=new URLSearchParams(location.search).get('directorReport')==='1';
  const reportFromPush=sessionStorage.getItem('goodjob_open_director_report')==='1';
  if(reportFromLink||reportFromPush){
@@ -2663,7 +2672,7 @@ function alertBridgeUpdate(){
  if(!cloud.active){
   alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:false,items:[]});return;
  }
- const items=alerts.items.slice(0,80).map(x=>({
+ const items=alerts.items.filter(x=>x.source!=='energy').slice(0,80).map(x=>({
   key:String(x.key||'').slice(0,180),
   title:String(x.title||'').slice(0,100),
   date:String(x.date||'').slice(0,16),
@@ -2728,12 +2737,12 @@ function alertDraw(){
  const unseen=alertUnread(),badge=$('alertBadge');
  badge.textContent=unseen.length>99?'99+':String(unseen.length);
  badge.classList.toggle('hide',unseen.length===0);
- $('alertReadAll').disabled=!unseen.length;
+ $('alertReadAll').disabled=!unseen.some(x=>x.source!=='energy');
  alertBridgeUpdate();
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
-  const source=x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
+  const source=x.source==='energy'?'에너지고 출입 신청':x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
-  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='work'||x.source==='report'?'확인 ✓':'읽음')+'</button></div></article>';
+  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='energy'?'학교 등록 완료 ✓':x.source==='work'||x.source==='report'?'확인 ✓':'읽음')+'</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
 }
 
@@ -2789,7 +2798,17 @@ async function alertPoll(pop=true){
   try{const {data:dig,error:digError}=await cloud.client.rpc('schedule_work_report_alert_feed');
     if(digError)throw digError;digest=Array.isArray(dig?.items)?dig.items:[];
   }catch(err){console.warn('관리자 종합보고 알림 조회 지연',err?.message||err)}
-  alerts.items=[...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
+  let energy=[];
+  if(energySchoolAllowed()){
+    try{
+      const {data:school,error:schoolError}=await cloud.client.rpc('schedule_energy_access_feed');
+      if(schoolError)throw schoolError;
+      energy=Array.isArray(school?.items)?school.items:[];
+      energySchoolState.visits=Array.isArray(school?.visits)?school.visits:[];
+      energySchoolRender();
+    }catch(err){console.warn('에너지고 출입 신청 알림 지연',String(err?.message||err))}
+  }
+  alerts.items=[...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -2802,7 +2821,7 @@ async function alertAck(keys){
  if(!keys.length)return;
  const workKeys=keys.filter(x=>x.startsWith('work:')).slice(0,40);
  const reportKeys=keys.filter(x=>x.startsWith('report:')).slice(0,40);
- const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')).slice(0,40);
+ const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')&&!x.startsWith('energy:')).slice(0,40);
  if(workKeys.length){
    const {error}=await cloud.client.rpc('schedule_work_alert_ack',{p_keys:workKeys});
    if(error)throw error;
@@ -2825,11 +2844,16 @@ function alertInitialize(){
  if(alerts.initialized)return;alerts.initialized=true;
  $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
  $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
- $('alertReadAll').onclick=async()=>{try{await alertAck(alertUnread().map(x=>x.key))}catch(e){alert('읽음 저장 실패: '+e.message)}};
+ $('alertReadAll').onclick=async()=>{try{await alertAck(alertUnread().filter(x=>x.source!=='energy').map(x=>x.key))}catch(e){alert('읽음 저장 실패: '+e.message)}};
  $('alertItems').onclick=async e=>{
   const button=e.target.closest('[data-alert-ack],[data-alert-open]');if(!button)return;
   const key=button.dataset.alertAck||button.dataset.alertOpen;
   const item=alerts.items.find(x=>x.key===key);if(!item)return;
+  if(item.source==='energy'){
+    if(button.dataset.alertAck)await energySchoolConfirm(item.date);
+    else{if($('alertDialog').open)$('alertDialog').close();await energySchoolOpen()}
+    return;
+  }
   try{await alertAck([key])}catch(err){alert('읽음 처리 실패: '+err.message);return}
   if(!button.dataset.alertOpen)return;
   if($('alertDialog').open)$('alertDialog').close();
