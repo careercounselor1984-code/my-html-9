@@ -2651,7 +2651,7 @@ window.addEventListener('message',async event=>{
  if(!['key','register','unregister','test'].includes(action)){reply(false,{message:'지원하지 않는 작업입니다.'});return}
  try{
    const payload=action==='register'?{subscription:msg.subscription,deviceHint:'상담일지 통합본 PC'}:
-     action==='unregister'?{endpoint:String(msg.endpoint||'')}: {};
+     (action==='unregister'||action==='test')?{endpoint:String(msg.endpoint||'')}: {};
    const data=await pushServer(action,payload);
    reply(true,{name:cloud.identity.name,center:cloud.identity.center,
      ...(action==='key'?{publicKey:data.publicKey}:{}),
