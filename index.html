@@ -786,9 +786,10 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><button id="pushToggleBtn" type="button" title="현재 휴대폰의 푸시 알림을 켜거나 끕니다">🔔 휴대폰 알림 켜기</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="workReportBtn" type="button" class="hide">📋 직원 연차·외부일정 보고</button><button id="calendarLinkBtn" type="button">외부 캘린더 연결 (선택)</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><button id="pushToggleBtn" type="button" title="현재 휴대폰의 푸시 알림을 켜거나 끕니다">🔔 휴대폰 알림 켜기</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="workReportBtn" type="button" class="hide">📋 직원 일정 종합보고</button><button id="directorAbsentBtn" type="button" class="hide">🏖️ 내 부재 일정 등록</button><button id="calendarLinkBtn" type="button">외부 캘린더 연결 (선택)</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
 
 
+<div id="directorAbsenceStrip" class="hide no-print" style="margin:8px 12px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:13px" aria-live="polite"></div>
 <section id="sharedBoard" class="shared-board hide no-print" aria-labelledby="sharedBoardTitle">
  <div class="shared-hero">
   <div><span class="shared-overline">팀 일정 협업</span><h2 id="sharedBoardTitle">공유 일정 · 참여 모집</h2>
@@ -885,9 +886,22 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </main>
 <div class="mobile-quick-backdrop no-print" id="mobileQuickBackdrop" aria-hidden="true"></div><div class="mobile-bottom-action no-print"><button id="mobileAddConsult" type="button" class="primary">＋ 빠른 예약</button><button id="mobileAddWork" type="button">＋ 근무 일정</button></div>
 
+<dialog id="directorAbsenceDialog" class="staff-admin-dialog"><section class="staff-admin-body">
+ <header><h2>🏖️ 부장 부재 일정</h2><button type="button" id="directorAbsentClose">닫기</button></header>
+ <p class="notice">부장은 상담 예약 없이 본인의 연차·출장·교육·외근 일정만 등록합니다. 직원들은 오늘·예정 부재를 조회할 수 있습니다. 자세한 사유는 입력하지 않습니다.</p>
+ <form id="directorAbsentForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:12px">
+  <label>종류<select id="directorAbsentType"><option>연차</option><option>반차</option><option>출장</option><option>외부교육</option><option>외근</option><option>기타 부재</option></select></label>
+  <label>시작일<input type="date" id="directorAbsentStart" required></label>
+  <label>종료일<input type="date" id="directorAbsentEnd" required></label>
+  <label>시간<select id="directorAbsentPeriod"><option>종일</option><option>오전</option><option>오후</option></select></label>
+  <div style="display:flex;gap:8px;align-items:end"><button class="primary" type="submit">등록</button></div>
+ </form>
+ <p id="directorAbsentError" role="status" style="font-size:12px;color:#596675"></p>
+ <div id="directorAbsentList" style="margin-top:14px"></div>
+ </section></dialog>
 <dialog id="workReportDialog" class="staff-admin-dialog">
  <section class="staff-admin-body" style="max-height:90vh;overflow:auto">
-  <header><h2>📋 직원 연차·외부일정 보고</h2><button type="button" id="workReportClose">닫기</button></header>
+  <header><h2>📋 부서 운영 종합보고</h2><button type="button" id="workReportClose">닫기</button></header>
   <p class="notice" style="margin:6px 0 14px">연차 승인 결재가 아닌 <b>관리자 일정 확인용</b>입니다. 상담사가 일정표에 입력한 연차·반차·출장·교육·홍보·외근을 자동으로 합산합니다. 사적인 사유나 내담자 정보는 표시하지 않습니다.</p>
   <div class="status-actions" style="flex-wrap:wrap;margin:8px 0 12px" id="workReportTabs">
    <button type="button" data-report-period="day">오늘</button>
@@ -895,7 +909,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
    <button type="button" data-report-period="month">이번 달</button>
    <button type="button" id="workReportRefresh">새로고침</button>
   </div>
-  <div id="workReportContent" aria-live="polite">조회 중…</div>
+  <div id="workReportContent" aria-live="polite">조회 중…</div><div id="workReportConsultSheet" style="margin-top:20px"></div><div class="status-actions"><button type="button" id="workReportConsultPrint" class="hide">🖨️ 지사별 상담일정표 인쇄</button></div>
   <div class="status-actions" style="margin:12px 0">
    <button type="button" class="primary" id="workReportAcknowledge">✓ 오늘 종합보고 확인</button>
   </div>
@@ -1144,6 +1158,7 @@ function cloudApplyIdentity(info){
  $('cloudArea').classList.remove('hide');
  $('cloudAdminShortcut').classList.toggle('hide',!info.isAdmin);
  $('workReportBtn').classList.toggle('hide',!(['manager','director'].includes(info.role)||info.isAdmin));
+ $('directorAbsentBtn').classList.toggle('hide',info.role!=='director');
  $('executiveOpen').classList.toggle('hide',!(info.isAdmin||info.role==='director'));
  $('executiveBack').classList.toggle('hide',info.role==='director');
  document.querySelector('.context-note').textContent='로그인 계정으로 담당 센터와 상담사가 자동 지정돼요. 다른 직원 일정은 센터 전체 보기에서 확인할 수 있어요.';
@@ -1171,6 +1186,7 @@ async function cloudStartSession(){
  await cloudReload();
  await alertPoll(true);
  pushRefresh().catch(()=>{});
+ directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
  if(cloud.identity?.role==='director')await executiveOpen();
  journalBookingAnnounce();
@@ -2391,6 +2407,113 @@ async function calendarRestore(){
 }
 
 
+
+/* Director absences are not consultation entries. This roster is visible to logged-in employees. */
+const directorAbs={items:[],busy:false};
+async function directorAbsFetch(){
+ if(!cloud.active)return;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_director_absence_action',{p_action:'list',p_payload:{}});
+  if(error)throw error;
+  directorAbs.items=Array.isArray(data?.items)?data.items:[];
+  directorAbsRender();
+ }catch(err){console.warn('부장 부재 현황 조회 지연',err?.message||err)}
+}
+function directorAbsRender(){
+ const today=dateKey(new Date()),next=directorAbs.items.filter(x=>x.end>=today);
+ const current=next.filter(x=>x.start<=today && today<=x.end);
+ const el=$('directorAbsenceStrip');
+ if(current.length){
+  el.classList.remove('hide');
+  el.innerHTML='<strong>📌 오늘 부장 부재</strong> · '+current.map(x=>escapeHtml(x.name)+' · '+escapeHtml(x.kind)+(x.period==='종일'?'':' ('+escapeHtml(x.period)+')')).join(' / ');
+ }else{
+  const upcoming=next.filter(x=>x.start>today).sort((a,b)=>a.start.localeCompare(b.start)).slice(0,2);
+  if(upcoming.length){
+   el.classList.remove('hide');
+   el.innerHTML='<strong>📆 부장 부재 예정</strong> · '+upcoming.map(x=>escapeHtml(x.start)+' '+escapeHtml(x.name)+' · '+escapeHtml(x.kind)).join(' / ');
+  }else el.classList.add('hide');
+ }
+ const list=$('directorAbsentList');
+ if(!list)return;
+ list.innerHTML='<strong>등록된 부재 일정</strong>'+(next.length?next.map(x=>'<div style="padding:9px 0;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;justify-content:space-between"><span>'+escapeHtml(x.start)+(x.start===x.end?'':' ~ '+escapeHtml(x.end))+' · '+escapeHtml(x.kind)+' · '+escapeHtml(x.period)+'</span>'+(cloud.identity?.role==='director'?'<button type="button" data-director-absence-delete="'+escapeHtml(x.id)+'">삭제</button>':'')+'</div>').join(''):'<p style="color:#64748b">등록된 일정이 없습니다.</p>');
+}
+function directorAbsOpen(){
+ if(cloud.identity?.role!=='director')return;
+ $('directorAbsentDialog').showModal();
+ const today=dateKey(new Date());
+ $('directorAbsentStart').value=today;$('directorAbsentEnd').value=today;
+ directorAbsFetch().catch(()=>{});
+}
+function directorAbsInitialize(){
+ $('directorAbsentBtn').onclick=directorAbsOpen;
+ $('directorAbsentClose').onclick=()=>$('directorAbsentDialog').close();
+ $('directorAbsentType').onchange=()=>{
+  const type=$('directorAbsentType').value;
+  $('directorAbsentPeriod').value=type==='반차'?'오전':'종일';
+ };
+ $('directorAbsentForm').onsubmit=async e=>{
+  e.preventDefault();if(directorAbs.busy)return;
+  const start=$('directorAbsentStart').value,end=$('directorAbsentEnd').value,period=$('directorAbsentPeriod').value,kind=$('directorAbsentType').value;
+  directorAbs.busy=true;
+  try{
+   const {error}=await cloud.client.rpc('schedule_director_absence_action',{p_action:'create',p_payload:{start,end,kind,period}});
+   if(error)throw error;
+   $('directorAbsentError').textContent='일정이 등록됐습니다.';
+   await directorAbsFetch();
+  }catch(err){$('directorAbsentError').textContent='등록 실패: '+String(err?.message||err)}
+  finally{directorAbs.busy=false}
+ };
+ $('directorAbsentList').onclick=async e=>{
+  const btn=e.target.closest('[data-director-absence-delete]');if(!btn||!confirm('이 부재 일정을 삭제할까요?'))return;
+  try{
+   const {error}=await cloud.client.rpc('schedule_director_absence_action',{p_action:'delete',p_payload:{id:btn.dataset.directorAbsenceDelete}});
+   if(error)throw error;await directorAbsFetch();
+  }catch(err){$('directorAbsentError').textContent='삭제 실패: '+String(err?.message||err)}
+ };
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden && cloud.active)directorAbsFetch()});
+}
+function directorScheduleSheet(data,day){
+ const centers=['남부본사','동구지사','북부센터','서부센터'];
+ const staff=Array.isArray(data?.staff)?data.staff:[],events=Array.isArray(data?.events)?data.events:[];
+ const rows=['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+ const isFriday=new Date(day+'T12:00:00').getDay()===5;
+ return '<h3 style="margin:12px 0">② '+escapeHtml(day)+' · 지사별 일일 상담일정표 (출력본 형태)</h3>'+
+ '<p style="font-size:12px;color:#64748b">시간은 30분 단위이며 직원별 상담 구분만 표시합니다. 내담자 이름은 보고에 포함하지 않습니다.</p>'+
+ centers.map(center=>{
+   const people=staff.filter(x=>x.center===center);
+   const entries=events.filter(x=>x.center===center);
+   const table='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px"><thead><tr><th style="width:56px;border:1px solid #cbd5e1;padding:6px">시간</th>'+
+   people.map(x=>'<th style="border:1px solid #cbd5e1;padding:6px;white-space:nowrap">'+escapeHtml(x.name)+'</th>').join('')+'</tr></thead><tbody>'+
+   rows.filter(t=>!isFriday||t<'12:00').map(time=>'<tr><th style="border:1px solid #cbd5e1;padding:6px">'+time+'</th>'+
+   people.map(s=>{
+     const cell=entries.filter(e=>e.owner===s.name && e.time===time);
+     const contents=cell.map(e=>'<div style="padding:3px;border-radius:3px;background:'+(e.kind==='consult'?'#e0f2fe':'#fef3c7')+'">'+escapeHtml(e.type||'일정')+'</div>').join('');
+     return '<td style="height:26px;border:1px solid #cbd5e1;vertical-align:middle;text-align:center;padding:2px">'+contents+'</td>';
+   }).join('')+'</tr>').join('')+'</tbody></table></div>';
+   return '<section class="director-sheet" style="margin:15px 0;break-inside:avoid"><h4 style="margin:8px 0;color:#1e3a5f">'+escapeHtml(center)+' · 상담사 '+people.length+'명 · 상담 '+entries.filter(e=>e.kind==='consult').length+'건</h4>'+(people.length?table:'<p>등록된 상담사가 없습니다.</p>')+'</section>';
+ }).join('');
+}
+async function directorSheetLoad(){
+ const node=$('workReportConsultSheet'),btn=$('workReportConsultPrint');
+ if(cloud.identity?.role!=='director'){node.innerHTML='';btn.classList.add('hide');return}
+ node.textContent='지사별 상담일정표를 불러오는 중…';
+ try{
+  const day=dateKey(new Date());
+  const {data,error}=await cloud.client.rpc('schedule_executive_overview',{p_start:day,p_end:day});
+  if(error)throw error;
+  node.innerHTML=directorScheduleSheet(data,day);
+  btn.classList.remove('hide');
+ }catch(err){node.textContent='상담일정 조회 실패: '+String(err?.message||err);btn.classList.add('hide')}
+}
+function directorSheetPrint(){
+ const report=$('workReportContent')?.innerHTML||'',sheet=$('workReportConsultSheet')?.innerHTML||'';
+ if(!sheet)return;
+ const w=window.open('','_blank','width=1200,height=900');
+ if(!w){alert('인쇄 팝업이 차단되어 있습니다. 팝업을 허용해 주세요.');return}
+ w.document.open();w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>좋은일자리 부서 운영보고</title><style>body{font:13px Arial,sans-serif;color:#182334;margin:18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:5px}.director-sheet{break-inside:avoid;page-break-inside:avoid;margin:20px 0}@page{size:A4 landscape;margin:9mm}</style></head><body><h2>좋은일자리 · 부서 운영보고</h2>'+report+sheet+'</body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),450);
+}
+
 /* Manager/director concise leave & outside-work reports, server-scoped. */
 const workReportState={period:'day',busy:false,latest:null};
 function workReportPeriodLabel(p){return ({day:'오늘',week:'이번 주',month:'이번 달'})[p]||p}
@@ -2424,6 +2547,7 @@ async function workReportLoad(period){
   const {data,error}=await cloud.client.rpc('schedule_work_report',{p_period:workReportState.period});
   if(error)throw error;
   workReportState.latest=data;workReportRender(data);
+  await directorSheetLoad();
   $('workReportStatus').textContent='이 보고는 직원이 좋은일자리 일정표에 등록한 최신 내용입니다. 부장은 전체 지사, 팀장은 본인 지사만 표시됩니다.';
  }catch(e){$('workReportContent').textContent='보고 조회 실패: '+String(e?.message||e)}
  finally{workReportState.busy=false}
@@ -2435,6 +2559,7 @@ async function workReportOpen(period='day'){
 }
 function workReportInitialize(){
  $('workReportBtn').onclick=()=>workReportOpen('day');
+ $('workReportConsultPrint').onclick=directorSheetPrint;
  $('workReportClose').onclick=()=>$('workReportDialog').close();
  $('workReportTabs').onclick=e=>{
   const b=e.target.closest('[data-report-period]');if(b)workReportLoad(b.dataset.reportPeriod);
@@ -2623,6 +2748,7 @@ async function cloudBoot(){
  sharedInitialize();
  alertInitialize();
  workReportInitialize();
+ directorAbsInitialize();
  pushInitialize();
  calendarInitialize();
  $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
