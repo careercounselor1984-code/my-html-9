@@ -1197,7 +1197,8 @@ async function cloudStartSession(){
  directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
  if(cloud.identity?.role==='director')await executiveOpen();
- const energyFromLink=new URLSearchParams(location.search).get('energySchool')==='1';
+ const energyFromLink=new URLSearchParams(location.search).get('energySchool')==='1'||sessionStorage.getItem('goodjob_open_energy_school')==='1';
+ if(energyFromLink)sessionStorage.removeItem('goodjob_open_energy_school');
  if(energyFromLink){
    const u=new URL(location.href);u.searchParams.delete('energySchool');
    history.replaceState(null,'',u.pathname+u.search+u.hash);
@@ -3059,9 +3060,16 @@ async function cloudBoot(){
 }
 if('serviceWorker' in navigator){
  navigator.serviceWorker.addEventListener('message',event=>{
-  if(event.data?.type!=='goodjob:open-director-report')return;
-  if(cloud.active&&cloud.identity?.role==='director')workReportOpen('day').catch(()=>{});
-  else sessionStorage.setItem('goodjob_open_director_report','1');
+  const kind=event.data?.type;
+  if(kind==='goodjob:open-director-report'){
+    if(cloud.active&&cloud.identity?.role==='director')workReportOpen('day').catch(()=>{});
+    else sessionStorage.setItem('goodjob_open_director_report','1');
+  }else if(kind==='goodjob:open-energy-school'){
+    if(energySchoolAllowed()){
+      if($('alertDialog').open)$('alertDialog').close();
+      energySchoolOpen().catch(()=>{});
+    }else sessionStorage.setItem('goodjob_open_energy_school','1');
+  }
  });
 }
 window.addEventListener('load',cloudBoot);
