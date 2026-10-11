@@ -1156,8 +1156,11 @@ function cloudBaseline(){return {
  notices:cloudMap(model.notices.filter(x=>!x.readonly))};}
 
 // Never delete newer server entries just because a stale, unsent device draft lacks those entries.
-function cloudRecoverPendingRows(serverRows,draftRows,eligible){
+function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
  const rows=Array.isArray(serverRows)?serverRows.slice():[],existing=new Map(rows.filter(x=>x&&x.id).map(x=>[x.id,x]));
+ const baseline=new Set(Array.isArray(baselineIds)?baselineIds:[]);
+ // Legacy drafts carry no baseline: we cannot tell a new item from one deleted on another device.
+ const verifiedBaseline=Array.isArray(baselineIds);
  let added=0,conflicts=0;
  for(const item of Array.isArray(draftRows)?draftRows:[]){
   if(!item?.id||!eligible(item))continue;
@@ -1166,13 +1169,19 @@ function cloudRecoverPendingRows(serverRows,draftRows,eligible){
    if(JSON.stringify(cloudClean(server))!==JSON.stringify(cloudClean(item)))conflicts++;
    continue;
   }
+  if(!verifiedBaseline || baseline.has(item.id)){conflicts++;continue;}
   rows.push(item);existing.set(item.id,item);added++;
  }
  return {rows,added,conflicts};
 }
 function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
 function cloudQueue(){if(!cloud.active)return;cloud.needsSave=true;
- try{localStorage.setItem(cloudDraftKey(),JSON.stringify({events:cloudOwnRows(model.events),participants:model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),offs:model.offs.filter(o=>!o.readonly),notices:model.notices.filter(n=>!n.readonly)}))}catch{}
+ try{localStorage.setItem(cloudDraftKey(),JSON.stringify({
+  version:2,baseIds:{
+   events:[...cloud.base.events.keys()],people:[...cloud.base.people.keys()],
+   offs:[...cloud.base.offs.keys()],notices:[...cloud.base.notices.keys()]},
+  events:cloudOwnRows(model.events),participants:model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),
+  offs:model.offs.filter(o=>!o.readonly),notices:model.notices.filter(n=>!n.readonly)}))}catch{}
  cloudStatus('변경사항 저장 중…');clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),700)}
 async function cloudSyncList(kind,rows,base,table,makeRow){
  const current=cloudMap(rows.map(cloudClean));
@@ -1228,19 +1237,19 @@ async function cloudReload(){
  if(pending){try{const x=JSON.parse(pending);if(confirm('이 기기에 서버로 전송되지 않은 기록이 있습니다. 서버에 이미 있는 일정을 보호하면서 새 항목만 복구할까요? 기존 항목의 수정·삭제는 자동 적용하지 않습니다.')){
   const ownEvent=e=>e&&!e.readonly&&e.center===cloud.identity.center&&e.owner===cloud.identity.name;
   const ownPerson=p=>p&&p.center===cloud.identity.center&&p.owner===cloud.identity.name;
-  const events=cloudRecoverPendingRows(model.events,x.events,ownEvent);
-  const participants=cloudRecoverPendingRows(model.participants,x.participants,ownPerson);
+  const events=cloudRecoverPendingRows(model.events,x.events,ownEvent,x.baseIds?.events);
+  const participants=cloudRecoverPendingRows(model.participants,x.participants,ownPerson,x.baseIds?.people);
   model.events=events.rows;model.participants=participants.rows;
   let recovered=events.added+participants.added,conflicts=events.conflicts+participants.conflicts;
   if(['manager','director'].includes(cloud.identity.role)){
-   const offs=cloudRecoverPendingRows(model.offs,x.offs,o=>o&&!o.readonly);
-   const notices=cloudRecoverPendingRows(model.notices,x.notices,n=>n&&!n.readonly);
+   const offs=cloudRecoverPendingRows(model.offs,x.offs,o=>o&&!o.readonly,x.baseIds?.offs);
+   const notices=cloudRecoverPendingRows(model.notices,x.notices,n=>n&&!n.readonly,x.baseIds?.notices);
    model.offs=offs.rows;model.notices=notices.rows;
    recovered+=offs.added+notices.added;conflicts+=offs.conflicts+notices.conflicts;
   }
   if(conflicts){
    try{localStorage.setItem('schedule_recovery_conflict_backup_'+cloud.identity.id,pending)}catch{}
-   alert('기존 서버 항목 '+conflicts+'건은 덮어쓰지 않았습니다. 충돌 초안은 이 기기에 별도로 보관했습니다. 필요한 수정·삭제는 서버 일정을 확인한 뒤 다시 처리해 주세요.');
+   alert('서버 삭제·수정 여부를 판별할 수 없는 초안 '+conflicts+'건은 자동 복구하지 않았습니다. 별도 기기 백업에 보관했으며, 확인 후 수동으로 복원해야 합니다.');
   }
   if(recovered)cloudQueue();
   else try{localStorage.removeItem(cloudDraftKey())}catch{} // Conflict draft already retained separately: never prompt on every refresh.
