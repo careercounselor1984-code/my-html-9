@@ -10,16 +10,19 @@ self.addEventListener('push',event=>{
  const body=typeof data.body==='string'?data.body.slice(0,150):'새 업무 일정 알림이 있습니다.';
  event.waitUntil(self.registration.showNotification(title,{
   body,icon:'./icon-192.png',badge:'./icon-192.png',tag:String(data.tag||'schedule').slice(0,80),
-  data:{url:'./index.html'}
+  data:{url:(typeof data.url==='string'&&data.url.startsWith(self.registration.scope))?data.url:'./index.html'}
  }));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();
- const target=new URL('./index.html',self.registration.scope).href;
+ let target=new URL('./index.html',self.registration.scope).href;
+ const candidate=event.notification.data?.url;
+ if(typeof candidate==='string'&&candidate.startsWith(self.registration.scope))target=candidate;
+ const isDirectorReport=new URL(target).searchParams.get('directorReport')==='1';
  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async items=>{
   for(const client of items){
    if(new URL(client.url).origin===self.location.origin&&client.url.startsWith(self.registration.scope)){
-    await client.focus();return;
+    await client.focus();if(isDirectorReport)client.postMessage({type:'goodjob:open-director-report'});return;
    }
   }
   if(self.clients.openWindow)await self.clients.openWindow(target);
