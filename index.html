@@ -1151,9 +1151,9 @@ function cloudMap(rows){return new Map(rows.map(x=>[x.id,JSON.stringify(x)]))}
 function cloudClean(x){const c={...x};delete c.readonly;delete c._serverVersion;return c}
 function cloudBaseline(){return {
  events:cloudMap(cloudOwnRows(model.events).map(cloudClean)),
- people:cloudMap(model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name)),
- offs:cloudMap(model.offs.filter(x=>!x.readonly)),
- notices:cloudMap(model.notices.filter(x=>!x.readonly))};}
+ people:cloudMap(model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name).map(cloudClean)),
+ offs:cloudMap(model.offs.filter(x=>!x.readonly).map(cloudClean)),
+ notices:cloudMap(model.notices.filter(x=>!x.readonly).map(cloudClean))};}
 
 // Never delete newer server entries just because a stale, unsent device draft lacks those entries.
 function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
@@ -1198,8 +1198,9 @@ function cloudQueue(){if(!cloud.active)return;
   backedUp=localStorage.getItem(cloudDraftKey())===backupText;
  }catch(err){console.warn('미전송 일정 기기 백업 실패',err)}
  cloud.draftBackupFailed=!backedUp;
- cloudStatus(backedUp?'변경사항 저장 중…':'기기 백업 실패: 현재 화면을 닫거나 새로고침하지 마세요. 서버 전송을 재시도합니다.',!backedUp);
- clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),700)}
+ cloud.queueBlocked=!backedUp;
+ cloudStatus(backedUp?'변경사항 저장 중…':'기기 백업 실패: 기존 데이터 보호를 위해 자동 전송을 중단했습니다. JSON 내보내기 후 기기 저장공간을 확인하세요.',!backedUp);
+ clearTimeout(cloud.timer);if(backedUp)cloud.timer=setTimeout(()=>cloudCommit(),700)}
 
 async function cloudSyncEvents(rows,base,staff){
  const current=cloudMap(rows.map(cloudClean));
@@ -1221,13 +1222,23 @@ async function cloudSyncEvents(rows,base,staff){
  }
  return actions.length;
 }
-async function cloudSyncList(kind,rows,base,table,makeRow){
+async function cloudSyncList(kind,rows,base,table){
+ // Atomic compare-and-swap prevents a stale PC or phone from overwriting/deleting another device's changes.
  const current=cloudMap(rows.map(cloudClean));
  const changed=rows.filter(v=>current.get(v.id)!==base.get(v.id));
  const deleted=[...base.keys()].filter(k=>!current.has(k));
- if(changed.length){const {error}=await cloud.client.from(table).upsert(changed.map(makeRow),{onConflict:'id'});if(error)throw Error(kind+' 저장 실패: '+error.message)}
- if(deleted.length){const {error}=await cloud.client.from(table).delete().in('id',deleted);if(error)throw Error(kind+' 삭제 실패: '+error.message)}
- return changed.length+deleted.length;
+ const actions=changed.map(row=>({
+  op:base.has(row.id)?'update':'insert',id:row.id,
+  expectedPayload:base.has(row.id)?JSON.parse(base.get(row.id)):null,
+  payload:cloudClean(row)
+ }));
+ deleted.forEach(id=>actions.push({op:'delete',id,expectedPayload:JSON.parse(base.get(id))}));
+ if(!actions.length)return 0;
+ // No table name or owner is accepted without a server-side whitelist and auth.uid() check.
+ const {data,error}=await cloud.client.rpc('schedule_apply_aux_changes',{p_table:table,p_actions:actions});
+ if(error)throw Error('일정 버전 충돌 또는 '+kind+' 서버 저장 실패: '+error.message);
+ if(!data?.ok||data.saved!==actions.length)throw Error(kind+' 서버 저장 확인 응답이 올바르지 않습니다');
+ return actions.length;
 }
 async function cloudCommit(){
  if(!cloud.active||cloud.busy||!cloud.needsSave||cloud.queueBlocked)return;
@@ -1243,10 +1254,13 @@ async function cloudCommit(){
  };
  const changedEventCount=await cloudSyncEvents(snapshot.events,cloud.base.events,staff);
  cloud.base.events=cloudMap(snapshot.events);
- await cloudSyncList('참여자',snapshot.people,cloud.base.people,'schedule_participants',p=>({id:p.id,staff_id:staff,payload:cloudClean(p)}));
+ await cloudSyncList('참여자',snapshot.people,cloud.base.people,'schedule_participants');
+ cloud.base.people=cloudMap(snapshot.people);
  if(['manager','director'].includes(cloud.identity.role)){
-  await cloudSyncList('휴무',snapshot.offs,cloud.base.offs,'schedule_closures',o=>({id:o.id,center:o.center,created_by:staff,payload:cloudClean(o)}));
-  await cloudSyncList('공통 행사',snapshot.notices,cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
+  await cloudSyncList('휴무',snapshot.offs,cloud.base.offs,'schedule_closures');
+  cloud.base.offs=cloudMap(snapshot.offs);
+  await cloudSyncList('공통 행사',snapshot.notices,cloud.base.notices,'schedule_notices');
+  cloud.base.notices=cloudMap(snapshot.notices);
  }
  cloud.base={events:cloudMap(snapshot.events),people:cloudMap(snapshot.people),
   offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
