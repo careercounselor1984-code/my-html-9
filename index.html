@@ -1078,7 +1078,8 @@ async function cloudCommit(){
   await cloudSyncList('공통 행사',model.notices.filter(n=>!n.readonly),cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
  }
  cloud.base=cloudBaseline();try{localStorage.removeItem(cloudDraftKey())}catch{}cloudStatus('서버 저장 완료 ✓');
- calendarSync(false).catch(()=>{});
+ calendarState.nextSync=0;
+ setTimeout(()=>calendarSync(false).catch(()=>{}),400);
  }catch(err){cloud.needsSave=true;cloudStatus('저장 실패 · 재시도 필요: '+err.message,true);}
  finally{cloud.busy=false;if(cloud.needsSave){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
 }
@@ -2102,7 +2103,12 @@ async function handoffAction(act,id){
  try{
   const {error}=await cloud.client.rpc('schedule_handoff_action',{p_action:act,p_payload:{id}});
   if(error)throw error;
-  if(act==='accept')pushNotify('handoff_accept',id);
+  if(act==='accept'){
+   pushNotify('handoff_accept',id);
+   calendarRelated('handoff',id);
+   calendarState.nextSync=0;
+   setTimeout(()=>calendarSync(false).catch(()=>{}),600);
+  }
   await cloudReload();await handoffRefresh();
   alert(act==='accept'?'인계 완료! 내 일정표에 인계받은 상담으로 표시됩니다.':'인계 요청이 취소되었습니다.');
  }catch(e){alert('처리 실패: '+String(e.message||e))}
@@ -2263,6 +2269,10 @@ function calendarRender(){
  if(!calendarState.feedUrl)calTxt('calendarFeedUrl').textContent=calendarState.status?.icsEnabled?
   '구독 주소가 이미 발급됐습니다. 주소 보기 버튼을 눌러 확인할 수 있습니다.':'아직 구독 주소를 만들지 않았습니다.';
  else calTxt('calendarFeedUrl').textContent='내 구독 주소: '+calendarState.feedUrl;
+}
+async function calendarRelated(kind,id){
+ if(!id||!cloud.active)return;
+ try{await calendarApi('sync_related',{kind,id})}catch(e){console.warn('동료 캘린더 갱신 지연',String(e?.message||e))}
 }
 async function calendarStatus(){
  try{calendarState.status=await calendarApi('status');calendarState.ready=true;calendarRender();return true}
@@ -3126,6 +3136,7 @@ async function saveEntry(ev){
      });
      if(error)throw error;
      pushNotify('book_for_colleague',data?.id);
+     calendarRelated('booking',data?.id);
      $('dlg').close();await cloudReload();alert(dest.owner+' 상담사 '+dest.date+' '+dest.time+' 예약을 등록했어. 담당자에게도 일정이 표시돼.');
    }catch(err){alert('대신 예약 실패: '+(err.message||String(err)))}
    finally{btn.disabled=false;btn.textContent='저장'}
