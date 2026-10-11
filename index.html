@@ -1071,13 +1071,14 @@ async function cloudCommit(){
  cloud.busy=true;cloud.needsSave=false;
  try{
  const staff=cloud.identity.id;
- await cloudSyncList('일정',cloudOwnRows(model.events),cloud.base.events,'schedule_events',e=>({id:e.id,staff_id:staff,event_date:e.date,payload:cloudClean(e)}));
+ const changedEventCount=await cloudSyncList('일정',cloudOwnRows(model.events),cloud.base.events,'schedule_events',e=>({id:e.id,staff_id:staff,event_date:e.date,payload:cloudClean(e)}));
  await cloudSyncList('참여자',model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),cloud.base.people,'schedule_participants',p=>({id:p.id,staff_id:staff,payload:cloudClean(p)}));
  if(['manager','director'].includes(cloud.identity.role)){
   await cloudSyncList('휴무',model.offs.filter(o=>!o.readonly),cloud.base.offs,'schedule_closures',o=>({id:o.id,center:o.center,created_by:staff,payload:cloudClean(o)}));
   await cloudSyncList('공통 행사',model.notices.filter(n=>!n.readonly),cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
  }
  cloud.base=cloudBaseline();try{localStorage.removeItem(cloudDraftKey())}catch{}cloudStatus('서버 저장 완료 ✓');
+ if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
  }catch(err){cloud.needsSave=true;cloudStatus('저장 실패 · 재시도 필요: '+err.message,true);}
@@ -2421,9 +2422,9 @@ function alertDraw(){
  $('alertReadAll').disabled=!unseen.length;
  alertBridgeUpdate();
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
-  const source=x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
+  const source=x.source==='work'?'직원 연차·외부일정':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
-  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">읽음</button></div></article>';
+  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='work'?'확인 ✓':'읽음')+'</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
 }
 
@@ -2471,7 +2472,11 @@ async function alertPoll(pop=true){
   const {data,error}=await cloud.client.rpc('schedule_alert_feed');
   if(error)throw error;
   const board=await alertBoardFetch();
-  alerts.items=[...(Array.isArray(data?.items)?data.items:[]),...board];
+  let work=[];
+  try{const {data:workData,error:workError}=await cloud.client.rpc('schedule_work_alert_feed');
+    if(workError)throw workError;work=Array.isArray(workData?.items)?workData.items:[];
+  }catch(err){console.warn('근무일정 관리자 알림 조회 지연',err?.message||err)}
+  alerts.items=[...(Array.isArray(data?.items)?data.items:[]),...work,...board];
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -2482,8 +2487,16 @@ async function alertPoll(pop=true){
 }
 async function alertAck(keys){
  if(!keys.length)return;
- const {error}=await cloud.client.rpc('schedule_alert_ack',{p_keys:keys.slice(0,40)});
- if(error)throw error;
+ const workKeys=keys.filter(x=>x.startsWith('work:')).slice(0,40);
+ const regularKeys=keys.filter(x=>!x.startsWith('work:')).slice(0,40);
+ if(workKeys.length){
+   const {error}=await cloud.client.rpc('schedule_work_alert_ack',{p_keys:workKeys});
+   if(error)throw error;
+ }
+ if(regularKeys.length){
+   const {error}=await cloud.client.rpc('schedule_alert_ack',{p_keys:regularKeys});
+   if(error)throw error;
+ }
  const acknowledged=new Set(keys);
  alerts.items.forEach(x=>{if(acknowledged.has(x.key))x.seen=true});
  alertDraw();
@@ -2507,12 +2520,13 @@ function alertInitialize(){
   if($('alertDialog').open)$('alertDialog').close();
   if(item.source==='shared')await sharedOpen();
   else if(item.source==='board')window.open(BOARD_WEB_URL,'_blank','noopener,noreferrer');
+  else if(item.source==='work')changeView('teamLeave');
   else{if(sharedState.open)sharedClose();if(document.body.classList.contains('executive-mode'))executiveClose();window.scrollTo?.({top:0,behavior:'smooth'})}
  };
  $('alertDialog').addEventListener('cancel',e=>{e.preventDefault();alertLater()});
  window.addEventListener('focus',()=>{if(cloud.active)alertPoll(true)});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)alertPoll(true)});
- window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},90000);
+ window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000);
 }
 
 async function cloudBoot(){
