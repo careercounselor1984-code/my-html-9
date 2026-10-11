@@ -41,4 +41,42 @@ assert(/cloud\.client\.rpc\('schedule_apply_event_changes'/.test(html),'version-
 assert(/const use=free;/.test(html),'quick booking only shows free slots');
 assert(/상담 중복 예약은 허용되지 않습니다/.test(html),'duplicate consultation UI refuses');
 assert(/2027-/.test(html),'2027 holidays included');
+
+function queueCase({deferred=false,failArchive=false,failDraft=false}={}){
+ const prior=JSON.stringify({version:2,events:[{id:'UNSENT',title:'이전 미전송 초안'}]});
+ const db=new Map([['schedule_pending_test-staff',prior]]);
+ const statuses=[];
+ const cloud={active:true,identity:{id:'test-staff',center:'북부센터',name:'상담사A'},
+  base:{events:new Map(),people:new Map(),offs:new Map(),notices:new Map()},
+  unresolvedDraft:deferred,needsSave:false,timer:null};
+ const model={events:[{id:'NEW',date:'2026-10-15',title:'새 상담',center:'북부센터',owner:'상담사A'}],
+  participants:[],offs:[],notices:[]};
+ const localStorage={
+  getItem:key=>db.get(key)??null,
+  setItem:(key,value)=>{if((failArchive&&key.includes('deferred_draft_backup'))||(failDraft&&key==='schedule_pending_test-staff'))throw Error('quota');db.set(key,value)}
+ };
+ const context={cloud,model,localStorage,
+  cloudOwnRows:rows=>rows.filter(v=>v.center==='북부센터'&&v.owner==='상담사A'),
+  cloudDraftKey:()=> 'schedule_pending_test-staff',
+  cloudStatus:(message,bad)=>statuses.push({message,bad}),
+  clearTimeout:()=>{},setTimeout:()=>1,console:{warn:()=>{}}};
+ const from=html.indexOf('function cloudQueue(){'),to=html.indexOf('async function cloudSyncEvents(',from);
+ assert(from>=0&&to>from,'queue function boundaries present');
+ vm.runInNewContext(html.slice(from,to)+'\ncloudQueue();',context);
+ return {prior,db,cloud,statuses};
+}
+const saved=queueCase({deferred:true});
+assert.equal(saved.cloud.queueBlocked,false,'deferred draft archival succeeds');
+assert.equal([...saved.db.keys()].filter(k=>k.includes('deferred_draft_backup')).length,1,'old draft archived');
+assert(saved.db.get('schedule_pending_test-staff').includes('"NEW"'),'new queued draft preserved');
+const blocked=queueCase({deferred:true,failArchive:true});
+assert.equal(blocked.cloud.queueBlocked,true,'cannot overwrite old draft without a verified backup');
+assert.equal(blocked.db.get('schedule_pending_test-staff'),blocked.prior,'old pending draft never overwritten');
+assert.equal(blocked.statuses.at(-1).bad,true);
+const full=queueCase({failDraft:true});
+assert.equal(full.cloud.draftBackupFailed,true,'quota error is not marked as saved');
+assert.equal(full.db.get('schedule_pending_test-staff'),full.prior,'failed storage write keeps prior data');
+assert(/queueBlocked/.test(html.slice(html.indexOf('async function cloudCommit()'),html.indexOf('async function cloudReload()'))),'server write is stopped when queue is blocked');
+console.log('OK: deferred draft archive, blocked quota overwrite, draft write failure warning.');
+
 console.log('OK: calendar inline scripts',scripts.length,'; restore conflict, deleted item, legacy draft, import guard, version sync, quick slots, duplicate UI, holidays.');
