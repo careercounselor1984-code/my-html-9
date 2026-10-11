@@ -1243,7 +1243,7 @@ async function cloudReload(){
    alert('기존 서버 항목 '+conflicts+'건은 덮어쓰지 않았습니다. 충돌 초안은 이 기기에 별도로 보관했습니다. 필요한 수정·삭제는 서버 일정을 확인한 뒤 다시 처리해 주세요.');
   }
   if(recovered)cloudQueue();
-  else if(!conflicts)try{localStorage.removeItem(cloudDraftKey())}catch{}
+  else try{localStorage.removeItem(cloudDraftKey())}catch{} // Conflict draft already retained separately: never prompt on every refresh.
  }}catch(err){console.warn('미전송 일정 안전 복구 실패',err)}}
  render();
  $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
