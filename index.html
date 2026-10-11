@@ -2603,7 +2603,7 @@ function alertBridgeUpdate(){
   title:String(x.title||'').slice(0,100),
   date:String(x.date||'').slice(0,16),
   scope:String(x.scope||'전체').slice(0,20),
-  source:x.source==='shared'?'shared':x.source==='board'?'board':'notice',
+  source:['shared','board','work','report','notice'].includes(x.source)?x.source:'notice',
   seen:!!x.seen
  })).filter(x=>x.key&&x.title);
  alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:true,items});
@@ -2623,6 +2623,40 @@ window.addEventListener('message',async event=>{
  }else if(event.data.type==='goodjob:alert-refresh:v1'&&event.source===alertBridgeParent){
   if(cloud.active)await alertPoll(false);
  }
+});
+
+
+/* Approved same-origin journal: authenticated schedule account is the only actor
+   allowed to register a journal service-worker push subscription.
+   Journal authentication is separate; name equality prevents accidental cross-account pairing. */
+window.addEventListener('message',async event=>{
+ if(event.source!==window.parent||event.origin!=='https://careercounselor1984-code.github.io')return;
+ const msg=event.data;
+ if(!msg||msg.type!=='goodjob:journal-push:v1')return;
+ const reply=(success,detail={})=>{
+   try{event.source.postMessage({
+     type:'goodjob:journal-push-result:v1',
+     requestId:String(msg.requestId||'').slice(0,100),
+     ok:success,...detail
+   },event.origin)}catch(e){}
+ };
+ if(!cloud.active||!cloud.identity){reply(false,{message:'상담일정표에 먼저 로그인해 주세요.'});return}
+ const expected=String(msg.expectedName||'').replace(/\s/g,'').trim();
+ const actual=String(cloud.identity.name||'').replace(/\s/g,'').trim();
+ if(!expected||!actual||expected!==actual){
+   reply(false,{message:'통합본과 일정표에 로그인된 직원 이름이 다릅니다. 같은 직원 계정으로 로그인한 뒤 다시 시도하세요.'});
+   return;
+ }
+ const action=String(msg.action||'');
+ if(!['key','register','unregister','test'].includes(action)){reply(false,{message:'지원하지 않는 작업입니다.'});return}
+ try{
+   const payload=action==='register'?{subscription:msg.subscription,deviceHint:'상담일지 통합본 PC'}:
+     action==='unregister'?{endpoint:String(msg.endpoint||'')}: {};
+   const data=await pushServer(action,payload);
+   reply(true,{name:cloud.identity.name,center:cloud.identity.center,
+     ...(action==='key'?{publicKey:data.publicKey}:{}),
+     ...(action==='test'?{sent:Number(data.sent||0)}:{})});
+ }catch(e){reply(false,{message:'알림 서버 연결 실패: '+String(e?.message||e).slice(0,160)})}
 });
 
 function alertDraw(){
