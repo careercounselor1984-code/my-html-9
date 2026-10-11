@@ -79,4 +79,16 @@ assert.equal(full.db.get('schedule_pending_test-staff'),full.prior,'failed stora
 assert(/queueBlocked/.test(html.slice(html.indexOf('async function cloudCommit()'),html.indexOf('async function cloudReload()'))),'server write is stopped when queue is blocked');
 console.log('OK: deferred draft archive, blocked quota overwrite, draft write failure warning.');
 
+
+const auxBody=html.slice(html.indexOf('async function cloudSyncList('),html.indexOf('async function cloudCommit('));
+assert(auxBody.includes("cloud.client.rpc('schedule_apply_aux_changes'"),'aux changes use atomic server RPC');
+assert(!auxBody.includes('.upsert('),'stale client upsert removed');
+assert(!auxBody.includes('.delete().in('),'stale client delete removed');
+assert(auxBody.includes('expectedPayload'),'aux updates carry baseline version proof');
+assert(html.includes('cloud.base.people=cloudMap(snapshot.people)'),'participant baseline advanced after partial success');
+assert(html.includes('cloud.base.offs=cloudMap(snapshot.offs)'),'closure baseline advanced after partial success');
+assert(html.includes('cloud.base.notices=cloudMap(snapshot.notices)'),'notice baseline advanced after partial success');
+assert(html.includes('cloud.queueBlocked=!backedUp'),'local backup failure blocks unsafe cloud writes');
+console.log('OK: aux records now have atomic compare-and-swap calls and partial-write baselines.');
+
 console.log('OK: calendar inline scripts',scripts.length,'; restore conflict, deleted item, legacy draft, import guard, version sync, quick slots, duplicate UI, holidays.');
