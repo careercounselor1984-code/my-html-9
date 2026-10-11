@@ -716,12 +716,21 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  #schedulePrintOneDay .day-print-table thead tr{height:8mm}
  #schedulePrintOneDay .day-print-table tbody tr{height:10mm}
  #schedulePrintOneDay .day-print-table th,#schedulePrintOneDay .day-print-table td{border:1px solid #aebccc;text-align:left;box-sizing:border-box;vertical-align:middle;padding:1mm 1.4mm;overflow-wrap:anywhere;word-break:keep-all}
+ /* Printed bookings sit in the visual center of their half-hour cells. */
+ #schedulePrintOneDay .day-print-table tbody td{text-align:center;padding:.7mm .4mm;vertical-align:middle}
  #schedulePrintOneDay .day-print-table thead th{background:#eaf1f9!important;text-align:center;font-size:clamp(9px,calc(17px - .5px * var(--print-owners,1)),15px);font-weight:900}
  #schedulePrintOneDay .day-print-time{width:17mm!important;text-align:center!important;font-size:11px!important;font-weight:800}
  #schedulePrintOneDay .day-print-table tbody tr:nth-child(even) td{background:#f7f9fc!important}
  #schedulePrintOneDay .day-print-table tbody tr.hour-start td,#schedulePrintOneDay .day-print-table tbody tr.hour-start th{border-top:2px solid #748ba6}
- #schedulePrintOneDay .day-print-entry{font-size:clamp(8px,calc(14px - .42px * var(--print-owners,1)),13px);line-height:1.25;padding:1px 0}
- #schedulePrintOneDay .day-print-entry b{font-weight:850}
+ /* Larger type when a printout has fewer counselor columns; narrow columns wrap safely. */
+ #schedulePrintOneDay .day-print-entry{
+  display:block;width:100%;max-width:100%;margin:0 auto;padding:1px 0;
+  text-align:center;font-size:clamp(10px,calc(18px - .4px * var(--print-owners,1)),18px);
+  line-height:1.18;font-weight:700;white-space:normal;word-break:keep-all;
+  overflow-wrap:anywhere;text-wrap:balance;break-inside:avoid;
+ }
+ #schedulePrintOneDay .day-print-entry b{font-weight:900}
+ #schedulePrintOneDay .day-print-entry span{font-weight:750}
  #schedulePrintOneDay .day-print-blocked{background:#e9ebef!important}
  #schedulePrintOneDay .day-print-closed,#schedulePrintOneDay .day-print-ongoing{font-size:9px;color:#8793a0}
  #schedulePrintOneDay .day-print-footnote{font-size:10px;border-top:1px solid #cbd5e1;margin-top:2mm;padding:1mm 1.5mm;overflow-wrap:anywhere}
