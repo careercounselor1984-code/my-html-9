@@ -1196,13 +1196,23 @@ async function cloudCommit(){
  cloud.busy=true;cloud.needsSave=false;
  try{
  const staff=cloud.identity.id;
- const changedEventCount=await cloudSyncList('일정',cloudOwnRows(model.events),cloud.base.events,'schedule_events',e=>({id:e.id,staff_id:staff,event_date:e.date,payload:cloudClean(e)}));
- await cloudSyncList('참여자',model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),cloud.base.people,'schedule_participants',p=>({id:p.id,staff_id:staff,payload:cloudClean(p)}));
+ // Capture immutable rows before the first asynchronous write. UI edits during upload must remain pending.
+ const snapshot={
+  events:JSON.parse(JSON.stringify(cloudOwnRows(model.events).map(cloudClean))),
+  people:JSON.parse(JSON.stringify(model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name).map(cloudClean))),
+  offs:JSON.parse(JSON.stringify(model.offs.filter(o=>!o.readonly).map(cloudClean))),
+  notices:JSON.parse(JSON.stringify(model.notices.filter(n=>!n.readonly).map(cloudClean)))
+ };
+ const changedEventCount=await cloudSyncList('일정',snapshot.events,cloud.base.events,'schedule_events',e=>({id:e.id,staff_id:staff,event_date:e.date,payload:cloudClean(e)}));
+ await cloudSyncList('참여자',snapshot.people,cloud.base.people,'schedule_participants',p=>({id:p.id,staff_id:staff,payload:cloudClean(p)}));
  if(['manager','director'].includes(cloud.identity.role)){
-  await cloudSyncList('휴무',model.offs.filter(o=>!o.readonly),cloud.base.offs,'schedule_closures',o=>({id:o.id,center:o.center,created_by:staff,payload:cloudClean(o)}));
-  await cloudSyncList('공통 행사',model.notices.filter(n=>!n.readonly),cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
+  await cloudSyncList('휴무',snapshot.offs,cloud.base.offs,'schedule_closures',o=>({id:o.id,center:o.center,created_by:staff,payload:cloudClean(o)}));
+  await cloudSyncList('공통 행사',snapshot.notices,cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
  }
- cloud.base=cloudBaseline();try{localStorage.removeItem(cloudDraftKey())}catch{}cloudStatus('서버 저장 완료 ✓');
+ cloud.base={events:cloudMap(snapshot.events),people:cloudMap(snapshot.people),
+  offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
+ if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}}
+ cloudStatus(cloud.needsSave?'새 변경사항 서버 저장 대기 중…':'서버 저장 완료 ✓');
  if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
