@@ -786,7 +786,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
 </section>
 <dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
-<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><button id="pushToggleBtn" type="button" title="현재 휴대폰의 푸시 알림을 켜거나 끕니다">🔔 휴대폰 알림 켜기</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
+<div id="cloudArea" class="cloud-area no-print hide"><div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div><div class="cloud-actions" id="mobileCloudActions"><button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button><button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button><button id="sharedTopButton" type="button">🤝 공유 일정</button><button id="presenceBtn" type="button">오늘 근무현황</button><button id="messageBtn" type="button">쪽지</button><button id="cloudAdminShortcut" type="button" class="hide">직원 계정관리</button><button id="installGuideBtn" type="button">앱 설치</button><button id="pushToggleBtn" type="button" title="현재 휴대폰의 푸시 알림을 켜거나 끕니다">🔔 휴대폰 알림 켜기</button><details class="cloud-action-more" open><summary>설정 · 더보기</summary><div class="cloud-extra-actions"><button id="calendarLinkBtn" type="button">외부 캘린더 연결 (선택)</button><button id="cloudSetPassword" type="button">비밀번호 설정·변경</button><button id="cloudRefresh" type="button">동기화</button><button id="cloudRetry" type="button">저장 재시도</button><button id="cloudLogout" type="button">로그아웃</button></div></details></div></div>
 
 
 <section id="sharedBoard" class="shared-board hide no-print" aria-labelledby="sharedBoardTitle">
@@ -898,6 +898,46 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  <form id="staffAdminForm"><h3 id="staffAdminFormTitle">직원 추가</h3><div class="staff-admin-formrow"><label>직원명<input id="adminStaffName" required maxlength="40"></label><label>센터<select id="adminStaffCenter" required><option value="남부본사">남부본사</option><option value="북부센터">북부센터</option><option value="동구지사">동구지사</option><option value="서부센터">서부센터</option></select></label><label>회사 이메일<input id="adminStaffEmail" type="email" required placeholder="name@ulsan1.kr"></label><label>역할<select id="adminStaffRole"><option value="counselor">상담사</option><option value="manager">팀장</option></select></label></div><div class="staff-admin-actions"><button type="submit" class="primary" id="staffAdminSave">직원 추가</button><button type="button" id="staffAdminEditCancel" class="hide">수정 취소</button></div></form>
  <div id="staffAdminRows" class="staff-admin-rows"></div>
  </section></dialog>
+
+<dialog id="calendarLinkDialog" class="staff-admin-dialog">
+ <section class="staff-admin-body">
+  <header><h2>내 캘린더 연결 <small style="font-size:12px;color:#65717d">선택 기능</small></h2><button type="button" id="calendarLinkClose">닫기</button></header>
+  <p class="notice" style="line-height:1.65;margin:8px 0 14px"><strong>추천: 좋은일자리 일정표만 사용하세요.</strong><br>상담 등록·변경·인계는 지금처럼 좋은일자리 일정표에서만 관리하면 됩니다. 개인 캘린더에도 보고 싶은 분만 아래 기능을 연결하세요. 외부로는 내담자 이름·연락처를 보내지 않습니다.</p>
+  <div class="status-panel" style="margin-bottom:12px">
+   <strong>📱 ICS 구독 · 애플/구글/Outlook 모두 가능</strong>
+   <p>가장 간단한 연결입니다. 아래에서 내 개인 구독 주소를 발급해 기존 캘린더의 <b>구독 주소 추가</b>에 붙여넣으세요. 일정표 변경은 구독 앱의 갱신 주기에 따라 늦게 반영될 수 있습니다.</p>
+   <div class="status-actions" style="flex-wrap:wrap">
+    <button type="button" id="calendarFeedBtn">내 구독 주소 발급·보기</button>
+    <button type="button" id="calendarFeedCopy" disabled>구독 주소 복사</button>
+    <button type="button" id="calendarFeedRotate" disabled>주소 새로 발급</button>
+    <button type="button" id="calendarFeedDisable" disabled>구독 해제</button>
+   </div>
+   <div id="calendarFeedUrl" style="word-break:break-all;font-size:12px;margin-top:8px;color:#596777"></div>
+   <details style="margin-top:6px"><summary>캘린더별 구독 방법</summary>
+    <p><b>구글:</b> PC 구글 캘린더 → 다른 캘린더 옆 + → URL로 추가 → 복사한 주소 붙여넣기<br>
+    <b>Outlook:</b> 웹 Outlook 캘린더 → 일정 추가 → 웹에서 구독 → 주소 붙여넣기<br>
+    <b>아이폰:</b> 설정 → 앱 → 캘린더 → 캘린더 계정 → 계정 추가 → 기타 → 구독 캘린더 추가 (iOS 버전별 위치가 다를 수 있습니다)</p>
+   </details>
+  </div>
+  <div class="status-panel" style="margin-bottom:12px">
+   <strong>🔄 구글 캘린더 · 자동 연동</strong>
+   <p id="calendarGoogleText">연결 확인 중…</p>
+   <div class="status-actions"><button type="button" id="calendarGoogleConnect">연결 준비 중</button><button type="button" id="calendarGoogleDisconnect" class="hide">연결 해제</button></div>
+  </div>
+  <div class="status-panel" style="margin-bottom:12px">
+   <strong>🔄 Outlook / Microsoft 365 · 자동 연동</strong>
+   <p id="calendarOutlookText">연결 확인 중…</p>
+   <div class="status-actions"><button type="button" id="calendarOutlookConnect">연결 준비 중</button><button type="button" id="calendarOutlookDisconnect" class="hide">연결 해제</button></div>
+  </div>
+  <div class="status-actions">
+   <button type="button" id="calendarSyncBtn" disabled>지금 외부 캘린더 동기화</button>
+   <a href="https://calendar.google.com/calendar/u/0/r/settings" target="_blank" rel="noopener noreferrer">구글 캘린더 열기 ↗</a>
+   <a href="https://outlook.live.com/calendar/" target="_blank" rel="noopener noreferrer">Outlook 열기 ↗</a>
+  </div>
+  <p id="calendarLinkFeedback" style="font-size:12px;color:#516275;line-height:1.5;margin-top:10px" aria-live="polite">연동하지 않아도 좋은일자리 일정표는 정상 작동합니다.</p>
+  <p style="font-size:12px;color:#65717d">외부에서 수정한 내용은 좋은일자리 일정표로 다시 가져오지 않습니다. 계정 연결 자동 동기화는 최초 관리자 OAuth 앱 등록이 필요하며, 연결된 일정은 앱을 열 때와 주기적인 동기화로 갱신됩니다.</p>
+ </section>
+</dialog>
 <dialog id="installGuideDlg" class="staff-admin-dialog"><section class="staff-admin-body"><header><h2>휴대폰 앱 설치</h2><button id="installGuideClose" type="button">닫기</button></header><p>앱스토어를 거치지 않고 휴대폰 홈 화면에 아이콘을 만들 수 있어요.</p><div class="status-panel"><strong>안드로이드 (Chrome)</strong><p>주소창 오른쪽의 메뉴 ⋮ → 앱 설치 또는 홈 화면에 추가 → 설치</p></div><div class="status-panel"><strong>아이폰 (Safari)</strong><p>하단 공유 버튼 → 홈 화면에 추가 → 추가</p></div><p>PC와 같은 계정으로 로그인하면 일정이 자동 동기화돼요. 인터넷 연결이 필요합니다.</p></section></dialog>
 <dialog id="presenceDlg" class="team-status-dialog"><section class="status-modal"><header><h2>센터별 오늘 근무현황</h2><button type="button" id="presenceClose">닫기</button></header><p>직원 본인이 표시한 상태만 보여요. 미확인은 결근이 아니며 실제 출퇴근 인증도 아니야.</p><div class="status-actions"><label>내 상태 <select id="myPresence"><option value="">미확인</option><option value="출근">출근</option><option value="외근">외근</option><option value="퇴근">퇴근</option><option value="휴무">휴무</option></select></label><button class="primary" id="presenceSave" type="button">상태 저장</button><button id="presenceRefresh" type="button">새로고침</button></div><div id="presenceFeedback"></div><div id="presenceList"></div></section></dialog>
 <dialog id="messageDlg" class="team-status-dialog"><section class="status-modal"><header><h2>상담사 쪽지</h2><button type="button" id="messageClose">닫기</button></header><p>500자 이하 텍스트만 보낼 수 있어. 내담자 이름·연락처 등 개인정보는 적지 마세요.</p><form id="messageForm"><label>받는 직원 <select id="messageTo" required></select></label><label>쪽지 <textarea id="messageText" rows="3" maxlength="500" required></textarea></label><div class="status-actions"><button type="submit" class="primary" id="messageSend">보내기</button><button id="messageRefresh" type="button">새로고침</button></div></form><div id="messageFeedback"></div><div id="messageList"></div></section></dialog>
@@ -1038,6 +1078,7 @@ async function cloudCommit(){
   await cloudSyncList('공통 행사',model.notices.filter(n=>!n.readonly),cloud.base.notices,'schedule_notices',n=>({id:n.id,center:n.center,created_by:staff,payload:cloudClean(n)}));
  }
  cloud.base=cloudBaseline();try{localStorage.removeItem(cloudDraftKey())}catch{}cloudStatus('서버 저장 완료 ✓');
+ calendarSync(false).catch(()=>{});
  }catch(err){cloud.needsSave=true;cloudStatus('저장 실패 · 재시도 필요: '+err.message,true);}
  finally{cloud.busy=false;if(cloud.needsSave){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
 }
@@ -1110,6 +1151,7 @@ async function cloudStartSession(){
  await cloudReload();
  await alertPoll(true);
  pushRefresh().catch(()=>{});
+ calendarRestore().catch(()=>{});
  if(cloud.identity?.role==='director')await executiveOpen();
  journalBookingAnnounce();
  journalBookingMaybeOpen();
@@ -2187,6 +2229,138 @@ function pushInitialize(){
  pushLabel();
 }
 
+
+/* Optional external calendar copies; GoodJob schedule remains authoritative. */
+const calendarState={status:null,feedUrl:'',working:false,syncing:false,lastSync:0,nextSync:0,ready:false};
+const calTxt=id=>document.getElementById(id);
+function calendarNote(message){const el=calTxt('calendarLinkFeedback');if(el)el.textContent=message}
+async function calendarApi(action,rest={}){
+ if(!cloud.active)throw Error('일정표에 로그인한 뒤 사용하세요.');
+ const {data,error}=await cloud.client.functions.invoke('schedule-calendar',{body:{action,...rest}});
+ if(error)throw error;
+ if(data?.error)throw Error(data.error);
+ return data;
+}
+function calendarRender(){
+ const status=calendarState.status?.providers||{};
+ for(const [p,label] of [['google','Google'],['outlook','Outlook']]){
+  const connection=status[p]||{},connect=calTxt('calendar'+label+'Connect'),disconnect=calTxt('calendar'+label+'Disconnect');
+  const msg=calTxt('calendar'+label+'Text');
+  if(!connect||!msg)continue;
+  const active=!!connection.connected,configured=!!connection.configured;
+  connect.disabled=calendarState.working||!configured;
+  connect.textContent=active?'다시 연결':configured?'내 계정 연결하기':'자동 연동 설정 대기';
+  disconnect.classList.toggle('hide',!active);
+  disconnect.disabled=calendarState.working;
+  msg.textContent=active?'연결됨 · 좋은일자리 일정을 외부로 보냅니다.':configured?
+   '본인이 원할 때만 연결하세요. 최초 한 번 '+(p==='google'?'구글':'Microsoft')+' 로그인 동의가 필요합니다.':
+   '관리자의 외부 서비스 앱 등록이 필요합니다. 현재는 위 ICS 주소로 '+(p==='google'?'구글':'Outlook')+' 구독 연결이 가능합니다.';
+ }
+ calTxt('calendarFeedRotate').disabled=calendarState.working||!calendarState.feedUrl;
+ calTxt('calendarFeedCopy').disabled=calendarState.working||!calendarState.feedUrl;
+ calTxt('calendarFeedDisable').disabled=calendarState.working||!calendarState.status?.icsEnabled;
+ calTxt('calendarSyncBtn').disabled=calendarState.working||!Object.values(status).some(x=>x.connected);
+ if(!calendarState.feedUrl)calTxt('calendarFeedUrl').textContent=calendarState.status?.icsEnabled?
+  '구독 주소가 이미 발급됐습니다. 주소 보기 버튼을 눌러 확인할 수 있습니다.':'아직 구독 주소를 만들지 않았습니다.';
+ else calTxt('calendarFeedUrl').textContent='내 구독 주소: '+calendarState.feedUrl;
+}
+async function calendarStatus(){
+ try{calendarState.status=await calendarApi('status');calendarState.ready=true;calendarRender();return true}
+ catch(e){calendarNote('연동 상태 확인 실패: '+String(e?.message||e));return false}
+}
+async function calendarOpen(){
+ if(!cloud.active){alert('직원 로그인 후 설정할 수 있습니다.');return}
+ calTxt('calendarLinkDialog').showModal();
+ calendarNote('좋은일자리 일정표가 원본입니다. 연결은 선택 사항입니다.');
+ await calendarStatus();
+}
+async function calendarFeed(rotate=false){
+ if(calendarState.working)return;
+ if(rotate&&!confirm('기존 구독 주소가 즉시 무효화됩니다. 다른 캘린더에 등록한 주소도 다시 연결해야 합니다. 계속할까요?'))return;
+ calendarState.working=true;calendarRender();
+ try{
+  const r=await calendarApi(rotate?'rotate_feed':'feed');
+  if(!/^https:\/\/hnhccnyitrlzqprnredi\.supabase\.co\/functions\/v1\/schedule-calendar\?ics=[a-f0-9]{64}$/.test(r.url||''))throw Error('잘못된 구독 주소');
+  calendarState.feedUrl=r.url;
+  calendarState.status.icsEnabled=true;
+  calendarNote('비공개 구독 주소를 발급했습니다. 링크를 아는 사람은 일정의 시간과 종류를 볼 수 있으니 외부에 공유하지 마세요.');
+ }catch(e){calendarNote('구독 주소 발급 실패: '+String(e?.message||e))}
+ finally{calendarState.working=false;calendarRender()}
+}
+async function calendarCopy(){
+ const url=calendarState.feedUrl;if(!url)return;
+ try{await navigator.clipboard.writeText(url);calendarNote('구독 주소를 복사했습니다. 원하는 캘린더에서 URL로 구독을 추가해 주세요.')}
+ catch{prompt('아래 구독 주소를 복사하세요.',url)}
+}
+async function calendarDisable(){
+ if(!confirm('이 구독 주소를 비활성화할까요? 외부 캘린더에서는 더 이상 새 일정을 받지 못합니다.'))return;
+ try{
+  await calendarApi('disable_feed');calendarState.feedUrl='';
+  calendarState.status.icsEnabled=false;calendarRender();calendarNote('ICS 구독을 해제했습니다.');
+ }catch(e){calendarNote('해제 실패: '+String(e?.message||e))}
+}
+async function calendarConnect(provider){
+ if(calendarState.working)return;
+ if(!confirm((provider==='google'?'구글':'Microsoft')+' 계정과 연결할까요? 좋은일자리 일정 중 내담자 이름이 없는 일정의 시간·종류만 외부에 등록됩니다.'))return;
+ calendarState.working=true;calendarRender();
+ try{
+  const r=await calendarApi('connect',{provider});
+  if(!r.url||!r.url.startsWith('https://'))throw Error('인증 주소 오류');
+  window.location.assign(r.url);
+ }catch(e){calendarNote('계정 연결 시작 실패: '+String(e?.message||e));calendarState.working=false;calendarRender()}
+}
+async function calendarDisconnect(provider){
+ if(!confirm('자동 연동을 해제할까요? 이전에 외부 캘린더에 복사된 일정은 자동 삭제되지 않습니다.'))return;
+ try{await calendarApi('disconnect',{provider});await calendarStatus();calendarNote('연결을 해제했습니다. 외부 캘린더에 남은 일정은 외부 서비스에서 삭제할 수 있습니다.')}
+ catch(e){calendarNote('해제 실패: '+String(e?.message||e))}
+}
+async function calendarSync(manual=false){
+ if(!cloud.active||calendarState.syncing||!calendarState.ready)return;
+ const providers=calendarState.status?.providers||{};
+ if(!Object.values(providers).some(x=>x.connected))return;
+ if(!manual && (document.hidden||Date.now()<calendarState.nextSync||cloud.busy||cloud.needsSave))return;
+ calendarState.syncing=true;calendarState.nextSync=Date.now()+120000;
+ try{
+  if(manual)calendarNote('외부 캘린더에 일정을 반영하는 중입니다…');
+  const response=await calendarApi('sync');
+  const results=response?.results||[];
+  const fails=results.filter(x=>x.error),success=results.filter(x=>x.connected&&!x.error);
+  calendarState.lastSync=Date.now();
+  if(manual){
+   if(fails.length)calendarNote('일부 연결의 동기화가 실패했습니다. 연결을 확인하거나 다시 시도해 주세요.');
+   else calendarNote(success.length?'외부 일정 반영 완료 · 추가 '+success.reduce((n,x)=>n+(x.created||0),0)+'건 / 수정 '+success.reduce((n,x)=>n+(x.updated||0),0)+'건 / 삭제 '+success.reduce((n,x)=>n+(x.removed||0),0)+'건':'연결된 외부 캘린더가 없습니다.');
+  }
+ }catch(e){calendarState.nextSync=Date.now()+180000;if(manual)calendarNote('동기화 실패: '+String(e?.message||e))}
+ finally{calendarState.syncing=false}
+}
+function calendarInitialize(){
+ calTxt('calendarLinkBtn').onclick=calendarOpen;
+ calTxt('calendarLinkClose').onclick=()=>calTxt('calendarLinkDialog').close();
+ calTxt('calendarFeedBtn').onclick=()=>calendarFeed(false);
+ calTxt('calendarFeedRotate').onclick=()=>calendarFeed(true);
+ calTxt('calendarFeedCopy').onclick=calendarCopy;
+ calTxt('calendarFeedDisable').onclick=calendarDisable;
+ calTxt('calendarGoogleConnect').onclick=()=>calendarConnect('google');
+ calTxt('calendarOutlookConnect').onclick=()=>calendarConnect('outlook');
+ calTxt('calendarGoogleDisconnect').onclick=()=>calendarDisconnect('google');
+ calTxt('calendarOutlookDisconnect').onclick=()=>calendarDisconnect('outlook');
+ calTxt('calendarSyncBtn').onclick=()=>calendarSync(true);
+ setInterval(()=>{if(cloud.active&&!document.hidden)calendarSync(false)},120000);
+ calendarRender();
+}
+async function calendarRestore(){
+ if(!cloud.active)return;
+ await calendarStatus();
+ calendarSync(false).catch(()=>{});
+ const u=new URL(location.href),result=u.searchParams.get('calendar');
+ if(result==='connected'||result==='error'){
+  u.searchParams.delete('calendar');history.replaceState(null,'',u.pathname+u.search+u.hash);
+  await calendarOpen();
+  calendarNote(result==='connected'?'계정을 연결했습니다. 처음 일정을 동기화하고 있습니다.':'외부 캘린더 계정 연결에 실패했습니다. 관리자 설정과 계정 권한을 확인해 주세요.');
+  if(result==='connected')await calendarSync(true);
+ }
+}
+
 const alerts={items:[],busy:false,shown:new Set(),snoozedUntil:0,staffId:null,initialized:false};
 function alertUnread(){return alerts.items.filter(x=>!x.seen)}
 
@@ -2340,6 +2514,7 @@ async function cloudBoot(){
  sharedInitialize();
  alertInitialize();
  pushInitialize();
+ calendarInitialize();
  $('presenceBtn').onclick=async()=>{if(!cloud.active)return;$('presenceDlg').showModal();await refreshPresence()};
  $('presenceClose').onclick=()=>$('presenceDlg').close();
  $('presenceRefresh').onclick=refreshPresence;
@@ -2500,7 +2675,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>cloudCommit();
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
