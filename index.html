@@ -3682,6 +3682,8 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  updateConsultInlinePreview();
  if(!eventId&&editorMode==='work'){$('allDay').checked=!special&&currentView==='personalMonth';f.elements.title.value=f.elements.type.value;$('ftrip').checked=false;$('duration').value='30'}if(!eventId&&special){$('ftype').value=isClosedDay(e.date,e.center)?'휴일근무':'연장근무';$('fperson').value=$('ftype').value;$('allDay').checked=false;$('duration').value='120';}
  setFormLayout();$('moveScheduleBtn').classList.toggle('hide',!eventId||editorMode!=='consult');$('handoffScheduleBtn').classList.toggle('hide',!cloud.active||!eventId||editorMode!=='consult'||e.owner!==cloud.identity.name);$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
+ // A new consultation starts with the cursor in the participant-name field.
+ if(!eventId&&editorMode==='consult')$('fperson').focus();
 }
 function setFormLayout(){const service=editorMode==='consult';if(service){$('allDay').checked=false;$('duration').value='30';$('ftrip').checked=false}
  $('personManageWrap').classList.toggle('hide',!service);$('consultTripRow').classList.toggle('hide',!service);
@@ -3877,7 +3879,7 @@ $('customType').addEventListener('input',()=>{
  if(!title||title===$('customType').dataset.previous)$('fperson').value=$('customType').value;
  $('customType').dataset.previous=$('customType').value;
 });
-$('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;changeEditorMode(b.dataset.entryMode)});
+$('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;changeEditorMode(b.dataset.entryMode);if(editorMode==='consult')$('fperson').focus()});
 $('allDay').onchange=setFormLayout;$('specialWork').onchange=setFormLayout;
 function moveScheduleOpen(){
  if(!editing||editorMode!=='consult')return;
@@ -3991,12 +3993,31 @@ function printSelectedDay(){
 
 $('print').onclick=printSelectedDay;$('export').onclick=exportData;$('import').onclick=()=>$('file').click();$('file').onchange=async e=>{const f=e.target.files[0];if(f)await importData(f);e.target.value=''};
 // Remember participant names only for consulting categories; never show a full expanding dropdown.
-$('fperson').addEventListener('input',()=>{clearPersonChoice();showPersonSuggestions()});
-$('fperson').addEventListener('focus',()=>showPersonSuggestions());
-$('fperson').addEventListener('keydown',e=>{if($('personSuggestions').classList.contains('hide')||!shownPeople.length)return;
- if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();highlightedPerson=(highlightedPerson+(e.key==='ArrowDown'?1:-1)+shownPeople.length)%shownPeople.length;[...$('personSuggestions').querySelectorAll('button')].forEach((b,i)=>b.classList.toggle('is-active',i===highlightedPerson))}
- if(e.key==='Enter'){e.preventDefault();choosePerson(shownPeople[highlightedPerson])}
- if(e.key==='Escape')hidePersonSuggestions();
+let personSuggestionKeyboardNav=false;
+$('fperson').addEventListener('input',()=>{personSuggestionKeyboardNav=false;clearPersonChoice();showPersonSuggestions()});
+$('fperson').addEventListener('focus',()=>{personSuggestionKeyboardNav=false;showPersonSuggestions()});
+$('fperson').addEventListener('keydown',e=>{
+ // Enter finishes Korean IME composition before it may submit a booking.
+ if(e.isComposing||e.keyCode===229)return;
+ const suggested=!$('personSuggestions').classList.contains('hide')&&shownPeople.length>0;
+ if((e.key==='ArrowDown'||e.key==='ArrowUp')&&suggested){
+  e.preventDefault();personSuggestionKeyboardNav=true;
+  highlightedPerson=(highlightedPerson+(e.key==='ArrowDown'?1:-1)+shownPeople.length)%shownPeople.length;
+  [...$('personSuggestions').querySelectorAll('button')].forEach((b,i)=>b.classList.toggle('is-active',i===highlightedPerson));
+  return;
+ }
+ if(e.key==='Enter'&&editorMode==='consult'){
+  e.preventDefault();
+  if(suggested&&personSuggestionKeyboardNav){
+   choosePerson(shownPeople[highlightedPerson]);personSuggestionKeyboardNav=false;
+  }else if(!$('saveEntryBtn').disabled){
+   hidePersonSuggestions();
+   // Use the existing form submission path (required-field checks, overlap warnings, and save).
+   $('editor').requestSubmit($('saveEntryBtn'));
+  }
+  return;
+ }
+ if(e.key==='Escape'){personSuggestionKeyboardNav=false;hidePersonSuggestions()}
 });
 $('personSuggestions').addEventListener('pointerdown',e=>e.preventDefault());
 $('personSuggestions').onclick=e=>{const b=e.target.closest('[data-person-index]');if(b)choosePerson(shownPeople[Number(b.dataset.personIndex)])};
