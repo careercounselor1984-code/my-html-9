@@ -1474,7 +1474,7 @@ function quickRefreshTimes(keep=true){
  const owner=cloud.active?cloud.identity.name:currentOwner();
  const options=slots().filter(t=>!isClosedDay(date)&&withinSameDay(date,t,30,false)&&minute(t)>=earliest);
  const free=options.filter(t=>!model.events.some(e=>e.center===currentCenter()&&e.owner===owner&&e.date===date&&matchingAt(e,t)));
- const use=free.length?free:options;
+ const use=free; // Show only actually free time slots, including when none remain.
  sel.innerHTML=use.length?'<option value="">시간 선택</option>'+use.map(t=>'<option value="'+t+'">'+t+'</option>').join(''):'<option value="">등록 가능한 시간 없음</option>';
  sel.value=old&&use.includes(old)?old:(use[0]||'');
  quickPreview();
@@ -3154,6 +3154,33 @@ const eventKind=e=>e.kind==='consult'||e.kind==='work'?e.kind:SERVICES.has(e.typ
 const isConsultEvent=e=>eventKind(e)==='consult';
 const isWorkEvent=e=>eventKind(e)==='work';
 const HOL={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-01':'노동절','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일','2026-06-03':'지방선거일','2026-06-06':'현충일','2026-07-17':'제헌절','2026-08-15':'광복절','2026-08-17':'대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절'};
+// 2027년 월력요항(우주항공청 2026-06-29 발표). 새 임시공휴일 고시 여부는 주기적으로 검증.
+Object.assign(HOL,{
+ '2027-01-01':'신정',
+ '2027-02-06':'설날 연휴',
+ '2027-02-07':'설날',
+ '2027-02-08':'설날 연휴',
+ '2027-02-09':'대체공휴일(설날)',
+ '2027-03-01':'삼일절',
+ '2027-05-01':'노동절',
+ '2027-05-03':'대체공휴일(노동절)',
+ '2027-05-05':'어린이날',
+ '2027-05-13':'부처님오신날',
+ '2027-06-06':'현충일',
+ '2027-07-17':'제헌절',
+ '2027-07-19':'대체공휴일(제헌절)',
+ '2027-08-15':'광복절',
+ '2027-08-16':'대체공휴일(광복절)',
+ '2027-09-14':'추석 연휴',
+ '2027-09-15':'추석',
+ '2027-09-16':'추석 연휴',
+ '2027-10-03':'개천절',
+ '2027-10-04':'대체공휴일(개천절)',
+ '2027-10-09':'한글날',
+ '2027-10-11':'대체공휴일(한글날)',
+ '2027-12-25':'성탄절',
+ '2027-12-27':'대체공휴일(성탄절)'
+});
 const $=id=>document.getElementById(id),q=s=>document.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const dateKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -3564,8 +3591,8 @@ async function saveEntry(ev){
  if(!allDay&&!withinSameDay(dest.date,dest.time,service?30:Number($('duration').value),specialWork)){alert('근무시간을 확인해 줘. 월~목 09:00~12:00, 13:00~18:00 / 금 09:00~12:00 이내로 등록해 줘.');return false}
  const conflict=model.events.find(e=>e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
  if(conflict){
-   if(cloud.active&&service&&!editing&&dest.owner!==cloud.identity.name){alert('해당 상담사에게 이미 등록된 일정이 있어. 다른 시간을 선택해 줘.');return false}
-   if(!confirm('같은 시간에 기존 일정이 있어. 중복 등록할까?'))return false;
+   if(service){alert('같은 시간에 상담 또는 근무 일정이 등록되어 있습니다. 상담 중복 예약은 허용되지 않습니다. 다른 시간을 선택해 주세요.');return false;}
+   if(!confirm('같은 시간에 기존 일정이 있습니다. 근무 일정이 겹치는 것을 확인하고 계속 등록할까요?'))return false;
  }
  // A colleague can only create a 30-minute reservation via a checked server function. No local participant list or owner-write access.
  if(cloud.active&&service&&!editing&&dest.owner!==cloud.identity.name){
