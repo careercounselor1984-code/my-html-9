@@ -1236,7 +1236,7 @@ async function cloudSyncList(kind,rows,base,table){
  if(!actions.length)return 0;
  // No table name or owner is accepted without a server-side whitelist and auth.uid() check.
  const {data,error}=await cloud.client.rpc('schedule_apply_aux_changes',{p_table:table,p_actions:actions});
- if(error)throw Error('일정 버전 충돌 또는 '+kind+' 서버 저장 실패: '+error.message);
+ if(error)throw Error(kind+' 서버 저장 실패: '+error.message);
  if(!data?.ok||data.saved!==actions.length)throw Error(kind+' 서버 저장 확인 응답이 올바르지 않습니다');
  return actions.length;
 }
