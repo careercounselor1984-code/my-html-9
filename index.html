@@ -1189,6 +1189,13 @@ async function cloudStartSession(){
  directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
  if(cloud.identity?.role==='director')await executiveOpen();
+ const reportFromLink=new URLSearchParams(location.search).get('directorReport')==='1';
+ const reportFromPush=sessionStorage.getItem('goodjob_open_director_report')==='1';
+ if(reportFromLink||reportFromPush){
+  sessionStorage.removeItem('goodjob_open_director_report');
+  if(reportFromLink){const u=new URL(location.href);u.searchParams.delete('directorReport');history.replaceState(null,'',u.pathname+u.search+u.hash)}
+  if(cloud.identity?.role==='director')workReportOpen('day').catch(()=>{});
+ }
  journalBookingAnnounce();
  journalBookingMaybeOpen();
  await journalDirectProcess();
@@ -2554,7 +2561,7 @@ async function workReportLoad(period){
 }
 async function workReportOpen(period='day'){
  if(!cloud.active||!(['manager','director'].includes(cloud.identity?.role)||cloud.identity?.isAdmin)){alert('관리자에게 제공하는 기능입니다.');return}
- $('workReportDialog').showModal();
+ if(!$('workReportDialog').open)$('workReportDialog').showModal();
  await workReportLoad(period);
 }
 function workReportInitialize(){
@@ -2925,6 +2932,13 @@ async function cloudBoot(){
  }
  setInterval(()=>{if(cloud.active&&document.visibilityState==='visible'&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
+}
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.addEventListener('message',event=>{
+  if(event.data?.type!=='goodjob:open-director-report')return;
+  if(cloud.active&&cloud.identity?.role==='director')workReportOpen('day').catch(()=>{});
+  else sessionStorage.setItem('goodjob_open_director_report','1');
+ });
 }
 window.addEventListener('load',cloudBoot);
 window.addEventListener('load',initQuickAndMobile);
