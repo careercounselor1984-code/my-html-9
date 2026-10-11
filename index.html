@@ -1175,14 +1175,31 @@ function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
  return {rows,added,conflicts};
 }
 function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
-function cloudQueue(){if(!cloud.active)return;cloud.needsSave=true;
- try{localStorage.setItem(cloudDraftKey(),JSON.stringify({
+function cloudQueue(){if(!cloud.active)return;
+ // If an earlier pending draft was deliberately deferred, archive it before replacing the draft key.
+ if(cloud.unresolvedDraft){
+  try{const previous=localStorage.getItem(cloudDraftKey());if(previous){
+   const archiveKey='schedule_deferred_draft_backup_'+cloud.identity.id+'_'+Date.now();
+   localStorage.setItem(archiveKey,previous);
+   if(localStorage.getItem(archiveKey)!==previous)throw Error('기기 백업 확인 실패');
+  }cloud.unresolvedDraft=false;cloud.queueBlocked=false;
+  }catch(err){cloud.queueBlocked=true;cloud.draftBackupFailed=true;cloud.needsSave=true;
+   cloudStatus('미전송 초안을 별도로 보관할 수 없습니다. 기존 기록 보호를 위해 서버 전송을 차단했습니다. JSON 내보내기 후 기기 저장공간을 확인하세요.',true);return;}
+ }
+ cloud.needsSave=true;
+ let backedUp=false;
+ try{const backupText=JSON.stringify({
   version:2,baseIds:{
    events:[...cloud.base.events.keys()],people:[...cloud.base.people.keys()],
    offs:[...cloud.base.offs.keys()],notices:[...cloud.base.notices.keys()]},
   events:cloudOwnRows(model.events),participants:model.participants.filter(p=>p.center===cloud.identity.center&&p.owner===cloud.identity.name),
-  offs:model.offs.filter(o=>!o.readonly),notices:model.notices.filter(n=>!n.readonly)}))}catch{}
- cloudStatus('변경사항 저장 중…');clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),700)}
+  offs:model.offs.filter(o=>!o.readonly),notices:model.notices.filter(n=>!n.readonly)});
+  localStorage.setItem(cloudDraftKey(),backupText);
+  backedUp=localStorage.getItem(cloudDraftKey())===backupText;
+ }catch(err){console.warn('미전송 일정 기기 백업 실패',err)}
+ cloud.draftBackupFailed=!backedUp;
+ cloudStatus(backedUp?'변경사항 저장 중…':'기기 백업 실패: 현재 화면을 닫거나 새로고침하지 마세요. 서버 전송을 재시도합니다.',!backedUp);
+ clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),700)}
 
 async function cloudSyncEvents(rows,base,staff){
  const current=cloudMap(rows.map(cloudClean));
@@ -1213,7 +1230,7 @@ async function cloudSyncList(kind,rows,base,table,makeRow){
  return changed.length+deleted.length;
 }
 async function cloudCommit(){
- if(!cloud.active||cloud.busy||!cloud.needsSave)return;
+ if(!cloud.active||cloud.busy||!cloud.needsSave||cloud.queueBlocked)return;
  cloud.busy=true;cloud.needsSave=false;
  try{
  const staff=cloud.identity.id;
@@ -1233,7 +1250,7 @@ async function cloudCommit(){
  }
  cloud.base={events:cloudMap(snapshot.events),people:cloudMap(snapshot.people),
   offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
- if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}}
+ if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}cloud.draftBackupFailed=false;}
  cloudStatus(cloud.needsSave?'새 변경사항 서버 저장 대기 중…':'서버 저장 완료 ✓');
  if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
@@ -1241,13 +1258,14 @@ async function cloudCommit(){
  }catch(err){
  if(String(err.message||'').includes('일정 버전 충돌')){
   // Preserve the draft on this device. Repeating the same stale patch cannot succeed safely.
-  cloud.needsSave=false;
-  cloudStatus('다른 기기와 일정 충돌 · 미전송 초안을 보호했습니다. 새로고침 후 확인하세요: '+err.message,true);
+  cloud.needsSave=!!cloud.draftBackupFailed;
+  cloud.queueBlocked=!!cloud.draftBackupFailed;
+  cloudStatus(cloud.draftBackupFailed?'일정 충돌 및 기기 백업 실패 · 새로고침 금지, JSON 내보내기 후 복구 필요':'다른 기기와 일정 충돌 · 미전송 초안을 보호했습니다. 새로고침 후 확인하세요: '+err.message,true);
  }else{
-  cloud.needsSave=true;cloudStatus('저장 실패 · 재시도 필요: '+err.message,true);
+  cloud.needsSave=true;cloudStatus((cloud.draftBackupFailed?'기기 백업 실패 · 새로고침 금지 / ':'')+'저장 실패 · 재시도 필요: '+err.message,true);
  }
 }
- finally{cloud.busy=false;if(cloud.needsSave){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
+ finally{cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
 }
 async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
@@ -1274,7 +1292,8 @@ async function cloudReload(){
  $('noteBtn').title=manager?'센터 공통 행사 관리':'팀장·부장만 공통 행사 등록 가능';
  $('staffAdd').disabled=true;
  cloud.base=cloudBaseline();
- let draftBackupFailed=false;
+ let draftBackupFailed=false,draftUnresolved=false;
+ cloud.unresolvedDraft=false;cloud.queueBlocked=false;
  const pending=localStorage.getItem(cloudDraftKey());
  if(pending){try{const x=JSON.parse(pending);if(confirm('이 기기에 서버로 전송되지 않은 기록이 있습니다. 서버에 이미 있는 일정을 보호하면서 새 항목만 복구할까요? 기존 항목의 수정·삭제는 자동 적용하지 않습니다.')){
   const serverBeforeRecovery={events:model.events,participants:model.participants,offs:model.offs,notices:model.notices};
@@ -1298,10 +1317,12 @@ async function cloudReload(){
   }
   if(backupReady&&recovered)cloudQueue();
   else if(backupReady)try{localStorage.removeItem(cloudDraftKey())}catch{} // Only discard once conflicts have a verified backup.
- }}catch(err){console.warn('미전송 일정 안전 복구 실패',err)}}
+  if(!backupReady){draftUnresolved=true;cloud.unresolvedDraft=true;}
+ }else{draftUnresolved=true;cloud.unresolvedDraft=true;}
+ }catch(err){draftUnresolved=true;cloud.unresolvedDraft=true;console.warn('미전송 일정 안전 복구 실패',err)}}
  render();
  $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
- if(!cloud.needsSave)cloudStatus(draftBackupFailed?'미전송 초안 백업 실패 · 원본을 보관 중입니다':'동기화 완료 ✓',draftBackupFailed);
+ if(!cloud.needsSave)cloudStatus(draftBackupFailed?'미전송 초안 백업 실패 · 원본 보관 중':draftUnresolved?'미전송 초안 복원을 보류했습니다. 다음 수정 전 기존 초안이 별도 보관됩니다.':'동기화 완료 ✓',draftBackupFailed||draftUnresolved);
  }catch(err){cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
 }
 function cloudApplyIdentity(info){
