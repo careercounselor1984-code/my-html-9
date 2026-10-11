@@ -19,10 +19,11 @@ self.addEventListener('notificationclick',event=>{
  const candidate=event.notification.data?.url;
  if(typeof candidate==='string'&&candidate.startsWith(self.registration.scope))target=candidate;
  const isDirectorReport=new URL(target).searchParams.get('directorReport')==='1';
+ const isEnergySchool=new URL(target).searchParams.get('energySchool')==='1';
  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async items=>{
   for(const client of items){
    if(new URL(client.url).origin===self.location.origin&&client.url.startsWith(self.registration.scope)){
-    await client.focus();if(isDirectorReport)client.postMessage({type:'goodjob:open-director-report'});return;
+    await client.focus();if(isDirectorReport)client.postMessage({type:'goodjob:open-director-report'});if(isEnergySchool)client.postMessage({type:'goodjob:open-energy-school'});return;
    }
   }
   if(self.clients.openWindow)await self.clients.openWindow(target);
