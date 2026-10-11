@@ -2022,7 +2022,7 @@ async function handoffRefresh(){
   if(error)throw error;
   handoff.items=Array.isArray(data?.rows)?data.rows:[];
   const count=handoff.items.filter(x=>x.canAccept).length;
-  $('handoffBadge').textContent=count?'('+count+'건 수락 가능)':'';
+  $('handoffBadge').textContent=count?'('+count+'건 수락 가능)':'';$('sharedTopButton').textContent=count?'🤝 공유 일정 · 인계 '+count+'건':'🤝 공유 일정';
   $('handoffList').innerHTML=handoff.items.length?handoff.items.map(x=>{
    const state=x.status==='accepted'?'인계 완료':x.status==='cancelled'?'취소':'수락 대기';
    const busy=x.canAccept&&handoffBusyAt(x);
@@ -2542,7 +2542,7 @@ function personalDay(dayOverride){
  const filled=new Set();for(const ev of entries)for(const t of available)if(matchingAt(ev,t))filled.add(t);
  const consultCount=entries.filter(isConsultEvent).length,workCount=entries.filter(isWorkEvent).length;
  h+=`<div class="agenda-stats"><span>상담 <b>${consultCount}건</b></span><span>근무·외부 <b>${workCount}건</b></span><span>예약 가능 <b>${available.filter(t=>!filled.has(t)).length}칸</b></span></div>`;
- h+=`<div class="mobile-compact-agenda">`+(entries.length?entries.map(ev=>`<button type="button" class="mobile-compact-item" data-agenda-edit="${escapeHtml(ev.id)}"><span>${escapeHtml(ev.allDay?"종일":ev.time)}</span><strong>${escapeHtml(ev.title||ev.type)}</strong><small>${escapeHtml(ev.type)}</small></button>`).join(""):`<div class="mobile-empty-agenda"><b>등록된 일정이 없어요</b><small>아래 빠른 예약으로 상담을 추가할 수 있어요.</small></div>`)+`</div>`;
+ h+=`<div class="mobile-compact-agenda">`+(entries.length?entries.map(ev=>`<button type="button" class="mobile-compact-item" data-agenda-edit="${escapeHtml(ev.id)}"><span>${escapeHtml(ev.allDay?"종일":ev.time)}</span><strong>${escapeHtml(ev.title||ev.type)}</strong><small>${escapeHtml(ev.type)}${ev.handoffFrom?' · ↪ 인계받음 ('+escapeHtml(ev.handoffFrom)+')':''}</small></button>`).join(""):`<div class="mobile-empty-agenda"><b>등록된 일정이 없어요</b><small>아래 빠른 예약으로 상담을 추가할 수 있어요.</small></div>`)+`</div>`;
  h+=`<div class="agenda-items">`;
  for(const t of available){const starting=entries.filter(ev=>!ev.allDay&&ev.time===t||(ev.allDay&&t===available[0]));const continuing=entries.some(ev=>matchingAt(ev,t)&&!starting.includes(ev));
  h+=`<div class="agenda-line"><span class="agenda-time">${t}</span><div class="agenda-actions">`;
