@@ -2119,7 +2119,7 @@ function executiveWorkLabel(ev,today=false){
 
 /* The server provides only authorized, de-identified schedule type and time.
    This board never interpolates a client title, client note or participant identifier. */
-const executiveSheetState={view:'day',layout:'single',center:'남부본사'};
+const executiveSheetState={view:'day',layout:'single',center:'북부센터'};
 const EXEC_SLOTS=['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
 function executiveSheetEventsFor(center,date){return (executiveState.data?.events||[]).filter(e=>e.center===center&&e.date===date)}
 function executiveSheetPeople(center){return (executiveState.data?.staff||[]).filter(e=>e.center===center)}
@@ -2142,7 +2142,7 @@ function executiveSheetIsLeave(ev){
 function executiveSheetCenterTable(center,date,view){
  const people=executiveSheetPeople(center);
  const all=(executiveState.data?.events||[]).filter(e=>e.center===center);
- const relevant=view==='day'?all.filter(e=>e.date===date):
+ const relevant=view==='day'?all.filter(e=>e.date===date&&e.kind==='consult'):
   view==='leaveToday'?all.filter(e=>e.date===date&&executiveSheetIsLeave(e)):
   all.filter(e=>e.date?.startsWith(date.slice(0,7))&&executiveSheetIsLeave(e));
  const consultationCount=relevant.filter(x=>x.kind==='consult').length;
@@ -2178,7 +2178,7 @@ function executiveSheetCenterTable(center,date,view){
  const table=people.length?'<div class="executive-sheet-scroll"><table class="executive-sheet-table" style="min-width:'+Math.max(520,69+people.length*100)+'px"><thead><tr><th scope="col">'+(view==='day'?'시간':'날짜')+'</th>'+people.map(p=>'<th scope="col">'+escapeHtml(p.name)+'</th>').join('')+'</tr></thead><tbody>'+
  (rows.join('')||'<tr><td colspan="'+(people.length+1)+'" class="executive-sheet-none">등록된 '+(view==='day'?'상담':'연차·반차')+' 일정 없음</td></tr>')+
  '</tbody></table></div>':'<p class="executive-sheet-none">등록된 직원이 없습니다.</p>';
- return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · '+people.length+'명'+(view==='day'?' · 상담 '+consultationCount+'건 · 근무 '+workCount+'건':' · 월간 연차·반차 '+leaveCount+'건')+'</h4>'+table+'</section>';
+ return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · '+people.length+'명'+(view==='day'?' · 오늘 상담 '+consultationCount+'건':' · 월간 연차·반차 '+leaveCount+'건')+'</h4>'+table+'</section>';
 }
 function executiveSheetRender(){
  const node=$('executiveSheetBody');if(!node)return;
