@@ -106,3 +106,50 @@ html.desktop-mini button{cursor:pointer}
 #desktopMiniQuick .mini-dialog-form{padding:14px;min-width:0}
 #desktopMiniQuick .mini-dialog-form input,#desktopMiniQuick .mini-dialog-form select{max-width:100%;min-width:0}
 @media(max-width:370px){#desktopMiniRoot .mini-header{flex-wrap:nowrap}#desktopMiniRoot .mini-actions{max-width:none}}
+
+/* Compact, scroll-free PiP and normal popup layout */
+html.desktop-mini,html.desktop-mini body{width:100%;max-width:100%;overflow-x:hidden!important;min-width:0!important}
+html.desktop-mini *,html.desktop-mini *::before,html.desktop-mini *::after{box-sizing:border-box}
+html.desktop-mini #desktopMiniRoot{width:100%;max-width:100%;min-width:0;padding:12px;overflow-x:hidden}
+html.desktop-mini #desktopMiniRoot .mini-header{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:4px 0 8px}
+html.desktop-mini #desktopMiniRoot .mini-actions{max-width:none;width:100%;display:flex;justify-content:stretch;gap:6px;flex-wrap:nowrap}
+html.desktop-mini #desktopMiniRoot .mini-actions button{flex:1 1 0;min-width:0;padding:8px 3px;white-space:nowrap}
+html.desktop-mini #desktopMiniRoot .mini-heading{font-size:19px}
+html.desktop-mini #desktopMiniRoot .mini-toolbar{display:grid;grid-template-columns:36px minmax(0,1fr) 48px 36px;gap:5px}
+html.desktop-mini #desktopMiniRoot .mini-toolbar button{min-width:0;padding:6px 2px}
+html.desktop-mini #desktopMiniRoot .mini-toolbar strong{font-size:13px}
+html.desktop-mini #desktopMiniRoot .mini-event{min-width:0;padding:9px 8px}
+html.desktop-mini #desktopMiniRoot .mini-card{min-width:0}
+html.desktop-mini #desktopMiniRoot .mini-event-main{min-width:0}
+html.desktop-mini #desktopMiniRoot .mini-event-main b{font-size:12px;overflow-wrap:anywhere}
+html.desktop-mini #desktopMiniRoot .mini-footer button{min-width:0;white-space:normal;word-break:keep-all;padding:9px 3px}
+#desktopMiniRoot .mini-view-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px}
+#desktopMiniRoot .mini-view-controls button{border-radius:10px;padding:9px 4px;background:#fff;color:#385773;border:1px solid #cbdbea;font-size:13px}
+#desktopMiniRoot .mini-view-controls button[aria-pressed="true"]{background:#2366b4;color:#fff;border-color:#2366b4}
+#desktopMiniRoot .mini-window-controls{margin:0 0 10px;padding:9px;background:#fff;border:1px solid #dbe5ee;border-radius:10px;text-align:center}
+#desktopMiniRoot .mini-window-controls[hidden]{display:none!important}
+#desktopMiniRoot .mini-window-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#desktopMiniRoot .mini-window-buttons button{padding:7px 3px;background:#f4f8fc;border-color:#d5e2f1;border-radius:8px;font-size:11px}
+#desktopMiniRoot .mini-window-buttons button[aria-pressed="true"]{background:#dcecff;color:#18538a;border-color:#95bdec}
+#desktopMiniRoot .mini-window-controls small{display:block;margin-top:6px;font-size:10px;color:#657a91}
+#desktopMiniRoot .mini-event.readonly{cursor:default;border-left:3px solid #9eabb8;background:#f6f7f9}
+#desktopMiniRoot .mini-event.readonly:hover{border-color:#e0e9f3;background:#f6f7f9}
+#desktopMiniRoot .mini-arrival{flex:none;padding:6px 8px;background:#e8f6ed;color:#12673f;border-color:#a5d6b6;font-size:11px;white-space:nowrap}
+#desktopMiniRoot .mini-arrival.done{background:#ecf2f5;color:#486277;border-color:#d5e0e8}
+#desktopMiniRoot .mini-arrival:disabled{opacity:.7;cursor:default}
+html.desktop-mini #desktopMiniQuick{width:min(410px,calc(100vw - 16px));max-width:calc(100vw - 16px)}
+html.desktop-mini #desktopMiniQuick .mini-dialog-form{padding:15px}
+html.desktop-mini #dlg{width:min(600px,calc(100vw - 12px));max-width:calc(100vw - 12px)!important}
+html.desktop-mini #dlg .modal{padding:15px}
+html.desktop-mini #dlg .actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px!important;align-items:stretch}
+html.desktop-mini #dlg .actions button{width:100%!important;max-width:100%;min-width:0!important;padding:10px 7px!important;white-space:normal!important;word-break:keep-all!important;overflow-wrap:normal!important;line-height:1.4}
+html.desktop-mini #dlg .actions .left{margin:0!important}
+html.desktop-mini #dlg #saveEntryBtn{grid-column:2}
+html.desktop-mini #dlg #closeModal{min-width:40px}
+html.desktop-mini #dlg .form-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+html.desktop-mini #dlg .field{min-width:0}
+html.desktop-mini #dlg .field.full{grid-column:1/-1}
+@media(max-width:450px){
+ html.desktop-mini #dlg .form-layout{grid-template-columns:minmax(0,1fr)}
+ html.desktop-mini #dlg .field{grid-column:1/-1}
+}
