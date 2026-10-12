@@ -2142,13 +2142,28 @@ function executiveSheetCell(ev){
  const work=ev.kind==='work',text=work?executiveWorkLabel(ev):String(ev.type||'상담');
  return '<span class="executive-sheet-item '+(work?executiveSheetWorkClass(ev):'')+'">'+escapeHtml(text)+'</span>';
 }
-function executiveSheetCenterTable(center,day,view){
- const people=executiveSheetPeople(center),entries=(executiveState.data?.events||[]).filter(e=>e.center===center);
- const relevant=view==='day'?entries.filter(e=>e.date===day):entries.filter(e=>e.kind==='work'&&e.date?.startsWith(day.slice(0,7)));
- const consultationCount=relevant.filter(x=>x.kind==='consult').length,workCount=relevant.filter(x=>x.kind==='work').length;
+function executiveSheetIsLeave(ev){
+ return ev?.kind==='work'&&/연차|반차|월차|휴가/.test(String(ev.type||''));
+}
+function executiveSheetCenterTable(center,date,view){
+ const people=executiveSheetPeople(center);
+ const all=(executiveState.data?.events||[]).filter(e=>e.center===center);
+ const relevant=view==='day'?all.filter(e=>e.date===date):
+  view==='leaveToday'?all.filter(e=>e.date===date&&executiveSheetIsLeave(e)):
+  all.filter(e=>e.date?.startsWith(date.slice(0,7))&&executiveSheetIsLeave(e));
+ const consultationCount=relevant.filter(x=>x.kind==='consult').length;
+ const leaveCount=relevant.filter(executiveSheetIsLeave).length;
+ const workCount=relevant.filter(x=>x.kind==='work').length;
+ if(view==='leaveToday'){
+  const activePeople=people.map(p=>({person:p,items:relevant.filter(e=>e.owner===p.name)})).filter(p=>p.items.length);
+  const items=activePeople.map(({person,items})=>'<div class="executive-sheet-leave-row"><span class="executive-sheet-leave-name">'+escapeHtml(person.name)+'</span><div>'+items.map(ev=>'<span class="executive-sheet-leave-detail">'+escapeHtml(executiveWorkLabel(ev,true))+'</span>').join(' ')+'</div></div>').join('');
+  return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · 오늘 연차·반차 '+activePeople.length+'명</h4>'+
+   '<p class="executive-sheet-leave-summary">등록 일정 '+leaveCount+'건 · 상담사 기준 '+activePeople.length+'명</p>'+
+   (items||'<p class="executive-sheet-leave-empty">오늘 등록된 연차·반차 없음</p>')+'</section>';
+ }
  let rows=[];
  if(view==='day'){
-  const friday=new Date(day+'T12:00:00').getDay()===5;
+  const friday=new Date(date+'T12:00:00').getDay()===5;
   for(const slot of EXEC_SLOTS.filter(t=>!friday||t<'12:00')){
    const cols=people.map(p=>{
     const matching=relevant.filter(e=>e.owner===p.name&&executiveSheetMatches(e,slot));
@@ -2158,36 +2173,42 @@ function executiveSheetCenterTable(center,day,view){
    rows.push('<tr><th scope="row">'+slot+'</th>'+cols+'</tr>');
   }
  }else{
-  const [year,month]=day.slice(0,7).split('-').map(Number),maxDays=new Date(year,month,0).getDate();
-  for(let n=1;n<=maxDays;n++){
-   const date=day.slice(0,7)+'-'+pad(n),weekday=new Date(date+'T12:00:00').getDay();
-   if(weekday===0||weekday===6)continue;
-   const perDate=relevant.filter(e=>e.date===date);
-   if(!perDate.length)continue;
-   rows.push('<tr><th scope="row">'+escapeHtml(date.slice(5))+'</th>'+people.map(p=>
-     '<td>'+perDate.filter(e=>e.owner===p.name).map(executiveSheetCell).join('')+'</td>').join('')+'</tr>');
+  // Monthly leave lists actual registered leave days, including weekend entries if any.
+  const dates=[...new Set(relevant.map(e=>e.date))].sort();
+  for(const day of dates){
+   const forDate=relevant.filter(e=>e.date===day);
+   rows.push('<tr><th scope="row">'+escapeHtml(day.slice(5))+'</th>'+people.map(p=>
+    '<td>'+forDate.filter(e=>e.owner===p.name).map(executiveSheetCell).join('')+'</td>').join('')+'</tr>');
   }
  }
- const table=people.length?'<div class="executive-sheet-scroll"><table class="executive-sheet-table" style="min-width:'+Math.max(520,69+people.length*100)+'px"><thead><tr><th scope="col">'+(view==='day'?'시간':'날짜')+'</th>'+people.map(p=>'<th scope="col">'+escapeHtml(p.name)+'</th>').join('')+'</tr></thead><tbody>'+(
- rows.join('')||'<tr><td colspan="'+(people.length+1)+'" class="executive-sheet-none">등록된 직원 일정 없음</td></tr>'
- )+'</tbody></table></div>':'<p class="executive-sheet-none">등록된 직원이 없습니다.</p>';
- return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · '+people.length+'명'+(view==='day'?' · 상담 '+consultationCount+'건 · 근무 '+workCount+'건':' · 외부·연차 '+workCount+'건')+'</h4>'+table+'</section>';
+ const table=people.length?'<div class="executive-sheet-scroll"><table class="executive-sheet-table" style="min-width:'+Math.max(520,69+people.length*100)+'px"><thead><tr><th scope="col">'+(view==='day'?'시간':'날짜')+'</th>'+people.map(p=>'<th scope="col">'+escapeHtml(p.name)+'</th>').join('')+'</tr></thead><tbody>'+
+ (rows.join('')||'<tr><td colspan="'+(people.length+1)+'" class="executive-sheet-none">등록된 '+(view==='day'?'상담':'연차·반차')+' 일정 없음</td></tr>')+
+ '</tbody></table></div>':'<p class="executive-sheet-none">등록된 직원이 없습니다.</p>';
+ return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · '+people.length+'명'+(view==='day'?' · 상담 '+consultationCount+'건 · 근무 '+workCount+'건':' · 월간 연차·반차 '+leaveCount+'건')+'</h4>'+table+'</section>';
 }
 function executiveSheetRender(){
  const node=$('executiveSheetBody');if(!node)return;
- if(!executiveState.data){node.replaceChildren();return}
- const day=executiveState.day||dateKey(new Date());
- if(!day.startsWith(executiveState.month))return;
- const view=executiveSheetState.view,layout=executiveSheetState.layout;
- const centers=layout==='single'?[executiveSheetState.center]:EXEC_CENTERS;
- $('executiveSheetDate').value=day;
+ const today=dateKey(new Date()),view=executiveSheetState.view;
+ const isMonthly=view==='leaveMonth';
+ $('executiveSheetTodayLabel').textContent=today;
+ $('executiveSheetTodayIndicator').classList.toggle('hide',isMonthly);
+ $('executiveSheetMonthNav').classList.toggle('hide',!isMonthly);
+ $('executiveSheetMonth').value=executiveState.month;
+ const layout=executiveSheetState.layout;
  $('executiveSheetLayout').value=layout;
  $('executiveSheetCenter').value=executiveSheetState.center;
  $('executiveSheetCenterWrap').classList.toggle('hide',layout!=='single');
- $('executiveSheetBody').className='executive-sheet-grid layout-'+layout;
+ node.className='executive-sheet-grid layout-'+layout;
  document.querySelectorAll('[data-executive-sheet]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.executiveSheet===view)));
- node.innerHTML=centers.map(c=>executiveSheetCenterTable(c,day,view)).join('');
- $('executiveSheetStatus').textContent=(view==='day'?day+' 일일 상담일정표':day.slice(0,7)+' 직원 연차·교육 월간표')+' · '+(layout==='single'?executiveSheetState.center:layout==='quad'?'4개 지사 4분할':'4개 지사 통합')+' · 내담자 개인정보 제외';
+ if(!executiveState.data || (!isMonthly&&!today.startsWith(executiveState.month))){
+  node.replaceChildren();$('executiveSheetStatus').textContent='오늘 일정 자료를 불러오는 중입니다.';return;
+ }
+ const date=isMonthly?executiveState.month+'-01':today;
+ const centers=layout==='single'?[executiveSheetState.center]:EXEC_CENTERS;
+ node.innerHTML=centers.map(c=>executiveSheetCenterTable(c,date,view)).join('');
+ const desc=view==='day'?'오늘 상담일정표':view==='leaveToday'?'오늘 연차·반차 현황':'월간 연차·반차 현황';
+ $('executiveSheetStatus').textContent=(isMonthly?executiveState.month:today)+' · '+desc+' · '+
+  (layout==='single'?executiveSheetState.center:layout==='quad'?'4개 지사 4분할':'4개 지사 통합')+' · 내담자 개인정보 제외';
 }
 function executiveSheetPrint(){
  if(!executiveAllowed()||!executiveState.data)return;
@@ -2199,44 +2220,59 @@ function executiveSheetPrint(){
  const layout=executiveSheetState.layout;
  doc.document.open();
  doc.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>'+escapeHtml(title)+'</title><style>'+
- 'body{font:12px Arial,sans-serif;color:#243b50;margin:14px}.print-grid{display:grid;gap:12px}.print-grid.quad{grid-template-columns:repeat(2,minmax(0,1fr))}.executive-sheet-center{break-inside:avoid;min-width:0}.executive-sheet-center h4{margin:5px 0 8px;color:#153b5d}.executive-sheet-scroll{overflow:visible}.executive-sheet-table{width:100%;min-width:0!important;border-collapse:collapse;table-layout:fixed;font-size:9px}.executive-sheet-table th,.executive-sheet-table td{border:1px solid #bfcbd9;text-align:center;vertical-align:middle;padding:3px 1px;overflow-wrap:anywhere}.executive-sheet-table th{background:#edf3f8}.executive-sheet-item{display:block;background:#eaf3fa;border-radius:3px;padding:2px}.executive-sheet-item.work{background:#fff2d8}.executive-sheet-item.leave{background:#fbeaf0}.executive-sheet-continuation{color:#aaa}.executive-sheet-none{text-align:center}'+
+ 'body{font:12px Arial,sans-serif;color:#243b50;margin:14px}.print-grid{display:grid;gap:12px}.print-grid.quad{grid-template-columns:repeat(2,minmax(0,1fr))}.executive-sheet-center{break-inside:avoid;min-width:0}.executive-sheet-center h4{margin:5px 0 8px;color:#153b5d}.executive-sheet-scroll{overflow:visible}.executive-sheet-table{width:100%;min-width:0!important;border-collapse:collapse;table-layout:fixed;font-size:9px}.executive-sheet-table th,.executive-sheet-table td{border:1px solid #bfcbd9;text-align:center;vertical-align:middle;padding:3px 1px;overflow-wrap:anywhere}.executive-sheet-table th{background:#edf3f8}.executive-sheet-item{display:block;background:#eaf3fa;border-radius:3px;padding:2px}.executive-sheet-item.work{background:#fff2d8}.executive-sheet-item.leave,.executive-sheet-leave-detail{background:#fbeaf0}.executive-sheet-continuation{color:#aaa}.executive-sheet-none,.executive-sheet-leave-empty{text-align:center}.executive-sheet-leave-summary{font-size:11px;color:#38516b}.executive-sheet-leave-row{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;padding:7px 3px;border-bottom:1px solid #ddd}.executive-sheet-leave-detail{display:inline-block;margin:2px;padding:4px 5px;border-radius:3px}.executive-sheet-leave-name{font-weight:700}'+
  '@page{size:A4 landscape;margin:9mm}@media print{body{margin:0}.print-grid.quad .executive-sheet-table{font-size:7px}.executive-sheet-center{page-break-inside:avoid}}'+
- '</style></head><body><h2>좋은일자리 · '+escapeHtml(title)+'</h2><p>조회 전용 · 상담 종류와 직원 근무정보만 포함 · 내담자 정보 제외</p><div class="print-grid '+(layout==='quad'?'quad':'')+'">'+html+'</div></body></html>');
+ '</style></head><body><h2>좋은일자리 · '+escapeHtml(title)+'</h2><p>조회 전용 · 직원 근무 및 상담 종류만 포함 · 내담자 정보 제외</p><div class="print-grid '+(layout==='quad'?'quad':'')+'">'+html+'</div></body></html>');
  doc.document.close();doc.focus();setTimeout(()=>doc.print(),450);
 }
-function executiveSheetSetDate(next){
- if(executiveState.loading||!/^\d{4}-\d{2}-\d{2}$/.test(String(next||'')))return;
- const day=parseDate(next);
- if(!Number.isFinite(day.getTime())||dateKey(day)!==next)return;
- const newMonth=next.slice(0,7)!==executiveState.month;
- executiveState.day=next;
- if(newMonth){
-  executiveState.month=next.slice(0,7);
-  $('executiveMonth').value=executiveState.month;
-  executiveState.data=null;
-  $('executiveSheetStatus').textContent=next+' 자료를 불러오는 중…';
-  $('executiveSheetBody').replaceChildren();
-  executiveLoad();
- }else executiveRender();
+function executiveSheetSetMonth(month){
+ if(executiveState.loading||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(String(month||'')))return;
+ executiveSheetState.view='leaveMonth';
+ if(month===executiveState.month){
+  executiveRender();return;
+ }
+ executiveState.month=month;
+ executiveState.day='';
+ executiveState.data=null;
+ $('executiveMonth').value=month;
+ $('executiveSheetMonth').value=month;
+ $('executiveSheetBody').replaceChildren();
+ $('executiveSheetStatus').textContent=month+' 연차 자료를 불러오는 중…';
+ executiveLoad();
 }
-function executiveSheetMoveDate(delta){
+function executiveSheetMoveMonth(offset){
  if(executiveState.loading)return;
- const value=$('executiveSheetDate').value||executiveState.day||dateKey(new Date());
- if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;
- const [y,m,d]=value.split('-').map(Number);
- executiveSheetSetDate(dateKey(new Date(y,m-1,d+(delta<0?-1:1))));
+ const [year,month]=(executiveState.month||dateKey(new Date()).slice(0,7)).split('-').map(Number);
+ const target=new Date(year,month-1+offset,1);
+ executiveSheetSetMonth(target.getFullYear()+'-'+pad(target.getMonth()+1));
+}
+function executiveSheetSelectView(view){
+ if(!['day','leaveToday','leaveMonth'].includes(view)||executiveState.loading)return;
+ executiveSheetState.view=view;
+ const today=dateKey(new Date()),thisMonth=today.slice(0,7);
+ if(view!=='leaveMonth'){
+  executiveState.day=today;
+  if(executiveState.month!==thisMonth){
+   executiveState.month=thisMonth;
+   executiveState.data=null;
+   $('executiveMonth').value=thisMonth;
+   $('executiveSheetBody').replaceChildren();
+   executiveLoad();
+   return;
+  }
+ }
+ executiveRender();
 }
 function executiveSheetInitialize(){
  $('executiveSheetTabs').onclick=e=>{
   const view=e.target.closest('[data-executive-sheet]')?.dataset.executiveSheet;
-  if(!['day','leave'].includes(view))return;
-  executiveSheetState.view=view;executiveSheetRender();
+  if(view)executiveSheetSelectView(view);
  };
  $('executiveSheetLayout').onchange=()=>{executiveSheetState.layout=$('executiveSheetLayout').value;executiveSheetRender()};
  $('executiveSheetCenter').onchange=()=>{executiveSheetState.center=$('executiveSheetCenter').value;executiveSheetRender()};
- $('executiveSheetDate').onchange=()=>executiveSheetSetDate($('executiveSheetDate').value);
- $('executiveSheetPrevDay').onclick=()=>executiveSheetMoveDate(-1);
- $('executiveSheetNextDay').onclick=()=>executiveSheetMoveDate(1);
+ $('executiveSheetMonth').onchange=()=>executiveSheetSetMonth($('executiveSheetMonth').value);
+ $('executiveSheetPrevMonth').onclick=()=>executiveSheetMoveMonth(-1);
+ $('executiveSheetNextMonth').onclick=()=>executiveSheetMoveMonth(1);
  $('executiveSheetPrint').onclick=executiveSheetPrint;
 }
 function executiveKpi(label,value,hint){
