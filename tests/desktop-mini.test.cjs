@@ -25,6 +25,14 @@ assert(!mini.includes('localStorage.setItem'),'mini does not store another copy 
 assert(html.includes("schedule_arrival_action"),'arrival state is managed only with server RPC');
 assert(html.includes("schedule_arrival_feed"),'owner gets authenticated arrival notifications');
 assert(html.includes("schedule_arrival_ack"),'arrival acknowledgement uses scoped RPC');
+assert(html.includes("on('postgres_changes'"),'real-time arrival listens to PostgreSQL changes');
+assert(html.includes("filter:'recipient_id=eq.'+staffId"),'real-time arrivals are scoped by logged-in recipient');
+assert(html.includes("arrivalRealtimeStart();"),'real-time receiver starts after login');
+assert(html.includes("arrivalRealtimeStop();await cloud.client.auth.signOut()"),'logout closes the arrival receiver');
+assert(html.includes("arrivalRealtimeRefresh()"),'arrival notification refreshes authenticated server feed');
+assert(html.includes("!data.mine&&data.newArrival===true)pushNotify('arrival',eventId)"),'check-in sends immediate push once for another counselor');
+assert(html.includes("window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000)"),'periodic inbox polling remains a fallback');
+assert(sw.includes("showNotification("),'existing service worker displays web push');
 assert(mini.includes("refreshArrivals(true)"),'team UI refreshes authoritative check-in state');
 assert(mini.includes("miniArrivalInbox"),'mini UI can show owner an unread arrival');
 assert(html.includes("x.source==='arrival'"),'arrival alerts are rendered in main schedule');

@@ -1396,6 +1396,7 @@ async function cloudStartSession(){
  cloudApplyIdentity(data);
  await cloudReload();
  await alertPoll(true);
+ arrivalRealtimeStart();
  pushRefresh().catch(()=>{});
  directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
@@ -2990,6 +2991,61 @@ async function alertBoardFetch(){
  finally{if(timeout)clearTimeout(timeout)}
 }
 
+
+/* Real-time check-in inbox, scoped by authenticated recipient_id RLS.
+   Server feed remains authoritative and the existing 45-second poll remains a fallback. */
+const arrivalRealtime={channel:null,staffId:null,busy:false,again:false};
+function arrivalRealtimeStop(){
+ const old=arrivalRealtime.channel;
+ arrivalRealtime.channel=null;
+ arrivalRealtime.staffId=null;
+ arrivalRealtime.again=false;
+ if(old&&cloud.client)cloud.client.removeChannel(old).catch(error=>console.warn('도착 실시간 연결 종료 지연',error));
+}
+async function arrivalRealtimeRefresh(){
+ const staffId=arrivalRealtime.staffId;
+ if(!cloud.active||!staffId||cloud.identity?.id!==staffId)return;
+ if(arrivalRealtime.busy){arrivalRealtime.again=true;return}
+ arrivalRealtime.busy=true;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_arrival_feed');
+  if(error)throw error;
+  if(!cloud.active||cloud.identity?.id!==staffId||arrivalRealtime.staffId!==staffId)return;
+  const incoming=Array.isArray(data?.items)?data.items:[];
+  alerts.items=[...incoming,...alerts.items.filter(x=>x.source!=='arrival')];
+  alertDraw();
+  const fresh=incoming.filter(x=>!x.seen&&!alerts.shown.has(x.key));
+  if(fresh.length&&window.self===window.top&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
+   fresh.forEach(x=>alerts.shown.add(x.key));
+   $('alertDialog').showModal();
+  }
+ }catch(error){console.warn('실시간 도착 알림 조회 지연',error?.message||error)}
+ finally{
+  arrivalRealtime.busy=false;
+  if(arrivalRealtime.again){
+   arrivalRealtime.again=false;
+   queueMicrotask(()=>arrivalRealtimeRefresh());
+  }
+ }
+}
+function arrivalRealtimeStart(){
+ const staffId=cloud.active&&cloud.identity?.id;
+ if(!staffId||!cloud.client)return;
+ if(arrivalRealtime.staffId===staffId&&arrivalRealtime.channel)return;
+ arrivalRealtimeStop();
+ arrivalRealtime.staffId=staffId;
+ arrivalRealtime.channel=cloud.client.channel('goodjob-arrival-'+staffId)
+  .on('postgres_changes',{
+   event:'INSERT',schema:'public',table:'schedule_arrivals',
+   filter:'recipient_id=eq.'+staffId
+  },payload=>{
+   if(payload.new?.recipient_id===staffId)arrivalRealtimeRefresh();
+  }).subscribe(status=>{
+   if(status==='SUBSCRIBED')arrivalRealtimeRefresh();
+   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('실시간 도착 연결 지연 · 주기 조회 유지');
+  });
+}
+
 async function alertPoll(pop=true){
  if(!cloud.active||!cloud.identity?.id||alerts.busy)return;
  if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
@@ -3257,7 +3313,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
@@ -4197,7 +4253,7 @@ window.goodjobMiniBridge={
  arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen):[]},
  async ackArrivals(keys){if(!cloud.active)throw Error('로그인 후 이용하세요');await alertAck(keys.filter(x=>x.startsWith('arrival:')))},
  async arrivals(){if(!cloud.active)return [];const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'list'});if(error)throw error;return Array.isArray(data?.items)?data.items:[]},
- async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;return data},
+ async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;if(data?.ok&&!data.mine&&data.newArrival===true)pushNotify('arrival',eventId);return data},
  snapshot(){
   const status=$('cloudStatus');
   if(!cloud.active||!cloud.identity)return {active:false,sync:status?.textContent||'로그인 필요'};
