@@ -885,6 +885,11 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-sheet-date-nav label{min-width:152px}
 .executive-sheet-date-nav input[type=date]{min-width:152px}
 @media(max-width:760px){.executive-sheet-date-nav{flex:1 1 100%}.executive-secondary-details{padding:0 10px 10px}}
+.executive-monthly-details{margin-top:12px;background:#fff;border:1px solid #dce6f1;border-radius:12px;padding:0 13px 12px}
+.executive-monthly-details:not([open]){padding-bottom:0}
+.executive-monthly-details>summary{font-weight:750;color:#3a5976;font-size:13px;cursor:pointer;padding:12px 2px}
+.executive-monthly-details>summary small{font-weight:400;color:#8496a8;font-size:11px;margin-left:7px}
+.executive-monthly-details>.executive-center-cards{margin-top:9px}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.5 · 화면 구성 정리</span></header>
@@ -977,8 +982,10 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  </div>
  <div id="executiveStatus" role="status" class="executive-status">조회 전입니다.</div>
  <div id="executiveTotals" class="executive-totals"></div>
- <h3 class="executive-section-title">센터별 월간 현황</h3>
- <div id="executiveCenterCards" class="executive-center-cards"></div>
+ <details class="executive-monthly-details" id="executiveMonthlyDetails">
+  <summary>센터별 월간 현황 <small>자세히 보기</small></summary>
+  <div id="executiveCenterCards" class="executive-center-cards"></div>
+ </details>
  <section class="executive-panel executive-sheets" id="executiveSheets" aria-labelledby="executiveSheetsHeading">
    <div class="executive-sheet-head"><h3 id="executiveSheetsHeading">상담 · 직원 일정표</h3><span class="executive-pill">부장 · 조회 및 출력 전용</span></div>
    <div class="executive-sheet-tabs" id="executiveSheetTabs" role="group" aria-label="부장용 일정표 종류">
@@ -1977,7 +1984,9 @@ function directorPreviewUI(){
  $('directorPreviewToggle').textContent=active?'← 부장 미리보기 종료':'👁️ 부장 화면 미리보기';
  $('directorAbsentBtn').classList.toggle('hide',!(active||cloud.identity?.role==='director'));
  $('executiveBack').classList.toggle('hide',active||cloud.identity?.role==='director');
- $('executivePreviewExit').classList.toggle('hide',!active);
+ // The back button must remain available to administrators after reload,
+ // even if preview-active state was reset in memory.
+ $('executivePreviewExit').classList.toggle('hide',!(active||cloud.identity?.isAdmin===true));
  $('sharedBack').textContent=active?'총괄 현황으로':'내 일정으로';
  if(active)$('executiveOpen').textContent='📊 총괄 현황';
 }
@@ -1990,7 +1999,7 @@ async function directorPreviewEnter(){
  await executiveOpen();
 }
 function directorPreviewExit(){
- if(!directorPreviewState.active)return;
+ if(!directorPreviewState.active&&cloud.identity?.isAdmin!==true)return;
  directorPreviewState.active=false;directorPreviewState.wasExecutiveOpen=false;
  if($('directorAbsentDialog').open)$('directorAbsentDialog').close();
  sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');
@@ -2286,7 +2295,7 @@ function executiveClose(force=false){
 function executiveInitialize(){
  executiveSheetInitialize();
  $('executiveOpen').onclick=()=>directorPreviewState.active?executiveOpen():(executiveState.open?executiveClose():executiveOpen());
- $('executiveBack').onclick=()=>directorPreviewState.active?directorPreviewExit():executiveClose();
+ $('executiveBack').onclick=()=>directorPreviewState.active||cloud.identity?.isAdmin===true?directorPreviewExit():executiveClose();
  $('executiveRefresh').onclick=executiveLoad;
  $('executivePrev').onclick=()=>executiveMoveMonth(-1);
  $('executiveNext').onclick=()=>executiveMoveMonth(1);
