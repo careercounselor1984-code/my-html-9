@@ -3477,11 +3477,87 @@ function alertInitialize(){
  window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000);
 }
 
+/* Recovery-only route: do not enter schedule_claim_identity or calendar loading until the password has been changed. */
+function cloudIsRecoveryCallback(){
+ const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
+ const query=new URLSearchParams(location.search);
+ return hash.get('type')==='recovery'||query.get('type')==='recovery'||
+  ['otp_expired','access_denied'].includes(hash.get('error_code'))||
+  ['otp_expired','access_denied'].includes(query.get('error_code'));
+}
+async function cloudRecoveryOnly(){
+ document.body.classList.add('cloud-recovery-only');
+ $('cloudAuthMessage').textContent='재설정 메일의 인증 링크를 확인하는 중…';
+ const dialog=$('cloudPasswordDialog'),form=$('cloudPasswordForm');
+ const pageHome=new URL('./',location.href).href;
+ function recoveryMessage(message,success=false){
+  let panel=$('cloudRecoveryStandalone');
+  if(!panel){panel=document.createElement('div');panel.id='cloudRecoveryStandalone';panel.className='cloud-recovery-status';document.querySelector('.cloud-login-panel').appendChild(panel)}
+  panel.classList.toggle('error',!success);
+  const explanation=document.createElement('p');explanation.textContent=message;
+  const link=document.createElement('a');link.href=pageHome;link.className='cloud-recovery-action';
+  link.textContent=success?'새 비밀번호로 로그인하기':'로그인 화면에서 새 재설정 메일 받기';
+  panel.replaceChildren(explanation,link);
+ }
+ const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
+ const query=new URLSearchParams(location.search);
+ if(hash.get('error_code')||query.get('error_code')||hash.get('error_description')||query.get('error_description')){
+  $('cloudAuthMessage').textContent='비밀번호 재설정 링크가 유효하지 않습니다.';
+  recoveryMessage('링크가 만료되었거나 이미 사용되었을 수 있습니다. 메일함에서 가장 최근 링크를 확인하거나 새 재설정 메일을 요청하세요.');
+  return;
+ }
+ try{
+  // Supabase processes the recovery token in the URL before getSession resolves.
+  const {data,error}=await cloud.client.auth.getSession();
+  if(error)throw error;
+  if(!data?.session)throw new Error('no_recovery_session');
+ }catch(error){
+  $('cloudAuthMessage').textContent='재설정 인증을 확인하지 못했습니다.';
+  recoveryMessage('브라우저에서 인증 링크를 처리할 수 없습니다. 메일 링크를 Chrome 또는 Safari 주소창에 직접 열거나 새 링크를 요청하세요.');
+  return;
+ }
+ cloud.recovering=true;
+ $('cloudAuthMessage').textContent='이메일 인증 완료 · 새 비밀번호를 설정하세요.';
+ dialog.querySelector('h2').textContent='새 비밀번호 설정';
+ $('cloudPassCancel').textContent='로그인 화면으로';
+ form.reset();
+ $('cloudNewPassword').type='password';$('cloudConfirmPassword').type='password';
+ $('cloudPasswordFeedback').textContent='8자 이상 새 비밀번호를 입력하면 PC와 휴대폰에서 동일하게 로그인할 수 있습니다.';
+ $('cloudPassCancel').onclick=()=>location.replace(pageHome);
+ $('cloudPasswordShowBoth').onchange=()=>{
+  const type=$('cloudPasswordShowBoth').checked?'text':'password';
+  $('cloudNewPassword').type=type;$('cloudConfirmPassword').type=type;
+ };
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const password=$('cloudNewPassword').value,confirmation=$('cloudConfirmPassword').value;
+  if(password.length<8){$('cloudPasswordFeedback').textContent='8자 이상 입력해 주세요.';return}
+  if(password!==confirmation){$('cloudPasswordFeedback').textContent='비밀번호 확인이 일치하지 않습니다.';return}
+  $('cloudPassSave').disabled=true;
+  $('cloudPasswordFeedback').textContent='새 비밀번호를 저장하는 중…';
+  try{
+   const {error}=await cloud.client.auth.updateUser({password});
+   if(error)throw error;
+   // Re-authenticate with the new password rather than leaving a temporary recovery session active.
+   try{await cloud.client.auth.signOut()}catch{}
+   dialog.close();
+   $('cloudAuthMessage').textContent='비밀번호 변경이 완료되었습니다.';
+   recoveryMessage('새 비밀번호로 PC와 휴대폰에서 로그인하세요.',true);
+  }catch(error){
+   const code=String(error?.code||'').toLowerCase();
+   $('cloudPasswordFeedback').textContent=code==='same_password'?'이전과 다른 비밀번호를 입력해 주세요.':
+    code.includes('weak')?'비밀번호 강도가 부족합니다. 더 길고 복잡한 비밀번호로 변경해 주세요.':
+    '변경에 실패했어요. 링크 만료 여부 또는 비밀번호 조건을 확인해 주세요. ('+code.replace(/[^a-z0-9_-]/g,'').slice(0,35)+')';
+  }finally{$('cloudPassSave').disabled=false}
+ });
+ if(!dialog.open)dialog.showModal();
+}
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
- const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
+ const incomingRecovery=cloudIsRecoveryCallback();
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
+ if(incomingRecovery){await cloudRecoveryOnly();return}
  executiveInitialize();
  directorPreviewInitialize();
  sharedInitialize();
@@ -3500,6 +3576,11 @@ async function cloudBoot(){
  $('messageRefresh').onclick=refreshMessages;
  $('messageForm').onsubmit=sendMessage;$('messageList').onclick=async e=>{const button=e.target.closest('[data-msg-delete]');if(!button||!confirm('이 쪽지를 삭제할까?'))return;const {error}=await cloud.client.from('schedule_messages').delete().eq('id',button.dataset.msgDelete);if(error){$('messageFeedback').textContent='삭제 오류: '+error.message;return}await refreshMessages()};
  $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
+ $('cloudPasswordShowBoth').onchange=()=>{
+  const type=$('cloudPasswordShowBoth').checked?'text':'password';
+  $('cloudNewPassword').type=type;$('cloudConfirmPassword').type=type;
+ };
+ $('cloudPasswordForm').addEventListener('reset',()=>{$('cloudNewPassword').type='password';$('cloudConfirmPassword').type='password'});
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
   if(!email||password.length<8)return;
@@ -3548,9 +3629,12 @@ async function cloudBoot(){
   $('cloudForgot').disabled=true;
   $('cloudAuthMessage').textContent='비밀번호 재설정 메일을 요청 중…';
   try{
-   const {error}=await cloud.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+   // Redirect to the same origin's canonical app entry, independent of mobile PWA location.
+   const redirectTo=new URL('./',location.href).href;
+   const {error}=await cloud.client.auth.resetPasswordForEmail(email,{redirectTo});
    if(error)throw error;
-   $('cloudAuthMessage').textContent='메일을 보낼 수 있는 계정이라면 재설정 링크가 도착합니다. 메일에서 가장 최근 링크를 열어 새 비밀번호를 입력하세요.';
+   $('cloudAuthMessage').textContent='재설정 메일 발송 요청이 완료됐어요. 받은편지함과 스팸함을 확인해 주세요.';
+   $('cloudResetFollowup').classList.remove('hide');
   }catch(err){
    const code=String(err?.code||'').toLowerCase();
    const msg=String(err?.message||'').toLowerCase();
@@ -3659,10 +3743,7 @@ async function cloudBoot(){
   if(session&&!cloud.active)setTimeout(cloudStartSession,100);
  });
  await cloudStartSession();
- if(incomingRecovery){
-  const {data}=await cloud.client.auth.getSession();
-  if(data?.session)setTimeout(cloudOpenRecoveryDialog,100);
- }
+
  setInterval(()=>{if(cloud.active&&(document.visibilityState==='visible'||window.goodjobMiniPiPActive)&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
