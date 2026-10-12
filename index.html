@@ -947,7 +947,7 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
  </form>
  <p id="quickEntryPreview" class="quick-entry-preview" role="status">이름과 상담 구분을 입력하면 자동으로 구분해요.</p>
 </section>
-  <div class="toolline no-print"><button class="primary quick-open-button" id="quickEntryOpen" type="button" aria-controls="quickEntrySection" aria-haspopup="dialog">＋ 빠른 예약</button><button id="addConsult" type="button">＋ 상세 상담 등록 · 대신 예약</button><button id="addWork" type="button" class="work-add">＋ 내 근무·외부 일정</button><details class="mobile-worktools" open><summary>연장·휴일근무 / 출력 / 기타 기능</summary><div class="mobile-worktools-items"><button id="specialWorkBtn" type="button">＋ 연장·휴일근무</button><button id="quickLeave" type="button">연차 칸 선택 OFF</button><button id="dayoff" type="button">＋ 센터 자체 휴무 등록</button><button id="noteBtn" type="button">＋ 공통 비고·행사</button><button id="staff" type="button">직원 목록 관리</button><label class="day-print-date">인쇄할 날짜 <input id="printDayDate" type="date" aria-label="인쇄할 날짜 선택"></label><button id="print" type="button" class="push">인쇄 / PDF</button><button id="export" type="button">백업</button><button id="import" type="button">복원</button><input type="file" accept=".json,application/json" id="file" hidden></div></details></div>
+  <div class="toolline no-print"><button class="primary quick-open-button" id="quickEntryOpen" type="button" aria-controls="quickEntrySection" aria-haspopup="dialog">＋ 빠른 예약</button><button id="addConsult" type="button">＋ 상세 상담 등록 · 대신 예약</button><button id="addWork" type="button" class="work-add">＋ 내 근무·외부 일정</button><details class="mobile-worktools" open><summary>연장·휴일근무 / 출력 / 기타 기능</summary><div class="mobile-worktools-items"><button id="specialWorkBtn" type="button">＋ 연장·휴일근무</button><button id="quickLeave" type="button">연차 칸 선택 OFF</button><button id="dayoff" type="button">＋ 센터 자체 휴무 등록</button><button id="noteBtn" type="button">＋ 공통 비고·행사</button><button id="staff" type="button">직원 목록 관리</button><label class="day-print-date">인쇄할 날짜 <input id="printDayDate" type="date" aria-label="인쇄할 날짜 선택"></label><button id="print" type="button" class="push">인쇄 / PDF</button><button id="copyDailyImage" type="button" title="복사한 후 카카오톡에서 Ctrl+V">카톡 이미지 복사</button><button id="saveDailyImage" type="button" title="PNG 이미지 파일로 저장">PNG 저장</button><button id="export" type="button">백업</button><button id="import" type="button">복원</button><input type="file" accept=".json,application/json" id="file" hidden></div></details></div>
   <div class="mobile-banner no-print" role="note"><span class="mobile-banner-icon">📱</span><span>모바일에서도 일정 조회·등록이 가능해요. 저장 상태를 꼭 확인하세요.</span></div><p class="helper no-print" id="helpText">상담은 선택한 시간에 30분으로 자동 등록돼. 연차는 '연차 칸 선택'을 켠 후 칸을 클릭하거나 마우스로 드래그해 한 번에 지정할 수 있어. 금요일은 12:00까지만 근무하고 공휴일·대체공휴일·센터 휴무일은 등록할 수 없어.</p>
   <section class="sheet"><div class="sheet-head"><div><h2 class="sheet-title" id="reportTitle">일정표</h2><div class="sheet-meta" id="reportMeta"></div></div><span class="tipline no-print" id="modeTip"></span></div>
     <div id="sharedNotes" class="shared-notes" aria-label="센터 공통 행사 및 비고"></div>
@@ -4000,6 +4000,139 @@ function printSelectedDay(){
  window.print();
 }
 
+
+/* 카카오톡 공유: 외부 캡처 서비스 없이, 인쇄용(내담자명 마스킹) 일정표를 고해상도 PNG로 그린다. */
+function shareWrappedLines(ctx, value, maxWidth, maxLines){
+ const raw=Array.from(String(value||'').replace(/\s+/g,' ').trim());
+ if(!raw.length)return [];
+ const lines=[];let line='';
+ for(let i=0;i<raw.length;i++){
+  const test=line+raw[i];
+  if(line&&ctx.measureText(test).width>maxWidth){
+   lines.push(line.trim());line=raw[i]===' '? '':raw[i];
+   if(lines.length===maxLines){
+    let last=lines[maxLines-1];
+    while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1);
+    lines[maxLines-1]=last+'…';return lines;
+   }
+  }else line=test;
+ }
+ if(line.trim())lines.push(line.trim());
+ return lines;
+}
+function renderDailyShareCanvas(){
+ const page=$('schedulePrintOneDay');
+ const table=page?.querySelector('.day-print-table');
+ if(!table)throw new Error('공유할 일정표가 없습니다.');
+ const columns=Array.from(table.querySelectorAll('thead th')).map(el=>el.textContent.trim());
+ const trs=Array.from(table.querySelectorAll('tbody tr'));
+ if(columns.length<2||!trs.length)throw new Error('상담사 또는 시간표가 없습니다.');
+ const canvas=document.createElement('canvas');
+ const ctx=canvas.getContext('2d');
+ if(!ctx)throw new Error('이미지 생성을 지원하지 않습니다.');
+ const width=2400,pad=44,tableWidth=width-pad*2,timeWidth=140;
+ const count=columns.length-1,colWidth=(tableWidth-timeWidth)/count;
+ const labelSize=Math.max(20,Math.min(31,Math.floor(colWidth/8.7)));
+ const lineHeight=labelSize+7;
+ const fontFamily='"Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+ ctx.font='700 '+labelSize+'px '+fontFamily;
+ const prepared=trs.map(tr=>{
+  const cells=Array.from(tr.children);
+  const lines=cells.slice(1).map(cell=>shareWrappedLines(ctx,cell.textContent,colWidth-26,6));
+  const height=Math.max(74,...lines.map(ls=>ls.length*lineHeight+22));
+  return {time:cells[0]?.textContent.trim()||'',lines,height,
+   blocked:cells.slice(1).map(el=>el.classList.contains('day-print-blocked')),
+   hour:tr.classList.contains('hour-start')};
+ });
+ const note=page.querySelector('.day-print-footnote')?.textContent.trim()||'';
+ ctx.font='600 23px '+fontFamily;
+ const notes=note?shareWrappedLines(ctx,note,tableWidth-26,4):[];
+ const headerTop=158,headerHeight=70;
+ const rowTotal=prepared.reduce((sum,r)=>sum+r.height,0);
+ const footerHeight=notes.length?notes.length*31+40:35;
+ canvas.width=width;canvas.height=headerTop+headerHeight+rowTotal+footerHeight+pad;
+ // 캔버스 크기 변경 시 드로잉 상태가 초기화되므로 배경부터 그린다.
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.textBaseline='middle';
+ const heading=page.querySelector('.day-print-heading h2')?.textContent.trim()||'상담 일정표';
+ const detail=page.querySelector('.day-print-heading p')?.textContent.trim()||'';
+ ctx.fillStyle='#142d49';ctx.textAlign='left';ctx.font='900 48px '+fontFamily;
+ ctx.fillText(heading,pad,66,tableWidth-70);
+ ctx.fillStyle='#56718f';ctx.font='600 27px '+fontFamily;
+ ctx.fillText(detail,pad,119,tableWidth-70);
+ let y=headerTop;
+ function boxCell(x,top,w,h,color,strong){
+  ctx.fillStyle=color;ctx.fillRect(x,top,w,h);
+  ctx.strokeStyle=strong?'#718ba5':'#bfccda';ctx.lineWidth=strong?2:1;
+  ctx.strokeRect(x+.5,top+.5,w-1,h-1);
+ }
+ boxCell(pad,y,timeWidth,headerHeight,'#dce8f5',false);
+ ctx.textAlign='center';ctx.font='800 29px '+fontFamily;ctx.fillStyle='#193754';
+ ctx.fillText(columns[0],pad+timeWidth/2,y+headerHeight/2,timeWidth-12);
+ for(let i=0;i<count;i++){
+  const x=pad+timeWidth+i*colWidth;
+  boxCell(x,y,colWidth,headerHeight,'#dce8f5',false);
+  ctx.font='800 '+Math.min(33,Math.max(22,Math.floor(colWidth/5)))+'px '+fontFamily;
+  ctx.fillStyle='#193754';
+  ctx.fillText(columns[i+1],x+colWidth/2,y+headerHeight/2,colWidth-16);
+ }
+ y+=headerHeight;
+ for(let r=0;r<prepared.length;r++){
+  const row=prepared[r],bg=r%2===0?'#ffffff':'#f5f9fd';
+  boxCell(pad,y,timeWidth,row.height,row.hour?'#e5eef8':'#f1f5fa',row.hour);
+  ctx.fillStyle='#294766';ctx.font='800 27px '+fontFamily;
+  ctx.fillText(row.time,pad+timeWidth/2,y+row.height/2,timeWidth-12);
+  for(let i=0;i<count;i++){
+   const x=pad+timeWidth+i*colWidth;
+   boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':bg,row.hour);
+   const lines=row.lines[i];if(!lines?.length)continue;
+   ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
+   ctx.font='700 '+labelSize+'px '+fontFamily;
+   const first=y+(row.height-(lines.length-1)*lineHeight)/2;
+   for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],x+colWidth/2,first+n*lineHeight,colWidth-22);
+  }
+  y+=row.height;
+ }
+ if(notes.length){
+  ctx.fillStyle='#edf3f9';ctx.fillRect(pad,y+13,tableWidth,notes.length*31+18);
+  ctx.fillStyle='#47627d';ctx.textAlign='left';ctx.font='600 23px '+fontFamily;
+  for(let i=0;i<notes.length;i++)ctx.fillText(notes[i],pad+13,y+38+i*31,tableWidth-26);
+ }
+ return canvas;
+}
+function dailySharePNG(canvas){
+ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PNG 변환에 실패했습니다.')),'image/png'));
+}
+async function shareDailyPrint(kind){
+ const date=$('printDayDate').value;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).getTime())){
+  alert('이미지로 만들 날짜를 먼저 선택해 주세요.');return;
+ }
+ if(!buildDailyPrint(date))return;
+ const button=$(kind==='copy'?'copyDailyImage':'saveDailyImage');
+ button.disabled=true;
+ try{
+  const canvas=renderDailyShareCanvas();
+  if(kind==='copy'){
+   if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined'){
+    alert('현재 브라우저는 이미지 복사를 지원하지 않습니다. PNG 저장 버튼을 이용해 주세요.');return;
+   }
+   await navigator.clipboard.write([new ClipboardItem({'image/png':dailySharePNG(canvas)})]);
+   alert('일정표 이미지를 복사했습니다. 카카오톡 단톡방에서 Ctrl+V로 붙여넣으세요.');
+  }else{
+   const blob=await dailySharePNG(canvas);
+   const url=URL.createObjectURL(blob);
+   const link=document.createElement('a');link.href=url;link.download='상담일정표_'+date+'.png';
+   document.body.appendChild(link);link.click();link.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+ }catch(error){
+  console.error('상담일정 이미지 처리 실패',error);
+  alert('이미지를 처리하지 못했습니다. '+(kind==='copy'?'브라우저 복사 권한을 확인하거나 PNG 저장을 이용해 주세요.':'다시 시도해 주세요.'));
+ }finally{button.disabled=false}
+}
+
+$('copyDailyImage').onclick=()=>shareDailyPrint('copy');$('saveDailyImage').onclick=()=>shareDailyPrint('save');
 $('print').onclick=printSelectedDay;$('export').onclick=exportData;$('import').onclick=()=>$('file').click();$('file').onchange=async e=>{const f=e.target.files[0];if(f)await importData(f);e.target.value=''};
 // Remember participant names only for consulting categories; never show a full expanding dropdown.
 let personSuggestionKeyboardNav=false;
