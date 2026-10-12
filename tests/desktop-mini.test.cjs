@@ -29,6 +29,11 @@ assert(mini.includes("focusEditor(()=>bridge.edit(e.id))"),'editing in PiP bring
 assert(mini.includes("if(!window.isSecureContext||!window.documentPictureInPicture)$('miniPin').hidden=true"),'unsupported browsers use normal mini window');
 assert(html.includes("document.visibilityState==='visible'||window.goodjobMiniPiPActive"),'server polling continues when browser PiP is visible');
 assert(mini.includes("quick.insertAdjacentElement('afterend',launcher)"),'main calendar has a direct mini button');
+assert(mini.includes('miniCenter')&&mini.includes('miniMine'),'own and team switching buttons exist');
+assert(mini.includes('nowMinutes-60')&&mini.includes('nowMinutes+120'),'team window includes previous hour and next two hours');
+assert(mini.includes('miniWindowControls'),'team window can switch to full-day');
+assert(css.includes('box-sizing:border-box'),'PiP has independent content-box protection');
+assert(css.includes('overflow-x:hidden'),'PiP prevents horizontal content overflow');
 
 
 const a=html.indexOf('window.goodjobMiniBridge={');
@@ -39,7 +44,7 @@ const fake={
   identity:{id:'self',name:'상담사A',center:'북부센터'}},
  model:{events:[
   {id:'mine',center:'북부센터',owner:'상담사A',date:'2099-10-12',time:'09:00',title:'본인 예약',type:'초기'},
-  {id:'other',center:'북부센터',owner:'상담사B',date:'2099-10-12',time:'09:30',title:'타인 예약',type:'초기',readonly:true},
+  {id:'other',center:'북부센터',owner:'상담사B',date:'2099-10-12',time:'09:30',title:'다른 사람의 비밀 내담자 이름',memo:'민감 메모',type:'초기',readonly:true},
   {id:'foreign',center:'동구지사',owner:'상담사A',date:'2099-10-12',time:'09:30',title:'타센터 예약',type:'초기'}
  ]},
  $:()=>({textContent:'동기화 완료',classList:{contains:()=>false}}),
@@ -47,7 +52,7 @@ const fake={
  dateKey:d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'),
  isClosedDay:()=>false,slots:()=>['09:00','09:30'],minute:t=>Number(t.slice(0,2))*60+Number(t.slice(3)),
  withinSameDay:()=>true,matchingAt:(e,t)=>e.time===t,
- quickParse:()=>({error:'테스트 오류'}),console,
+ quickParse:()=>({error:'테스트 오류'}),isConsultEvent:e=>e.type==='초기',console,
  window:{}
 };
 vm.runInNewContext(html.slice(a,b+3),fake);
@@ -57,6 +62,13 @@ const snap=api.snapshot();
 assert.equal(snap.active,true);
 assert.equal(snap.events.length,1,'only authenticated user events are exposed');
 assert.equal(snap.events[0].id,'mine');
+assert.equal(snap.teamEvents.length,2,'only own center appointments exposed');
+const other=snap.teamEvents.find(e=>e.owner==='상담사B');
+assert(other&&other.readonly,'another staff entry is read-only');
+assert.equal(other.id,null,'other staff event id is withheld');
+assert.equal(other.title,'상담 예약','other staff client name masked');
+assert.equal(other.memo,undefined,'other staff memo withheld');
+assert(!JSON.stringify(snap.teamEvents).includes('비밀 내담자'),'other staff identity never reaches mini DOM');
 assert.deepEqual(Array.from(api.times('2099-10-12')),['09:30'],'other staff bookings do not block own free slot');
 assert.deepEqual(Array.from(api.times('2099-10-13')),['09:00','09:30']);
 fake.cloud.needsSave=true;
