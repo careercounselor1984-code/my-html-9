@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png">
+<title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
 :root{--navy:#17324f;--ink:#1e2e42;--muted:#68778c;--border:#d9e3ee;--blue:#2366b4;--pale:#f4f7fb;--white:#fff;--radius:12px;font-family:Pretendard,'Malgun Gothic',system-ui,sans-serif;color:var(--ink)}*{box-sizing:border-box}body{margin:0;background:var(--pale)}button,input,select,textarea{font:inherit;color:inherit}button,select,input,textarea{border:1px solid #c9d7e5;background:white;border-radius:9px}button{padding:9px 13px;cursor:pointer;font-weight:650}button:hover{background:#edf3fa}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #b1cdf7;outline-offset:1px}button.primary{background:var(--blue);border-color:var(--blue);color:white}button.primary:hover{background:#17569d}button.danger{color:#b63744;border-color:#efc4c9}.headbar{background:linear-gradient(110deg,#15304b,#285477);color:white;padding:17px max(18px,calc((100vw - 1440px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}.brand h1{font-size:21px;letter-spacing:-.025em;margin:0}.brand p{font-size:12px;color:#d8e7f6;margin:5px 0 0}.version{background:#ffffff18;border:1px solid #ffffff55;border-radius:20px;padding:5px 10px;font-size:12px}.wrap{max-width:1480px;padding:18px;margin:auto}.panel,.sheet{background:white;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px #233e5810}.panel{padding:14px 17px;margin-bottom:13px}.context{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.control{display:flex;flex-direction:column;gap:6px;min-width:185px}.control span{font-size:12px;font-weight:750;color:#455d74}.control select{min-width:190px;height:40px;padding:6px 10px}.context-note{font-size:12px;color:var(--muted);flex:1;min-width:210px;align-self:center}.viewbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.viewgroup{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:12px;background:#f5f8fc;flex-wrap:wrap}.viewgroup strong{font-size:11px;color:#64778a;padding:0 6px;white-space:nowrap}.viewtab{background:transparent;border:0;padding:9px 13px;font-size:13px;white-space:nowrap}.viewtab.active{color:#0e4f98;background:white;box-shadow:0 1px 6px #2a517b25}.navline,.toolline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.navline button{padding:7px 12px}.navline strong{font-size:16px;min-width:200px}.navline input[type=date]{height:36px;padding:6px 10px}.toolline button{font-size:13px}.toolline .push{margin-left:auto}.quick-active{background:#fce8ef!important;border-color:#d95d84!important;color:#a02b59}.helper{margin:0 0 10px;color:#5e7083;font-size:12px;line-height:1.5}.sheet{padding:16px}.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.sheet-title{margin:0;font-size:18px}.sheet-meta{font-size:11px;color:#667d93}.legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:11px;color:#51667a;margin:8px 0 13px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}.scroll{overflow:auto}.timetable{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:700px}.timetable th,.timetable td{border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:5px 7px;vertical-align:top}.timetable th:first-child,.timetable td:first-child{border-left:1px solid #e2e8f0}.timetable thead th{background:#eaf1f9;text-align:center;padding:10px 4px;font-size:13px;border-top:1px solid #d6e1eb;white-space:normal}.timetable thead th:first-child{width:72px}.timetable .time{width:72px;background:#f6f9fc;text-align:center;font-size:12px;color:#5b6b7a;font-weight:650;vertical-align:middle}.timetable .slot{height:44px;cursor:pointer;position:relative}.timetable .slot:hover{background:#edf6ff}.timetable .blocked{background:repeating-linear-gradient(135deg,#f7eff0,#f7eff0 7px,#f1e5e7 7px,#f1e5e7 14px);color:#936973;cursor:not-allowed}.timetable .dayoff{background:#fff4f3}.timetable .leave-selected{box-shadow:inset 0 0 0 2px #e9adc2}.timetable .hint-cell{font-size:10px;color:#a37f85;text-align:center}.thead-alert{display:block;font-size:10px;color:#bc4a55;margin-top:3px}.thead-note{display:block;font-size:10px;color:#53728d;margin-top:3px}.entry{border-left:3px solid #4e8ac0;border-radius:5px;padding:5px 6px;margin:2px 0;background:#e8f3fe;line-height:1.3;font-size:11px;cursor:pointer;overflow-wrap:anywhere}.entry strong{font-size:11px}.entry small{display:block;color:#60758a;font-size:10px;margin-top:3px}.entry .pilltype{font-size:10px;font-weight:750;margin-left:4px;white-space:nowrap}.entry-iap{background:#dff3e9;border-color:#279067}.entry-service{background:#e6f1fd;border-color:#4387c2}.entry-leave{background:#fce5ee;border-color:#d56388}.entry-trip{background:#e9e0ff;border-color:#8660ca}.entry-training{background:#fff0d3;border-color:#cd943c}.entry-field{background:#fff4de;border-color:#de9c43}.entry-other{background:#eff1f5;border-color:#8b98aa}.entry-note{background:#fce5e6;border-color:#bc4556}.entry.gap{opacity:.45}.monthgrid{display:grid;grid-template-columns:repeat(7,minmax(112px,1fr));gap:5px;min-width:850px}.monthgrid .monthhead{background:#eaf1f9;text-align:center;padding:10px 2px;border-radius:5px;font-size:12px;font-weight:750}.monthday{border:1px solid #dce5ed;border-radius:8px;min-height:129px;padding:7px;cursor:pointer}.monthday:hover{border-color:#93b8e6;background:#fafdff}.monthday.dim{opacity:.38}.monthday.holiday{background:#fff7f6}.monthday .dayno{font-size:13px;font-weight:800}.monthday .dayno.red{color:#c14b55}.monthday .tag{display:inline-block;font-size:10px;color:#b84656;background:#fce9e9;padding:2px 4px;border-radius:4px;margin-left:4px}.monthday .entry{padding:3px 5px;margin-top:4px;font-size:10px}.monthday .entry strong{font-size:10px}.monthday .entry small{font-size:9px}.monthday .more{color:#64748b;font-size:10px}.summary{font-size:12px;color:#5b7189;margin-top:11px}.tipline{font-size:12px;color:#9d395c;font-weight:700}.hide{display:none!important}.screen-only{display:inline}.print-only{display:none}dialog{width:min(690px,calc(100vw - 24px));border:0;border-radius:16px;padding:0;max-height:95vh;overflow:auto;box-shadow:0 30px 90px #152a46a1}dialog::backdrop{background:#0d1e36aa}.modal{padding:24px}.modal h2{margin:0;font-size:20px}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px}.modal-sub{font-size:12px;color:#788596}.form-layout{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px}.field{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:750;color:#3b4e62}.field input,.field select,.field textarea{padding:10px 11px;min-height:43px;width:100%;font-size:14px;font-weight:450}.field textarea{min-height:85px;resize:vertical}.field .hint{font-size:11px;line-height:1.4;color:#667991;font-weight:400}.field.full{grid-column:1/-1}.form-separator{grid-column:1/-1;height:1px;background:#ecf0f4;margin:1px 0}.choice-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-column:1/-1}.check-card{display:flex;align-items:center;gap:10px;border:1px solid #d7e2ed;border-radius:10px;background:#f8fbfe;padding:12px;cursor:pointer}.check-card input{flex:none;width:18px;height:18px;accent-color:#2366b4}.check-card .txt{font-size:13px;font-weight:750}.check-card .desc{display:block;font-size:11px;color:#718297;margin-top:2px;font-weight:400}.check-card.trip-check{background:#f9f6ff;border-color:#e2d7fa}.check-card.trip-check input{accent-color:#7952bc}.actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:20px}.actions .left{margin-right:auto}.notice{background:#fff9ed;border:1px solid #f0dfb9;padding:11px 13px;font-size:12px;border-radius:9px;line-height:1.5;margin-bottom:14px}.manage-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px}.manage-row>*{min-width:0}.manage-row select,.manage-row input{padding:9px}.member{display:inline-flex;align-items:center;gap:5px;font-size:12px;border-radius:16px;background:#eff4fa;margin:3px;padding:4px 7px}.member button{padding:0 5px;border:0;background:transparent}.minirow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #eef2f6;gap:8px;font-size:12px}.modal-footnote{color:#67798c;font-size:11px;margin-top:12px}.empty{color:#708298;font-size:13px;padding:20px;text-align:center}
 
@@ -665,7 +665,7 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  .shared-form-grid #sharedTitlePreview{font-size:12px}
  .shared-form-grid #sharedPresetHelp{font-size:11px}
 }
-</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script defer src="./desktop-mini.js"></script>
 <style id="schedule-multi-week-and-one-day-print">
 /* Desktop: 1/2/4 sequential weeks, distinct 30-minute bands */
 .week-count-wrap{display:inline-flex;align-items:center;gap:8px;color:#526b86;font-size:12px;font-weight:800;margin-left:auto;white-space:nowrap}
@@ -1154,7 +1154,7 @@ function cloudOpenRecoveryDialog(){
  $('cloudPasswordFeedback').textContent='재설정 링크를 확인했어요. 새 비밀번호를 8자 이상으로 입력해 주세요.';
  dlg.showModal();
 }
-const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}};
+const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}window.dispatchEvent(new Event('goodjob:mini-update'))};
 function cloudOwnRows(list){return list.filter(v=>!v.readonly&&v.center===cloud.identity.center&&v.owner===cloud.identity.name)}
 function cloudMap(rows){return new Map(rows.map(x=>[x.id,JSON.stringify(x)]))}
 function cloudClean(x){const c={...x};delete c.readonly;delete c._serverVersion;return c}
@@ -3250,7 +3250,7 @@ async function cloudBoot(){
   const {data}=await cloud.client.auth.getSession();
   if(data?.session)setTimeout(cloudOpenRecoveryDialog,100);
  }
- setInterval(()=>{if(cloud.active&&document.visibilityState==='visible'&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
+ setInterval(()=>{if(cloud.active&&(document.visibilityState==='visible'||window.goodjobMiniPiPActive)&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
 if('serviceWorker' in navigator){
@@ -3580,7 +3580,7 @@ function render(){let start=monday(focusDate),isAgenda=currentView==='personalDa
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('quickEntryOpen').classList.toggle('hide',team);$('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
  $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches?(isAgenda||isWeek?mobileSwipeMarkup():!isDay?mobileMonthCalendar(currentView==='teamLeave'):teamDay()):isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;mobileSwipeSize();$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
- const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate()}
+ const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate();window.dispatchEvent(new Event('goodjob:mini-update'))}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
  const year=focusDate.getFullYear(),month=pad(focusDate.getMonth()+1),a=dateKey(monday(focusDate)),b=dateKey(addDays(monday(focusDate),6)),today=dateKey(focusDate);
@@ -4171,6 +4171,69 @@ $('personManage').onclick=()=>{$('peopleScope').textContent=$('fcenter').value+'
 $('peopleClose').onclick=()=>$('peopleDlg').close();
 $('peopleSearch').oninput=renderPeopleList;
 $('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(!b)return;const p=model.participants.find(x=>x.id===b.dataset.forgetPerson);if(!p)return;if(confirm(personLabel(p)+' 이름을 자동완성에서 지울까? (기존 일정은 유지돼)')){model.participants=model.participants.filter(x=>x.id!==p.id);if(selectedParticipantId===p.id)clearPersonChoice();save();renderPeopleList()}};
+
+/* Mini PC window bridge: a *read-only* personal snapshot plus existing validated booking actions.
+   This is intentionally in the existing calendar closure, not a duplicate Supabase client. */
+window.goodjobMiniBridge={
+ snapshot(){
+  const status=$('cloudStatus');
+  if(!cloud.active||!cloud.identity)return {active:false,sync:status?.textContent||'로그인 필요'};
+  const {name,center}=cloud.identity;
+  return {active:true,name,center,sync:status?.textContent||'동기화 확인 중',
+   error:!!status?.classList.contains('error'),
+   events:model.events.filter(e=>e.center===center&&e.owner===name&&!e.readonly).map(e=>({
+    id:e.id,date:e.date,time:e.time||'09:00',end:e.end||'',type:e.type||'',title:e.title||'',
+    allDay:!!e.allDay
+   }))};
+ },
+ times(date){
+  if(!cloud.active||!cloud.identity||!/^\d{4}-\d{2}-\d{2}$/.test(date))return [];
+  const d=parseDate(date);
+  if(!Number.isFinite(d.getTime())||dateKey(d)!==date||isClosedDay(date))return [];
+  const now=new Date(),today=dateKey(now);
+  const earliest=date===today?Math.ceil((now.getHours()*60+now.getMinutes())/30)*30:0;
+  const owner=cloud.identity.name,center=cloud.identity.center;
+  return slots().filter(time=>date>=today&&minute(time)>=earliest&&withinSameDay(date,time,30,false)
+   &&!model.events.some(e=>e.center===center&&e.owner===owner&&e.date===date&&matchingAt(e,time)));
+ },
+ async reserve(date,time,raw){
+  if(!cloud.active||!cloud.identity)return {ok:false,message:'직원 로그인 후 이용해 주세요.'};
+  if(cloud.busy||cloud.needsSave)return {ok:false,message:'이전 변경사항 저장 중입니다. 동기화 완료 후 다시 시도해 주세요.'};
+  const parsed=quickParse(raw);
+  if(parsed.error)return {ok:false,message:parsed.error};
+  if(!this.times(date).includes(time))return {ok:false,message:'해당 날짜·시간은 예약할 수 없어요. 빈 시간을 다시 선택해 주세요.'};
+  if(currentView==='teamDay'||currentView==='teamLeave')changeView('personalDay');
+  openEditor(date,time,null,cloud.identity.name,'consult');
+  if(!$('dlg').open)return {ok:false,message:'일정 편집창을 열지 못했습니다. 휴무일이나 시간대를 확인해 주세요.'};
+  $('fperson').value=parsed.title;
+  $('ftype').value=parsed.type;
+  $('ftype').dataset.lastType=parsed.type;
+  updateCustomTypeField();
+  try{
+   const ok=await saveEntry();
+   if(ok&&!$('dlg').open)return {ok:true,message:'일정 등록 후 서버 저장 상태를 확인해 주세요.'};
+   return {ok:false,detailOpen:$('dlg').open,message:'상담 등록창에서 중복 여부나 참여자 이름을 확인해 주세요.'};
+  }catch(err){return {ok:false,detailOpen:$('dlg').open,message:'저장 중 오류: '+(err?.message||String(err))}}
+ },
+ edit(id){
+  if(!cloud.active||!cloud.identity)return;
+  const e=model.events.find(v=>v.id===id&&v.center===cloud.identity.center&&v.owner===cloud.identity.name&&!v.readonly);
+  if(!e)return;
+  if(currentView==='teamDay'||currentView==='teamLeave')changeView('personalDay');
+  openEditor(e.date,e.time,e.id,e.owner);
+ },
+ addWork(date){
+  if(!cloud.active||!cloud.identity)return;
+  if(currentView==='teamDay'||currentView==='teamLeave')changeView('personalDay');
+  openEditor(date,'09:00',null,cloud.identity.name,'work');
+ },
+ async refresh(){
+  if(!cloud.active)return;
+  if(cloud.busy||cloud.needsSave||cloud.queueBlocked)throw Error('미전송 일정이 있습니다. 먼저 서버 저장 상태를 확인해 주세요.');
+  await cloudReload();
+ }
+};
+
 changeView(currentView);
 })();
 </script>

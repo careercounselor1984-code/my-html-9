@@ -1,0 +1,26 @@
+{
+  "id": "./desktop-mini",
+  "name": "좋은일자리 · PC 미니 일정표",
+  "short_name": "내 상담 일정",
+  "description": "기존 상담 일정관리와 동기화되는 작은 PC 일정표",
+  "lang": "ko",
+  "start_url": "./index.html?mini=1",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf2f8",
+  "theme_color": "#17324f",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

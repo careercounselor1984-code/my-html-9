@@ -1,0 +1,69 @@
+/* Goodjob desktop mini calendar. Runs in the SAME origin and authentication as index.html. */
+html.desktop-mini { background:#edf2f8; }
+html.desktop-mini body { min-width:300px; margin:0; background:#edf2f8; color:#1b314b; }
+html.desktop-mini body > :not(script):not(dialog):not(#cloudGate):not(#desktopMiniRoot) { display:none!important; }
+html.desktop-mini #cloudGate { min-height:100vh; padding:14px; display:flex; align-items:flex-start; justify-content:center; }
+html.desktop-mini #cloudGate.hide { display:none!important; }
+html.desktop-mini .cloud-login-panel { width:100%; max-width:430px; margin:0; padding:20px; box-shadow:none; }
+html.desktop-mini dialog { max-width:calc(100vw - 20px); }
+html.desktop-mini #dlg { width:min(690px, calc(100vw - 16px)); }
+#desktopMiniLaunch { white-space:nowrap; }
+#desktopMiniRoot { --mini-navy:#17324f; --mini-border:#d9e4f0; width:100%; max-width:540px; margin:0 auto; padding:14px 13px 28px; }
+#desktopMiniRoot.hide { display:none!important; }
+#desktopMiniRoot button { min-height:36px; }
+#desktopMiniRoot .mini-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:8px 3px 13px; }
+#desktopMiniRoot .mini-kicker { font-size:11px; letter-spacing:.02em; color:#657891; font-weight:750; }
+#desktopMiniRoot .mini-heading { margin:3px 0 0; font-size:20px; letter-spacing:-.035em; color:#17324f; line-height:1.3; }
+#desktopMiniRoot .mini-actions { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+#desktopMiniRoot .mini-actions button { border:1px solid #cfdeee; border-radius:9px; background:white; color:#375575; font-size:12px; padding:6px 9px; }
+#desktopMiniRoot .mini-user { font-size:12px; color:#60758c; margin:0 3px 11px; }
+#desktopMiniRoot .mini-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; background:white; border:1px solid var(--mini-border); border-radius:13px; padding:9px; margin-bottom:12px; }
+#desktopMiniRoot .mini-toolbar button { background:#f2f7fd; border-color:#dce7f3; border-radius:9px; min-width:36px; font-size:13px; padding:6px; }
+#desktopMiniRoot .mini-toolbar strong { font-size:14px; color:#183a60; text-align:center; }
+#desktopMiniRoot .mini-toolbar small { display:block; margin-top:3px; font-weight:500; font-size:11px; color:#71849b; text-align:center; }
+#desktopMiniRoot .mini-card { background:white; border:1px solid var(--mini-border); border-radius:14px; overflow:hidden; box-shadow:0 3px 14px #1a456009; }
+#desktopMiniRoot .mini-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:13px 13px 8px; }
+#desktopMiniRoot .mini-card-top h2 { font-size:14px; margin:0; color:#223f60; }
+#desktopMiniRoot .mini-count { background:#eaf1fa; color:#38648e; font-size:11px; padding:4px 9px; border-radius:20px; font-weight:800; }
+#desktopMiniRoot .mini-events { padding:2px 11px 12px; display:flex; flex-direction:column; gap:7px; }
+#desktopMiniRoot .mini-event { display:flex; width:100%; align-items:center; gap:11px; text-align:left; border:1px solid #e0e9f3; background:#f7faff; border-radius:10px; padding:10px 11px; }
+#desktopMiniRoot .mini-event:hover { background:#eaf4ff; border-color:#b3cfec; }
+#desktopMiniRoot .mini-event:focus-visible { outline:2px solid #2366b4; outline-offset:1px; }
+#desktopMiniRoot .mini-event-time { flex:none; min-width:44px; font-weight:850; color:#235987; font-size:13px; font-variant-numeric:tabular-nums; }
+#desktopMiniRoot .mini-event-main { flex:1; min-width:0; }
+#desktopMiniRoot .mini-event-main b { display:block; font-size:13px; word-break:break-word; color:#1c354f; }
+#desktopMiniRoot .mini-event-main small { display:block; font-size:11px; color:#74859a; margin-top:3px; }
+#desktopMiniRoot .mini-event.work { border-left:4px solid #8c6bc0; background:#fbf9ff; }
+#desktopMiniRoot .mini-event.leave { border-left:4px solid #d1688a; background:#fff7fa; }
+#desktopMiniRoot .mini-empty { text-align:center; padding:24px 8px; color:#71859c; font-size:13px; line-height:1.6; }
+#desktopMiniRoot .mini-footer { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+#desktopMiniRoot .mini-footer button { background:white; border:1px solid #cbdbea; border-radius:10px; padding:11px 8px; color:#264b70; font-size:13px; }
+#desktopMiniRoot .mini-footer button.mini-primary { color:white; background:#2366b4; border-color:#2366b4; }
+#desktopMiniRoot .mini-sync { color:#60758d; font-size:11px; line-height:1.6; text-align:center; padding:12px 4px 4px; }
+#desktopMiniRoot .mini-sync.error { color:#a53542; font-weight:750; }
+#desktopMiniRoot .mini-note { color:#74849a; font-size:10px; line-height:1.5; text-align:center; margin:3px 8px 0; }
+#desktopMiniQuick { width:min(440px,calc(100vw - 22px)); max-height:94vh; overflow:auto; border:0; border-radius:15px; padding:0; box-shadow:0 22px 60px #14283e77; }
+#desktopMiniQuick::backdrop { background:#101f36aa; }
+#desktopMiniQuick .mini-dialog-form { padding:20px; display:grid; gap:12px; }
+#desktopMiniQuick .mini-dialog-form h2 { margin:0; font-size:18px; color:#183857; }
+#desktopMiniQuick .mini-dialog-form p { margin:0; color:#657c91; font-size:12px; line-height:1.5; }
+#desktopMiniQuick .mini-dialog-form label { display:grid; gap:5px; font-weight:700; color:#37536d; font-size:12px; }
+#desktopMiniQuick .mini-dialog-form input,#desktopMiniQuick .mini-dialog-form select { min-width:0; width:100%; min-height:42px; padding:8px 10px; font-size:14px; }
+#desktopMiniQuick .mini-dialog-buttons { display:flex; gap:8px; justify-content:flex-end; }
+#desktopMiniQuick .mini-dialog-buttons button { padding:9px 15px; }
+#desktopMiniQuick .mini-dialog-status { color:#a43a48; font-size:12px; min-height:1.2em; }
+@media (max-width:350px) {
+ #desktopMiniRoot { padding:10px 8px 20px; }
+ #desktopMiniRoot .mini-heading { font-size:18px; }
+ #desktopMiniRoot .mini-actions button { padding:5px 7px; font-size:11px; }
+}
+
+/* Browser-only pinned window controls */
+#desktopMiniToolbar{background:#e9f4ff;border-color:#9dbde1;color:#174c81;white-space:nowrap}
+#desktopMiniRoot .mini-actions [hidden]{display:none!important}
+#desktopMiniRoot #miniPin{background:#e6f1ff;border-color:#a9c9eb;color:#124a82;font-weight:800}
+#desktopMiniRoot #miniPin[aria-pressed="true"]{background:#173f69;color:#fff;border-color:#173f69}
+#desktopMiniRoot .mini-header{align-items:center}
+#desktopMiniRoot .mini-actions{max-width:215px}
+#desktopMiniRoot .mini-actions button{font-size:11px;padding:6px 7px}
+@media (max-width:370px){#desktopMiniRoot .mini-header{flex-wrap:wrap}#desktopMiniRoot .mini-actions{max-width:none;justify-content:flex-start}}

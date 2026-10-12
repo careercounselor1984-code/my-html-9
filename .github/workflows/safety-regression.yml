@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check safety regression
-        run: node tests/schedule-safety.test.cjs
+        run: |
+          node tests/schedule-safety.test.cjs
+          node tests/desktop-mini.test.cjs
 
       - name: Headless Chrome initial-screen smoke (unauthenticated)
         shell: bash
@@ -25,4 +27,7 @@ jobs:
           test -n "$CHROME" || { echo "Chrome not found on GitHub runner"; exit 1; }
           timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file://$GITHUB_WORKSPACE/index.html" > /tmp/goodjob-screen.html 2>/tmp/goodjob-chrome.log
           grep -Fq 'cloudGate' /tmp/goodjob-screen.html
-          echo "Headless Chrome DOM loaded successfully (not a substitute for authenticated testing)"
+          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file://$GITHUB_WORKSPACE/index.html?mini=1" > /tmp/goodjob-mini.html 2>/tmp/goodjob-mini-chrome.log
+          grep -Fq "desktopMiniRoot" /tmp/goodjob-mini.html
+          grep -Fq "cloudGate" /tmp/goodjob-mini.html
+          echo "Headless Chrome standard and mini screens loaded (unauthenticated); authenticated tests still required"
