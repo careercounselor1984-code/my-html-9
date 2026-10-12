@@ -665,6 +665,17 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  .shared-form-grid #sharedTitlePreview{font-size:12px}
  .shared-form-grid #sharedPresetHelp{font-size:11px}
 }
+
+/* Responsive footer: primary actions first, optional actions below. */
+#dlg #editor>.actions{position:sticky;bottom:0;z-index:5;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px!important;padding:12px 1px 1px;margin-top:14px;background:#fff;align-items:stretch}
+#dlg #editor>.actions>button{margin:0!important;min-width:0!important;max-width:100%;width:100%;padding:10px 6px;word-break:keep-all;white-space:normal;overflow-wrap:normal;font-size:12px;line-height:1.35}
+#dlg #editor>.actions>#remove{grid-column:span 2;grid-row:2}
+#dlg #editor>.actions>#moveScheduleBtn{grid-column:span 2;grid-row:2}
+#dlg #editor>.actions>#handoffScheduleBtn{grid-column:span 2;grid-row:2}
+#dlg #editor>.actions>#cancel{grid-column:span 3;grid-row:1}
+#dlg #editor>.actions>#saveEntryBtn{grid-column:span 3;grid-row:1}
+#dlg #editor>.actions>.hide{display:none!important}
+@media(max-width:720px){#dlg #editor>.actions{grid-template-columns:repeat(6,minmax(0,1fr))}#dlg #editor>.actions>button{font-size:12px}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script defer src="./desktop-mini.js"></script>
 <style id="schedule-multi-week-and-one-day-print">
 /* Desktop: 1/2/4 sequential weeks, distinct 30-minute bands */
@@ -1074,7 +1085,7 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
     <div class="field full" id="personManageWrap"><div class="person-note">이전 상담자 추천은 <b>현재 센터·담당 상담사</b> 기준이야. 전체 명단을 펼치지 않고 입력한 이름만 검색해. 공용 PC라면 실명 저장과 백업 파일 취급에 유의해. <button type="button" id="personManage" style="float:right;padding:3px 8px;font-size:11px">기억된 이름 관리</button></div></div>
     <label class="field full"><span id="memoLabel">상담 메모 (선택)</span><textarea name="memo" maxlength="600" placeholder="필요한 내용만 입력 (선택)"></textarea></label>
   </div>
-  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="moveScheduleBtn" class="hide">↪ 상담 날짜·시간 변경</button><button type="button" id="handoffScheduleBtn" class="hide">↪ 다른 상담사에게 인계 요청</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
+  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="moveScheduleBtn" class="hide">시간 변경</button><button type="button" id="handoffScheduleBtn" class="hide">인계 요청</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
 </form></dialog>
 <dialog id="moveScheduleDlg" aria-labelledby="moveScheduleTitle">
  <div class="modal" style="width:min(520px,calc(100vw - 25px));max-height:90dvh;overflow:auto">
@@ -2873,7 +2884,7 @@ function alertBridgeUpdate(){
   title:String(x.title||'').slice(0,100),
   date:String(x.date||'').slice(0,16),
   scope:String(x.scope||'전체').slice(0,20),
-  source:['shared','board','work','report','notice'].includes(x.source)?x.source:'notice',
+  source:['shared','board','work','report','notice','arrival'].includes(x.source)?x.source:'notice',
   seen:!!x.seen
  })).filter(x=>x.key&&x.title);
  alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:true,items});
@@ -2936,9 +2947,9 @@ function alertDraw(){
  $('alertReadAll').disabled=!unseen.some(x=>x.source!=='energy');
  alertBridgeUpdate();
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
-  const source=x.source==='energy'?'에너지고 출입 신청':x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
+  const source=x.source==='energy'?'에너지고 출입 신청':x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='arrival'?'내담자 도착':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
-  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='energy'?'학교 등록 완료 ✓':x.source==='work'||x.source==='report'?'확인 ✓':'읽음')+'</button></div></article>';
+  return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='energy'?'학교 등록 완료 ✓':x.source==='work'||x.source==='report'||x.source==='arrival'?'확인 ✓':'읽음')+'</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
 }
 
@@ -3004,7 +3015,11 @@ async function alertPoll(pop=true){
       energySchoolRender();
     }catch(err){console.warn('에너지고 출입 신청 알림 지연',String(err?.message||err))}
   }
-  alerts.items=[...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
+  let arrivals=[];
+  try{const {data:arrivalData,error:arrivalError}=await cloud.client.rpc('schedule_arrival_feed');
+   if(arrivalError)throw arrivalError;arrivals=Array.isArray(arrivalData?.items)?arrivalData.items:[];
+  }catch(err){console.warn('내담자 도착 알림 조회 지연',err?.message||err)}
+  alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -3017,12 +3032,14 @@ async function alertAck(keys){
  if(!keys.length)return;
  const workKeys=keys.filter(x=>x.startsWith('work:')).slice(0,40);
  const reportKeys=keys.filter(x=>x.startsWith('report:')).slice(0,40);
- const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')&&!x.startsWith('energy:')).slice(0,40);
+ const arrivalKeys=keys.filter(x=>x.startsWith('arrival:')).slice(0,40);
+ const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')&&!x.startsWith('energy:')&&!x.startsWith('arrival:')).slice(0,40);
  if(workKeys.length){
    const {error}=await cloud.client.rpc('schedule_work_alert_ack',{p_keys:workKeys});
    if(error)throw error;
  }
  if(reportKeys.length){const {error}=await cloud.client.rpc('schedule_work_report_ack',{p_keys:reportKeys});if(error)throw error;}
+ if(arrivalKeys.length){const {error}=await cloud.client.rpc('schedule_arrival_ack',{p_keys:arrivalKeys});if(error)throw error;}
  if(regularKeys.length){
    const {error}=await cloud.client.rpc('schedule_alert_ack',{p_keys:regularKeys});
    if(error)throw error;
@@ -3057,6 +3074,7 @@ function alertInitialize(){
   else if(item.source==='board')window.open(BOARD_WEB_URL,'_blank','noopener,noreferrer');
   else if(item.source==='report')await workReportOpen(item.kind==='월간'?'month':item.kind==='주간'?'week':'day');
   else if(item.source==='work')await workReportOpen('day');
+  else if(item.source==='arrival'){if(!['personalDay','personalWeek'].includes(currentView))changeView('personalDay');}
   else{if(sharedState.open)sharedClose();if(document.body.classList.contains('executive-mode'))executiveClose();window.scrollTo?.({top:0,behavior:'smooth'})}
  };
  $('alertDialog').addEventListener('cancel',e=>{e.preventDefault();alertLater()});
@@ -4175,6 +4193,8 @@ $('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(
 /* Mini PC window bridge: a *read-only* personal snapshot plus existing validated booking actions.
    This is intentionally in the existing calendar closure, not a duplicate Supabase client. */
 window.goodjobMiniBridge={
+ async arrivals(){if(!cloud.active)return [];const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'list'});if(error)throw error;return Array.isArray(data?.items)?data.items:[]},
+ async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;return data},
  snapshot(){
   const status=$('cloudStatus');
   if(!cloud.active||!cloud.identity)return {active:false,sync:status?.textContent||'로그인 필요'};
@@ -4193,6 +4213,7 @@ window.goodjobMiniBridge={
     return {id:mine?e.id:null,owner:e.owner,date:e.date,time:e.time||'09:00',
      end:e.end||'',type:e.type||'',allDay:!!e.allDay,kind:consult?'consult':'work',
      title:mine?(e.title||e.type||'일정'):(consult?'상담 예약':(e.type||'근무 일정')),
+     arrivalEventId:consult?e.id:null,
      readonly:!mine};
    })};
  },
