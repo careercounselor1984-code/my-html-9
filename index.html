@@ -3250,7 +3250,7 @@ async function cloudBoot(){
   const {data}=await cloud.client.auth.getSession();
   if(data?.session)setTimeout(cloudOpenRecoveryDialog,100);
  }
- setInterval(()=>{if(cloud.active&&document.visibilityState==='visible'&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
+ setInterval(()=>{if(cloud.active&&(document.visibilityState==='visible'||window.goodjobMiniPiPActive)&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
 if('serviceWorker' in navigator){
