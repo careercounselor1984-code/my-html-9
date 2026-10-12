@@ -29,10 +29,21 @@ const root=document.createElement('section');
 root.id='desktopMiniRoot';root.className='hide';
 root.setAttribute('aria-label','좋은일자리 PC 미니 일정표');
 root.innerHTML=`<header class="mini-header">
- <div><span class="mini-kicker">좋은일자리 · 상담 일정관리</span><h1 class="mini-heading">내 상담 일정</h1></div>
+ <div><span class="mini-kicker">좋은일자리 · 상담 일정관리</span><h1 class="mini-heading" id="miniHeading">내 상담 일정</h1></div>
  <div class="mini-actions"><button type="button" id="miniPin" title="크롬 지원 환경에서 설치 없이 화면 위에 고정">항상 위에</button><button type="button" id="miniRefresh" title="서버에서 새 일정 불러오기">↻ 동기화</button><button type="button" id="miniFull" title="전체 일정표를 새 창에서 열기">전체 ↗</button></div>
  </header>
  <p class="mini-user" id="miniUser"></p>
+ <div class="mini-view-controls" role="group" aria-label="조회할 상담사 범위">
+  <button type="button" id="miniMine" aria-pressed="true">내 일정</button>
+  <button type="button" id="miniCenter" aria-pressed="false">우리 센터 전체</button>
+ </div>
+ <div class="mini-window-controls" id="miniWindowControls" hidden>
+  <div class="mini-window-buttons" role="group" aria-label="조회 시간 범위">
+   <button type="button" id="miniNear" aria-pressed="true">현재 시간 주변</button>
+   <button type="button" id="miniWhole" aria-pressed="false">하루 전체</button>
+  </div>
+  <small id="miniWindowLabel">현재 기준 1시간 전 ~ 2시간 후</small>
+ </div>
  <nav class="mini-toolbar" aria-label="일정 날짜 이동">
   <button id="miniPrev" type="button" aria-label="이전 날짜">‹</button>
   <div><strong id="miniDate"></strong><small id="miniDayLabel"></small></div>
@@ -90,6 +101,9 @@ async function toggleAlwaysOnTop(){
   opened=await window.documentPictureInPicture.requestWindow({width:420,height:660});
   pipWindow=opened;
   opened.document.documentElement.classList.add('desktop-mini');
+  const viewport=opened.document.createElement('meta');
+  viewport.name='viewport';viewport.content='width=device-width,initial-scale=1';
+  opened.document.head.appendChild(viewport);
   opened.document.title='좋은일자리 · 화면 위 일정';
   const link=opened.document.createElement('link');
   link.rel='stylesheet';link.href=new URL('./desktop-mini.css',location.href).href;
@@ -114,6 +128,7 @@ async function toggleAlwaysOnTop(){
 
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let selectedDate=today(),followsToday=true,lastToday=selectedDate,refreshing=false,saving=false;
+let miniScope='mine',miniRange='near';
 function changeDay(offset){
  const p=selectedDate.split('-').map(Number);
  const d=new Date(p[0],p[1]-1,p[2]+offset);
@@ -125,18 +140,30 @@ function eventType(e){
  return ['초기','해석','IAP','컨설팅','재진단','훈련등록','카드발급','신청','일경험','연계'].includes(e.type)?'consult':'work';
 }
 function createEventButton(e){
- const btn=document.createElement('button');btn.type='button';
- const kind=eventType(e);
- btn.className='mini-event'+(kind==='consult'?'':' '+kind);
- btn.title='일정 수정 및 상세 보기';
+ const readonly=!!e.readonly;
+ const el=document.createElement(readonly?'div':'button');
+ if(!readonly)el.type='button';
+ const kind=e.kind==='consult'?'consult':eventType(e);
+ el.className='mini-event'+(kind==='consult'?'':' '+kind)+(readonly?' readonly':'');
+ el.title=readonly?'다른 상담사의 일정 · 조회 전용':'클릭하여 일정 수정';
  const time=document.createElement('span');time.className='mini-event-time';time.textContent=e.allDay?'종일':(e.time||'09:00');
  const main=document.createElement('span');main.className='mini-event-main';
- const name=document.createElement('b');name.textContent=e.title||e.type||'개인 일정';
- const desc=document.createElement('small');desc.textContent=e.type+(e.allDay?' · 종일':' · '+(e.end||''));
- main.append(name,desc);btn.append(time,main);
- btn.addEventListener('click',()=>focusEditor(()=>bridge.edit(e.id)));
- return btn;
+ const name=document.createElement('b');
+ const title=e.title||e.type||'일정';
+ name.textContent=(miniScope==='center'?(e.owner+' · '):'')+title;
+ const desc=document.createElement('small');desc.textContent=(e.type||'근무 일정')+(e.allDay?' · 종일':e.end?' · '+e.end:'')+(readonly?' · 조회만 가능':'');
+ main.append(name,desc);el.append(time,main);
+ if(!readonly&&e.id)el.addEventListener('click',()=>focusEditor(()=>bridge.edit(e.id)));
+ return el;
 }
+function eventStartMinutes(e){const parts=String(e.time||'09:00').split(':').map(Number);return parts[0]*60+parts[1]}
+function inTimeWindow(e,nowMinutes){
+ if(e.allDay)return true;
+ const start=eventStartMinutes(e);
+ const finish=/^\d\d:\d\d$/.test(e.end||'')?Number(e.end.slice(0,2))*60+Number(e.end.slice(3)):start+30;
+ return start<nowMinutes+120&&Math.max(start+1,finish)>nowMinutes-60;
+}
+
 function render(){
  const snap=bridge.snapshot();
  const gate=$('cloudGate');
@@ -149,11 +176,27 @@ function render(){
  const d=new Date(chunks[0],chunks[1]-1,chunks[2]);
  $('miniDate').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+['일','월','화','수','목','금','토'][d.getDay()]+'요일';
  $('miniDayLabel').textContent=followsToday?'오늘 일정 · 자동 날짜 변경':'선택한 날짜의 일정';
- const events=(snap.events||[]).filter(e=>e.date===selectedDate).sort((a,b)=>(a.allDay?'00:00':a.time||'09:00').localeCompare(b.allDay?'00:00':b.time||'09:00'));
+ const currentDay=selectedDate===today();
+ $('miniHeading').textContent=miniScope==='center'?'우리 센터 일정':'내 상담 일정';
+ $('miniMine').setAttribute('aria-pressed',String(miniScope==='mine'));
+ $('miniCenter').setAttribute('aria-pressed',String(miniScope==='center'));
+ $('miniWindowControls').hidden=miniScope!=='center';
+ $('miniNear').setAttribute('aria-pressed',String(miniRange==='near'));
+ $('miniWhole').setAttribute('aria-pressed',String(miniRange==='whole'));
+ $('miniNear').disabled=!currentDay;
+ $('miniWindowLabel').textContent=!currentDay?'다른 날짜는 하루 전체 일정으로 표시합니다.':
+  miniRange==='near'?'현재 기준 1시간 전 ~ 2시간 후':'오늘 전체 시간대';
+ let events=(miniScope==='center'?snap.teamEvents:snap.events)||[];
+ events=events.filter(e=>e.date===selectedDate);
+ if(miniScope==='center'&&currentDay&&miniRange==='near'){
+  const now=new Date(),nowMinutes=now.getHours()*60+now.getMinutes();
+  events=events.filter(e=>inTimeWindow(e,nowMinutes));
+ }
+ events.sort((a,b)=>(a.allDay?'00:00':a.time||'09:00').localeCompare(b.allDay?'00:00':b.time||'09:00')||String(a.owner||'').localeCompare(String(b.owner||''),'ko'));
  $('miniCount').textContent=events.length+'건';
  const container=$('miniEvents');container.replaceChildren();
  if(!events.length){
-  const empty=document.createElement('p');empty.className='mini-empty';empty.textContent='등록된 일정이 없습니다.\n＋ 빠른 상담등록으로 일정을 추가해 보세요.';
+  const empty=document.createElement('p');empty.className='mini-empty';empty.textContent=miniScope==='center'?'해당 시간대에 우리 센터 일정이 없습니다.\n하루 전체 보기로 다른 시간도 확인할 수 있어요.':'등록된 일정이 없습니다.\n＋ 빠른 상담등록으로 일정을 추가해 보세요.';
   empty.style.whiteSpace='pre-line';container.appendChild(empty);
  }else events.forEach(e=>container.appendChild(createEventButton(e)));
  $('miniSync').textContent=snap.sync||'일정 연결 상태 확인 중';
@@ -179,6 +222,10 @@ function openQuick(){
  availableTimes();dlg.showModal();
  $('miniText').focus();
 }
+$('miniMine').addEventListener('click',()=>{miniScope='mine';render()});
+$('miniCenter').addEventListener('click',()=>{miniScope='center';miniRange='near';render()});
+$('miniNear').addEventListener('click',()=>{miniRange='near';render()});
+$('miniWhole').addEventListener('click',()=>{miniRange='whole';render()});
 $('miniPrev').addEventListener('click',()=>changeDay(-1));
 $('miniNext').addEventListener('click',()=>changeDay(1));
 $('miniToday').addEventListener('click',()=>{selectedDate=today();followsToday=true;render()});
