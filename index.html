@@ -501,7 +501,11 @@ body.executive-mode #executiveDashboard{display:block!important}
 .executive-detail-row span:last-child{flex:1;overflow-wrap:anywhere;color:#506b84}
 .executive-empty{background:#f6f9fc;padding:17px;border-radius:10px;color:#778da2;text-align:center;font-size:12px}
 .executive-person{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:7px;margin:6px 0;font-size:12px}
-.executive-person strong{color:#23445f}
+.executive-person strong{color:#23445f;flex-shrink:0;padding-top:3px}
+.executive-person-details{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:5px;min-width:0}
+.executive-person-details small{font-size:11px;color:#48617c;line-height:1.55;max-width:100%;overflow-wrap:anywhere;text-align:right}
+.executive-no-record{color:#8ba0b2!important}
+.executive-person{border-bottom:1px dashed #e8eef5;padding:5px 0;align-items:flex-start}
 .executive-pill{border-radius:7px;font-size:11px;background:#e7f1fa;color:#315e85;padding:4px 7px}
 .executive-pill.is-unknown{background:#f0f2f4;color:#78899a}
 .executive-explain{margin:8px 0 0;font-size:11px;color:#71859a;line-height:1.6}
@@ -926,7 +930,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  <div class="shared-posts" id="sharedPosts"></div>
 </section>
 <section id="executiveDashboard" class="executive-dashboard hide no-print" aria-labelledby="executiveTitle">
- <div class="executive-head"><div><span class="executive-eyebrow">좋은일자리 · 관리 현황</span><h2 id="executiveTitle">4개 지사 총괄 현황</h2><p>월별 등록 일정과 센터별 근무현황 · 조회 전용</p></div><button id="executiveSharedOpen" type="button">🤝 공유 일정</button><button id="executiveBack" type="button">내 일정으로</button></div>
+ <div class="executive-head"><div><span class="executive-eyebrow">좋은일자리 · 관리 현황</span><h2 id="executiveTitle">4개 지사 총괄 현황</h2><p>월별 등록 일정과 센터별 근무현황 · 조회 전용</p></div><button id="executiveSharedOpen" type="button">🤝 공유 일정</button><button id="executivePreviewExit" type="button" class="hide">← 미리보기 종료 · 내 일정으로</button><button id="executiveBack" type="button">내 일정으로</button></div>
  <div class="executive-controls">
   <div class="executive-centers" id="executiveCenterChips" role="group" aria-label="조회할 지사"></div>
   <div class="executive-dates"><button id="executivePrev" type="button" aria-label="이전 달">◀</button><label>조회 월<input id="executiveMonth" type="month" required></label><button id="executiveNext" type="button" aria-label="다음 달">▶</button><button id="executiveRefresh" type="button">새로고침</button></div>
@@ -941,8 +945,8 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
    <div id="executiveDaily" class="executive-daily"></div>
   </section>
   <section class="executive-panel">
-   <div class="executive-panel-heading"><h3>오늘의 직원 근무현황</h3></div>
-   <p class="executive-explain">직원이 직접 선택한 상태만 표시됩니다. ‘미확인’은 결근을 뜻하지 않습니다.</p>
+   <div class="executive-panel-heading"><h3 id="executivePresenceTitle">오늘의 직원 근무·예약현황</h3></div>
+   <p class="executive-explain" id="executivePresenceHelp">근무상태와 상담·연차 등록 일정을 구분하여 표시합니다. 미확인은 결근이 아닙니다.</p>
    <div id="executivePresence" class="executive-presence"></div>
   </section>
  </div>
@@ -1915,6 +1919,7 @@ function directorPreviewUI(){
  $('directorPreviewToggle').textContent=active?'← 부장 미리보기 종료':'👁️ 부장 화면 미리보기';
  $('directorAbsentBtn').classList.toggle('hide',!(active||cloud.identity?.role==='director'));
  $('executiveBack').classList.toggle('hide',active||cloud.identity?.role==='director');
+ $('executivePreviewExit').classList.toggle('hide',!active);
  $('sharedBack').textContent=active?'총괄 현황으로':'내 일정으로';
  if(active)$('executiveOpen').textContent='📊 총괄 현황';
 }
@@ -1933,12 +1938,15 @@ function directorPreviewExit(){
  if($('directorAbsentDialog').open)$('directorAbsentDialog').close();
  if(sharedState.open)sharedClose();
  directorPreviewUI();
- if(wasExecutiveOpen){if(!executiveState.open)executiveOpen().catch(()=>{})}
- else if(executiveState.open)executiveClose();
+ // Return to actual manager calendar even if the overview had been open before preview.
+ if(executiveState.open)executiveClose();
+ render();
+ window.scrollTo?.({top:0,behavior:'instant'});
 }
 function directorPreviewInitialize(){
  $('directorPreviewToggle').onclick=()=>directorPreviewState.active?directorPreviewExit():directorPreviewEnter().catch(e=>alert('미리보기 조회 오류: '+String(e?.message||e)));
  $('directorPreviewExit').onclick=directorPreviewExit;
+ $('executivePreviewExit').onclick=directorPreviewExit;
  // Preview shared posts, but never accept a request or mutate a shared schedule.
  $('sharedBoard').addEventListener('click',e=>{
   if(!directorPreviewState.active)return;
@@ -1977,6 +1985,13 @@ function executiveData(){
  const matches=x=>executiveState.center==='전체'||x.center===executiveState.center;
  return {staff:(obj.staff||[]).filter(matches),events:(obj.events||[]).filter(matches),presence:(obj.presence||[]).filter(matches)};
 }
+function executiveWorkLabel(ev,today=false){
+ const type=String(ev?.type||'근무 일정');
+ const name=today&&['연차','반차','반반차','2시간 연차'].includes(type)?'금일 '+type:type;
+ if(ev?.allDay)return name+' (종일)';
+ const start=String(ev?.time||'').trim(),end=String(ev?.end||'').trim();
+ return name+(start&&end?' ('+start+'~'+end+')':start?' ('+start+' 시작)':' (시간 미입력)');
+}
 function executiveKpi(label,value,hint){
  return '<div class="executive-kpi"><span>'+escapeHtml(label)+'</span><strong>'+escapeHtml(value)+'</strong><small>'+escapeHtml(hint)+'</small></div>';
 }
@@ -2014,15 +2029,28 @@ function executiveRender(){
    const day=dayEvents.filter(x=>x.center===c&&x.owner===person.name);
    if(!day.length)return '';
    const consultTimes=day.filter(x=>x.kind==='consult').map(x=>x.time).filter(Boolean).sort();
-   const dailyWork=day.filter(x=>x.kind==='work').map(x=>x.type+(x.allDay?' (종일)':x.time?' ('+x.time+')':''));
+   const dailyWork=day.filter(x=>x.kind==='work').map(x=>executiveWorkLabel(x,selectedDay===dateKey(new Date())));
    const summary=[consultTimes.length?'상담 '+consultTimes.length+'건'+(consultTimes.length<=4?' · '+consultTimes.join(', '):''):'',dailyWork.length?dailyWork.join(' / '):''].filter(Boolean).join(' · ');
    return '<div class="executive-detail-row"><span>'+escapeHtml(person.name)+'</span><span>'+escapeHtml(summary)+'</span></div>';
   }).filter(Boolean);
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+' · '+selectedDay.slice(5).replace('-','/')+'</h4>'+(sorted.join('')||'<div class="executive-empty">등록된 일정 없음</div>')+'</div>';
  }).join('');
+ $('executivePresenceTitle').textContent=selectedDay===dateKey(new Date())?'오늘의 직원 근무·예약현황':'선택일의 직원 일정 · 근무현황';
+ $('executivePresenceHelp').textContent=selectedDay===dateKey(new Date())?'근무상태는 직원이 직접 선택합니다. 상담 예약이 있어도 출근으로 자동 판정하지 않습니다.':'선택 날짜의 예약·연차입니다. 출근 상태는 오늘에 한해 표시하고 과거·미래의 출근 여부를 판정하지 않습니다.';
  $('executivePresence').innerHTML=viewCenters.map(c=>{
-  const people=all.presence.filter(x=>x.center===c);
-  const items=people.map(x=>'<div class="executive-person"><strong>'+escapeHtml(x.name)+'</strong><span class="executive-pill'+(x.status==='미확인'?' is-unknown':'')+'">'+escapeHtml(x.status)+'</span></div>').join('');
+  const people=staff.filter(x=>x.center===c);
+  const presence=all.presence.filter(x=>x.center===c);
+  const items=people.map(person=>{
+   const record=presence.find(x=>x.name===person.name);
+   const status=selectedDay===dateKey(new Date())?(record?.status||'미확인'):'';
+   const own=dayEvents.filter(x=>x.center===c&&x.owner===person.name);
+   const bookings=own.filter(x=>x.kind==='consult').map(x=>x.time).filter(Boolean).sort();
+   const workDetails=own.filter(x=>x.kind==='work').map(x=>executiveWorkLabel(x,selectedDay===dateKey(new Date())));
+   const shown=status?(status==='미확인'?'근무상태 미등록':status):'';
+   const details=[bookings.length?'상담 '+bookings.length+'건'+(bookings.length<=5?' · '+bookings.join(', '):''):'',...workDetails].filter(Boolean);
+   const pill=shown?'<span class="executive-pill'+(status==='미확인'?' is-unknown':'')+'">'+escapeHtml(shown)+'</span>':'';
+   return '<div class="executive-person"><strong>'+escapeHtml(person.name)+'</strong><div class="executive-person-details">'+pill+(details.length?'<small>'+details.map(escapeHtml).join(' / ')+'</small>':'<small class="executive-no-record">일정 등록 없음</small>')+'</div></div>';
+  }).join('');
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+'</h4>'+(items||'<div class="executive-empty">직원 명단 없음</div>')+'</div>';
  }).join('');
  $('executiveStatus').textContent='조회 월 '+executiveState.month+' · '+(executiveState.center==='전체'?'4개 지사 전체':executiveState.center)+' · 조회 전용';
