@@ -915,6 +915,10 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-sheet-leave-detail{font-size:12px;font-weight:650;color:#7e4761;background:#fceaf0;border-radius:6px;padding:5px 9px;max-width:100%;overflow-wrap:anywhere}
 .executive-sheet-leave-empty{font-size:12px;padding:17px 7px;color:#748ca0;text-align:center}
 @media(max-width:760px){.executive-sheet-today-indicator{flex:1 1 100%}.executive-sheet-leave-row{align-items:flex-start;flex-direction:column}}
+.executive-sheet-date-nav input[type=date]{min-width:146px}
+.executive-sheet-date-nav .executive-sheet-today-btn{min-width:52px;padding:7px 10px;color:#215b99;background:#e9f3ff;border-color:#bed6ef}
+.executive-sheet-date-nav .executive-sheet-today-btn:disabled{color:#7893aa;background:#f2f6fb;opacity:.78}
+@media(max-width:760px){#executiveSheetDayNav{flex:1 1 100%;justify-content:flex-start;flex-wrap:wrap}}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
@@ -1018,16 +1022,21 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
   <div id="executiveCenterCards" class="executive-center-cards"></div>
  </details>
  <section class="executive-panel executive-sheets" id="executiveSheets" aria-labelledby="executiveSheetsHeading">
-   <div class="executive-sheet-head"><div><h3 id="executiveSheetsHeading">오늘 상담 · 연차 현황</h3><p class="executive-sheet-intro">상담은 오늘 일정만, 연차·반차는 오늘과 월간 현황을 확인합니다.</p></div><span class="executive-pill">부장 · 조회 및 출력 전용</span></div>
+   <div class="executive-sheet-head"><div><h3 id="executiveSheetsHeading">오늘 상담 · 연차 현황</h3><p class="executive-sheet-intro">상담·연차는 오늘이 기본입니다. 날짜 화살표로 전날·다음 날을 보고, 연차는 월간표도 확인합니다.</p></div><span class="executive-pill">부장 · 조회 및 출력 전용</span></div>
    <div class="executive-sheet-tabs" id="executiveSheetTabs" role="group" aria-label="부장용 일정표 종류">
-     <button type="button" data-executive-sheet="day" aria-pressed="true">오늘 상담일정표</button>
-     <button type="button" data-executive-sheet="leaveToday" aria-pressed="false">오늘 연차·반차</button>
+     <button type="button" data-executive-sheet="day" aria-pressed="true">일일 상담일정표</button>
+     <button type="button" data-executive-sheet="leaveToday" aria-pressed="false">일일 연차·반차</button>
      <button type="button" data-executive-sheet="leaveMonth" aria-pressed="false">월간 연차·반차</button>
    </div>
    <div class="executive-sheet-controls">
      <label>화면 구성<select id="executiveSheetLayout"><option value="single">지사별 보기</option><option value="stack">4개 지사 통합</option><option value="quad">4개 지사 4분할</option></select></label>
      <label id="executiveSheetCenterWrap">조회 지사<select id="executiveSheetCenter"><option value="남부본사">남부본사</option><option value="북부센터">북부센터</option><option value="동구지사">동구지사</option><option value="서부센터">서부센터</option></select></label>
-     <div class="executive-sheet-today-indicator" id="executiveSheetTodayIndicator">오늘 <strong id="executiveSheetTodayLabel"></strong></div>
+     <div class="executive-sheet-date-nav" id="executiveSheetDayNav" role="group" aria-label="일일 일정 조회 날짜 변경">
+       <button type="button" id="executiveSheetPrevDay" aria-label="전날 일정" title="전날">◀</button>
+       <label>조회일<input type="date" id="executiveSheetDay" aria-label="일일 일정 조회일"></label>
+       <button type="button" id="executiveSheetNextDay" aria-label="다음 날 일정" title="다음 날">▶</button>
+       <button type="button" id="executiveSheetToday" class="executive-sheet-today-btn">오늘</button>
+     </div>
      <div class="executive-sheet-date-nav hide" id="executiveSheetMonthNav" role="group" aria-label="월간 연차 조회 월 변경"><button type="button" id="executiveSheetPrevMonth" aria-label="이전 달" title="이전 달">◀</button><label>연차 조회 월<input type="month" id="executiveSheetMonth"></label><button type="button" id="executiveSheetNextMonth" aria-label="다음 달" title="다음 달">▶</button></div>
      <button type="button" class="sheet-print-button" id="executiveSheetPrint">🖨️ 현재 화면 인쇄 / PDF</button>
    </div>
@@ -2119,7 +2128,7 @@ function executiveWorkLabel(ev,today=false){
 
 /* The server provides only authorized, de-identified schedule type and time.
    This board never interpolates a client title, client note or participant identifier. */
-const executiveSheetState={view:'day',layout:'single',center:'북부센터'};
+const executiveSheetState={view:'day',layout:'single',center:'북부센터',day:''};
 const EXEC_SLOTS=['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
 function executiveSheetEventsFor(center,date){return (executiveState.data?.events||[]).filter(e=>e.center===center&&e.date===date)}
 function executiveSheetPeople(center){return (executiveState.data?.staff||[]).filter(e=>e.center===center)}
@@ -2150,10 +2159,11 @@ function executiveSheetCenterTable(center,date,view){
  const workCount=relevant.filter(x=>x.kind==='work').length;
  if(view==='leaveToday'){
   const activePeople=people.map(p=>({person:p,items:relevant.filter(e=>e.owner===p.name)})).filter(p=>p.items.length);
-  const items=activePeople.map(({person,items})=>'<div class="executive-sheet-leave-row"><span class="executive-sheet-leave-name">'+escapeHtml(person.name)+'</span><div>'+items.map(ev=>'<span class="executive-sheet-leave-detail">'+escapeHtml(executiveWorkLabel(ev,true))+'</span>').join(' ')+'</div></div>').join('');
-  return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · 오늘 연차·반차 '+activePeople.length+'명</h4>'+
+  const items=activePeople.map(({person,items})=>'<div class="executive-sheet-leave-row"><span class="executive-sheet-leave-name">'+escapeHtml(person.name)+'</span><div>'+items.map(ev=>'<span class="executive-sheet-leave-detail">'+escapeHtml(executiveWorkLabel(ev,date===dateKey(new Date())))+'</span>').join(' ')+'</div></div>').join('');
+  const leaveDateLabel=date===dateKey(new Date())?'오늘':date;
+  return '<section class="executive-sheet-center"><h4>'+escapeHtml(center)+' · '+escapeHtml(leaveDateLabel)+' 연차·반차 '+activePeople.length+'명</h4>'+
    '<p class="executive-sheet-leave-summary">등록 일정 '+leaveCount+'건 · 상담사 기준 '+activePeople.length+'명</p>'+
-   (items||'<p class="executive-sheet-leave-empty">오늘 등록된 연차·반차 없음</p>')+'</section>';
+   (items||'<p class="executive-sheet-leave-empty">해당 날짜에 등록된 연차·반차 없음</p>')+'</section>';
  }
  let rows=[];
  if(view==='day'){
@@ -2183,9 +2193,12 @@ function executiveSheetCenterTable(center,date,view){
 function executiveSheetRender(){
  const node=$('executiveSheetBody');if(!node)return;
  const today=dateKey(new Date()),view=executiveSheetState.view;
+ if(!executiveSheetState.day)executiveSheetState.day=today;
+ const selectedDay=executiveSheetState.day;
  const isMonthly=view==='leaveMonth';
- $('executiveSheetTodayLabel').textContent=today;
- $('executiveSheetTodayIndicator').classList.toggle('hide',isMonthly);
+ $('executiveSheetDayNav').classList.toggle('hide',isMonthly);
+ $('executiveSheetDay').value=selectedDay;
+ $('executiveSheetToday').disabled=selectedDay===today;
  $('executiveSheetMonthNav').classList.toggle('hide',!isMonthly);
  $('executiveSheetMonth').value=executiveState.month;
  const layout=executiveSheetState.layout;
@@ -2194,14 +2207,15 @@ function executiveSheetRender(){
  $('executiveSheetCenterWrap').classList.toggle('hide',layout!=='single');
  node.className='executive-sheet-grid layout-'+layout;
  document.querySelectorAll('[data-executive-sheet]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.executiveSheet===view)));
- if(!executiveState.data || (!isMonthly&&!today.startsWith(executiveState.month))){
-  node.replaceChildren();$('executiveSheetStatus').textContent='오늘 일정 자료를 불러오는 중입니다.';return;
+ if(!executiveState.data || (!isMonthly&&!selectedDay.startsWith(executiveState.month))){
+  node.replaceChildren();$('executiveSheetStatus').textContent='조회 날짜의 일정 자료를 불러오는 중입니다.';return;
  }
- const date=isMonthly?executiveState.month+'-01':today;
+ const date=isMonthly?executiveState.month+'-01':selectedDay;
  const centers=layout==='single'?[executiveSheetState.center]:EXEC_CENTERS;
  node.innerHTML=centers.map(c=>executiveSheetCenterTable(c,date,view)).join('');
- const desc=view==='day'?'오늘 상담일정표':view==='leaveToday'?'오늘 연차·반차 현황':'월간 연차·반차 현황';
- $('executiveSheetStatus').textContent=(isMonthly?executiveState.month:today)+' · '+desc+' · '+
+ const desc=view==='day'?'일일 상담일정표':view==='leaveToday'?'일일 연차·반차 현황':'월간 연차·반차 현황';
+ const dayLabel=!isMonthly?(selectedDay===today?'오늘':selectedDay===dateKey(new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()+1))?'내일':'선택일'):'';
+ $('executiveSheetStatus').textContent=(isMonthly?executiveState.month:selectedDay+' ('+dayLabel+')')+' · '+desc+' · '+
   (layout==='single'?executiveSheetState.center:layout==='quad'?'4개 지사 4분할':'4개 지사 통합')+' · 내담자 개인정보 제외';
 }
 function executiveSheetPrint(){
@@ -2218,6 +2232,29 @@ function executiveSheetPrint(){
  '@page{size:A4 landscape;margin:9mm}@media print{body{margin:0}.print-grid.quad .executive-sheet-table{font-size:7px}.executive-sheet-center{page-break-inside:avoid}}'+
  '</style></head><body><h2>좋은일자리 · '+escapeHtml(title)+'</h2><p>조회 전용 · 직원 근무 및 상담 종류만 포함 · 내담자 정보 제외</p><div class="print-grid '+(layout==='quad'?'quad':'')+'">'+html+'</div></body></html>');
  doc.document.close();doc.focus();setTimeout(()=>doc.print(),450);
+}
+function executiveSheetSetDay(day){
+ if(executiveState.loading||!/^\d{4}-\d{2}-\d{2}$/.test(String(day||'')))return;
+ const parsed=parseDate(day);
+ if(!Number.isFinite(parsed.getTime())||dateKey(parsed)!==day)return;
+ executiveSheetState.day=day;
+ const month=day.slice(0,7);
+ executiveState.day=day;
+ if(month!==executiveState.month){
+  executiveState.month=month;
+  executiveState.data=null;
+  $('executiveMonth').value=month;
+  $('executiveSheetDay').value=day;
+  $('executiveSheetBody').replaceChildren();
+  $('executiveSheetStatus').textContent=day+' 일정 자료를 불러오는 중…';
+  executiveLoad();
+ }else executiveRender();
+}
+function executiveSheetMoveDay(delta){
+ if(executiveState.loading)return;
+ const value=executiveSheetState.day||dateKey(new Date());
+ const [y,m,d]=value.split('-').map(Number);
+ executiveSheetSetDay(dateKey(new Date(y,m-1,d+delta)));
 }
 function executiveSheetSetMonth(month){
  if(executiveState.loading||!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(month||'')))return;
@@ -2243,13 +2280,16 @@ function executiveSheetMoveMonth(offset){
 function executiveSheetSelectView(view){
  if(!['day','leaveToday','leaveMonth'].includes(view)||executiveState.loading)return;
  executiveSheetState.view=view;
- const today=dateKey(new Date()),thisMonth=today.slice(0,7);
+ const today=dateKey(new Date());
+ if(!executiveSheetState.day)executiveSheetState.day=today;
  if(view!=='leaveMonth'){
-  executiveState.day=today;
-  if(executiveState.month!==thisMonth){
-   executiveState.month=thisMonth;
+  const selectedDay=executiveSheetState.day;
+  const selectedMonth=selectedDay.slice(0,7);
+  executiveState.day=selectedDay;
+  if(executiveState.month!==selectedMonth){
+   executiveState.month=selectedMonth;
    executiveState.data=null;
-   $('executiveMonth').value=thisMonth;
+   $('executiveMonth').value=selectedMonth;
    $('executiveSheetBody').replaceChildren();
    executiveLoad();
    return;
@@ -2264,6 +2304,10 @@ function executiveSheetInitialize(){
  };
  $('executiveSheetLayout').onchange=()=>{executiveSheetState.layout=$('executiveSheetLayout').value;executiveSheetRender()};
  $('executiveSheetCenter').onchange=()=>{executiveSheetState.center=$('executiveSheetCenter').value;executiveSheetRender()};
+ $('executiveSheetDay').onchange=()=>executiveSheetSetDay($('executiveSheetDay').value);
+ $('executiveSheetPrevDay').onclick=()=>executiveSheetMoveDay(-1);
+ $('executiveSheetNextDay').onclick=()=>executiveSheetMoveDay(1);
+ $('executiveSheetToday').onclick=()=>executiveSheetSetDay(dateKey(new Date()));
  $('executiveSheetMonth').onchange=()=>executiveSheetSetMonth($('executiveSheetMonth').value);
  $('executiveSheetPrevMonth').onclick=()=>executiveSheetMoveMonth(-1);
  $('executiveSheetNextMonth').onclick=()=>executiveSheetMoveMonth(1);
@@ -2345,6 +2389,10 @@ async function executiveLoad(){
  $('executiveRefresh').disabled=true;
  $('executiveSheetPrevMonth').disabled=true;
  $('executiveSheetNextMonth').disabled=true;
+ $('executiveSheetPrevDay').disabled=true;
+ $('executiveSheetNextDay').disabled=true;
+ $('executiveSheetDay').disabled=true;
+ $('executiveSheetToday').disabled=true;
  $('executiveStatus').textContent='총괄 현황을 조회하는 중…';
  try{
   const period=executiveMonthRange(executiveState.month);
@@ -2354,7 +2402,7 @@ async function executiveLoad(){
   executiveState.data=data;
   executiveRender();
  }catch(err){$('executiveStatus').textContent='총괄 현황을 불러오지 못했어요: '+String(err?.message||'서버 응답 오류');}
- finally{executiveState.loading=false;$('executiveRefresh').disabled=false;$('executiveSheetPrevMonth').disabled=false;$('executiveSheetNextMonth').disabled=false}
+ finally{executiveState.loading=false;$('executiveRefresh').disabled=false;$('executiveSheetPrevMonth').disabled=false;$('executiveSheetNextMonth').disabled=false;$('executiveSheetPrevDay').disabled=false;$('executiveSheetNextDay').disabled=false;$('executiveSheetDay').disabled=false;$('executiveSheetToday').disabled=executiveSheetState.day===dateKey(new Date())}
 }
 async function executiveOpen(){
  if(!executiveAllowed()){alert('총괄 현황 조회 권한이 없어요.');return}
