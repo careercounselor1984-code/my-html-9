@@ -893,16 +893,34 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-monthly-details>summary{font-weight:750;color:#3a5976;font-size:13px;cursor:pointer;padding:12px 2px}
 .executive-monthly-details>summary small{font-weight:400;color:#8496a8;font-size:11px;margin-left:7px}
 .executive-monthly-details>.executive-center-cards{margin-top:9px}
+
+.cloud-reset-help{padding:11px 13px;background:#f5f9fd;border:1px solid #d7e3f0;border-radius:11px;font-size:12px;line-height:1.6;color:#3c5974;margin:10px 0}
+.cloud-reset-help strong{color:#174f87;font-size:13px}.cloud-reset-help p{margin:6px 0 0;line-height:1.6}
+.cloud-reset-help details{margin-top:8px}.cloud-reset-help summary{font-weight:700;color:#155d98;cursor:pointer}
+.cloud-reset-followup{padding:9px;background:#e6f7ec;color:#176b49;border-radius:8px;margin-top:10px!important}
+.cloud-recovery-visible{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:4px;color:#43637c}
+.cloud-recovery-visible input{width:18px;height:18px;flex:0 0 auto}
+.cloud-recovery-only #cloudLogin,.cloud-recovery-only .cloud-magic,.cloud-recovery-only #cloudResetHelp{display:none!important}
+.cloud-recovery-status{font-size:13px;margin:14px 0 0;line-height:1.6;color:#496580}
+.cloud-recovery-status.error{color:#9f4051}
+.cloud-recovery-action{display:inline-flex;padding:10px 12px;border-radius:9px;margin-top:14px;background:#2366b4;color:white;text-decoration:none;font-weight:750}
+@media(max-width:600px){.password-dialog{width:calc(100vw - 24px)}.password-dialog input[type=password]{font-size:16px}}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
- <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
- <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">직원 전용 계정으로 로그인해 주세요. 기존 PC에서 로그인 중이라면 로그인 후 비밀번호를 설정할 수 있습니다.</p>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 재설정 메일 받기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
+ <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">회사 이메일과 비밀번호로 로그인하세요. 비밀번호를 잊었다면 아래 재설정 메일을 요청하세요.</p>
+ <div id="cloudResetHelp" class="cloud-reset-help" aria-live="polite">
+  <strong>🔑 비밀번호를 잊으셨나요?</strong>
+  <p>회사 이메일 입력 → <b>비밀번호 재설정 메일 받기</b> → 받은 메일의 가장 최근 링크 열기 → 새 비밀번호 저장. PC·휴대폰에서 같은 새 비밀번호로 로그인할 수 있습니다.</p>
+  <details><summary>휴대폰에서 재설정 링크가 열리지 않을 때</summary><p>카카오톡·메일 앱 내부 브라우저에서 열리지 않으면 메일 안의 링크 주소를 길게 눌러 복사한 뒤 Chrome(안드로이드) 또는 Safari(아이폰) 주소창에서 열어보세요. 링크가 만료되면 다시 요청해야 합니다.</p></details>
+  <p class="cloud-reset-followup hide" id="cloudResetFollowup">메일 발송 요청 완료. 받은편지함·스팸함에서 가장 최근 메일을 열어주세요. 휴대폰에서 열리지 않으면 위 안내를 참고하세요.</p>
+ </div>
  <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>공용 PC에서는 ‘로그인 상태 유지’를 해제해 주세요. 비밀번호는 기기에 저장하지 않으며, 신규 직원 계정은 관리자가 생성합니다. 비밀번호 찾기는 메일 발송 제한이 적용될 수 있어요.</small></div>
 </section>
-<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
+<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><label class="cloud-recovery-visible"><input id="cloudPasswordShowBoth" type="checkbox"> 입력한 새 비밀번호 보기</label><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
 <div id="cloudArea" class="cloud-area no-print hide">
  <div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div>
