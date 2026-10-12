@@ -875,6 +875,21 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-sheet-none{font-size:12px;color:#8798a9;padding:15px;text-align:center}
 @media(max-width:900px){.executive-sheet-grid.layout-quad{grid-template-columns:1fr}}
 @media(max-width:760px){.executive-sheets{padding:10px}.executive-sheet-controls label{flex:1;min-width:110px}.executive-sheet-center{padding:8px}.executive-sheet-table{font-size:10px}}
+.executive-secondary-details{margin-top:12px;padding:0 13px 12px;background:white;border:1px solid #dce6f1;border-radius:12px}
+.executive-secondary-details:not([open]){padding-bottom:0}
+.executive-secondary-details>summary{font-size:13px;font-weight:750;padding:12px 2px;cursor:pointer;color:#3a5976}
+.executive-secondary-details>summary small{font-size:11px;font-weight:400;color:#8496a8;margin-left:7px}
+.executive-secondary-details>.executive-two-column{margin-top:3px}
+.executive-sheet-date-nav{display:flex;gap:6px;align-items:flex-end}
+.executive-sheet-date-nav button{min-height:39px;min-width:36px;padding:7px 8px;flex:none}
+.executive-sheet-date-nav label{min-width:152px}
+.executive-sheet-date-nav input[type=date]{min-width:152px}
+@media(max-width:760px){.executive-sheet-date-nav{flex:1 1 100%}.executive-secondary-details{padding:0 10px 10px}}
+.executive-monthly-details{margin-top:12px;background:#fff;border:1px solid #dce6f1;border-radius:12px;padding:0 13px 12px}
+.executive-monthly-details:not([open]){padding-bottom:0}
+.executive-monthly-details>summary{font-weight:750;color:#3a5976;font-size:13px;cursor:pointer;padding:12px 2px}
+.executive-monthly-details>summary small{font-weight:400;color:#8496a8;font-size:11px;margin-left:7px}
+.executive-monthly-details>.executive-center-cards{margin-top:9px}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.5 · 화면 구성 정리</span></header>
@@ -967,8 +982,10 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  </div>
  <div id="executiveStatus" role="status" class="executive-status">조회 전입니다.</div>
  <div id="executiveTotals" class="executive-totals"></div>
- <h3 class="executive-section-title">센터별 월간 현황</h3>
- <div id="executiveCenterCards" class="executive-center-cards"></div>
+ <details class="executive-monthly-details" id="executiveMonthlyDetails">
+  <summary>센터별 월간 현황 <small>자세히 보기</small></summary>
+  <div id="executiveCenterCards" class="executive-center-cards"></div>
+ </details>
  <section class="executive-panel executive-sheets" id="executiveSheets" aria-labelledby="executiveSheetsHeading">
    <div class="executive-sheet-head"><h3 id="executiveSheetsHeading">상담 · 직원 일정표</h3><span class="executive-pill">부장 · 조회 및 출력 전용</span></div>
    <div class="executive-sheet-tabs" id="executiveSheetTabs" role="group" aria-label="부장용 일정표 종류">
@@ -978,12 +995,14 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
    <div class="executive-sheet-controls">
      <label>화면 구성<select id="executiveSheetLayout"><option value="single">지사별 보기</option><option value="stack">4개 지사 통합</option><option value="quad">4개 지사 4분할</option></select></label>
      <label id="executiveSheetCenterWrap">조회 지사<select id="executiveSheetCenter"><option value="남부본사">남부본사</option><option value="북부센터">북부센터</option><option value="동구지사">동구지사</option><option value="서부센터">서부센터</option></select></label>
-     <label>기준일<input type="date" id="executiveSheetDate"></label>
+     <div class="executive-sheet-date-nav" role="group" aria-label="기준일 변경"><button type="button" id="executiveSheetPrevDay" aria-label="전날" title="전날">◀</button><label>기준일<input type="date" id="executiveSheetDate"></label><button type="button" id="executiveSheetNextDay" aria-label="다음 날" title="다음 날">▶</button></div>
      <button type="button" class="sheet-print-button" id="executiveSheetPrint">🖨️ 현재 화면 인쇄 / PDF</button>
    </div>
    <p class="executive-sheet-status" id="executiveSheetStatus" role="status">조회 전입니다.</p>
    <div class="executive-sheet-grid" id="executiveSheetBody"></div>
  </section>
+ <details class="executive-secondary-details" id="executiveSecondaryDetails">
+ <summary>추가 운영정보 · 날짜별 일정 및 직원 근무현황 <small>펼쳐 보기</small></summary>
  <div class="executive-two-column">
   <section class="executive-panel">
    <div class="executive-panel-heading"><h3>날짜별 등록 일정</h3><label>날짜 <input id="executiveDay" type="date"></label></div>
@@ -995,6 +1014,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
    <div id="executivePresence" class="executive-presence"></div>
   </section>
  </div>
+</details>
  <p class="executive-explain">등록된 상담 일정 수는 취업·상담 실적이 아니며, 이 화면에는 내담자 이름이나 상담 메모가 표시되지 않습니다.</p>
 </section>
 
@@ -1964,7 +1984,9 @@ function directorPreviewUI(){
  $('directorPreviewToggle').textContent=active?'← 부장 미리보기 종료':'👁️ 부장 화면 미리보기';
  $('directorAbsentBtn').classList.toggle('hide',!(active||cloud.identity?.role==='director'));
  $('executiveBack').classList.toggle('hide',active||cloud.identity?.role==='director');
- $('executivePreviewExit').classList.toggle('hide',!active);
+ // The back button must remain available to administrators after reload,
+ // even if preview-active state was reset in memory.
+ $('executivePreviewExit').classList.toggle('hide',!(active||cloud.identity?.isAdmin===true));
  $('sharedBack').textContent=active?'총괄 현황으로':'내 일정으로';
  if(active)$('executiveOpen').textContent='📊 총괄 현황';
 }
@@ -1977,15 +1999,16 @@ async function directorPreviewEnter(){
  await executiveOpen();
 }
 function directorPreviewExit(){
- if(!directorPreviewState.active)return;
- const wasExecutiveOpen=directorPreviewState.wasExecutiveOpen;
+ if(!directorPreviewState.active&&cloud.identity?.isAdmin!==true)return;
  directorPreviewState.active=false;directorPreviewState.wasExecutiveOpen=false;
  if($('directorAbsentDialog').open)$('directorAbsentDialog').close();
- if(sharedState.open)sharedClose();
+ sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');
+ // Force-reset the entire overview; a normal close can be blocked by the role guard.
+ executiveClose(true);
+ document.body.classList.remove('executive-mode','director-preview-mode');
+ $('executiveDashboard').classList.add('hide');
  directorPreviewUI();
- // Return to actual manager calendar even if the overview had been open before preview.
- if(executiveState.open)executiveClose();
- render();
+ changeView('personalWeek');
  window.scrollTo?.({top:0,behavior:'instant'});
 }
 function directorPreviewInitialize(){
@@ -2119,6 +2142,28 @@ function executiveSheetPrint(){
  '</style></head><body><h2>좋은일자리 · '+escapeHtml(title)+'</h2><p>조회 전용 · 상담 종류와 직원 근무정보만 포함 · 내담자 정보 제외</p><div class="print-grid '+(layout==='quad'?'quad':'')+'">'+html+'</div></body></html>');
  doc.document.close();doc.focus();setTimeout(()=>doc.print(),450);
 }
+function executiveSheetSetDate(next){
+ if(executiveState.loading||!/^\d{4}-\d{2}-\d{2}$/.test(String(next||'')))return;
+ const day=parseDate(next);
+ if(!Number.isFinite(day.getTime())||dateKey(day)!==next)return;
+ const newMonth=next.slice(0,7)!==executiveState.month;
+ executiveState.day=next;
+ if(newMonth){
+  executiveState.month=next.slice(0,7);
+  $('executiveMonth').value=executiveState.month;
+  executiveState.data=null;
+  $('executiveSheetStatus').textContent=next+' 자료를 불러오는 중…';
+  $('executiveSheetBody').replaceChildren();
+  executiveLoad();
+ }else executiveRender();
+}
+function executiveSheetMoveDate(delta){
+ if(executiveState.loading)return;
+ const value=$('executiveSheetDate').value||executiveState.day||dateKey(new Date());
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;
+ const [y,m,d]=value.split('-').map(Number);
+ executiveSheetSetDate(dateKey(new Date(y,m-1,d+(delta<0?-1:1))));
+}
 function executiveSheetInitialize(){
  $('executiveSheetTabs').onclick=e=>{
   const view=e.target.closest('[data-executive-sheet]')?.dataset.executiveSheet;
@@ -2127,13 +2172,9 @@ function executiveSheetInitialize(){
  };
  $('executiveSheetLayout').onchange=()=>{executiveSheetState.layout=$('executiveSheetLayout').value;executiveSheetRender()};
  $('executiveSheetCenter').onchange=()=>{executiveSheetState.center=$('executiveSheetCenter').value;executiveSheetRender()};
- $('executiveSheetDate').onchange=()=>{
-  const next=$('executiveSheetDate').value;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(next))return;
-  executiveState.day=next;
-  if(next.slice(0,7)!==executiveState.month){executiveState.month=next.slice(0,7);$('executiveMonth').value=executiveState.month;executiveLoad()}
-  else executiveRender();
- };
+ $('executiveSheetDate').onchange=()=>executiveSheetSetDate($('executiveSheetDate').value);
+ $('executiveSheetPrevDay').onclick=()=>executiveSheetMoveDate(-1);
+ $('executiveSheetNextDay').onclick=()=>executiveSheetMoveDate(1);
  $('executiveSheetPrint').onclick=executiveSheetPrint;
 }
 function executiveKpi(label,value,hint){
@@ -2180,19 +2221,25 @@ function executiveRender(){
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+' · '+selectedDay.slice(5).replace('-','/')+'</h4>'+(sorted.join('')||'<div class="executive-empty">등록된 일정 없음</div>')+'</div>';
  }).join('');
  $('executivePresenceTitle').textContent=selectedDay===dateKey(new Date())?'오늘의 직원 근무·예약현황':'선택일의 직원 일정 · 근무현황';
- $('executivePresenceHelp').textContent=selectedDay===dateKey(new Date())?'근무상태는 직원이 직접 선택합니다. 상담 예약이 있어도 출근으로 자동 판정하지 않습니다.':'선택 날짜의 예약·연차입니다. 출근 상태는 오늘에 한해 표시하고 과거·미래의 출근 여부를 판정하지 않습니다.';
+ $('executivePresenceHelp').textContent=selectedDay===dateKey(new Date())?'직접 등록한 근무상태를 우선합니다. 상태 미등록 중 상담 예약이 있다면 출근(일정 기준)으로 표시합니다. 실제 출근 인증은 아닙니다.':'선택 날짜의 예약·연차입니다. 출근 상태는 오늘에 한해 표시하고 과거·미래의 출근 여부를 판정하지 않습니다.';
  $('executivePresence').innerHTML=viewCenters.map(c=>{
   const people=staff.filter(x=>x.center===c);
   const presence=all.presence.filter(x=>x.center===c);
   const items=people.map(person=>{
    const record=presence.find(x=>x.name===person.name);
-   const status=selectedDay===dateKey(new Date())?(record?.status||'미확인'):'';
+   const isToday=selectedDay===dateKey(new Date());
    const own=dayEvents.filter(x=>x.center===c&&x.owner===person.name);
    const bookings=own.filter(x=>x.kind==='consult').map(x=>x.time).filter(Boolean).sort();
-   const workDetails=own.filter(x=>x.kind==='work').map(x=>executiveWorkLabel(x,selectedDay===dateKey(new Date())));
-   const shown=status?(status==='미확인'?'근무상태 미등록':status):'';
+   const work=own.filter(x=>x.kind==='work');
+   const workDetails=work.map(x=>executiveWorkLabel(x,isToday));
+   const saved=isToday?String(record?.status||'미확인'):'';
+   const manuallySet=isToday&&saved&&saved!=='미확인';
+   const fullLeave=work.find(x=>x.allDay&&/연차|반차|휴무/.test(String(x.type||'')));
+   const outside=work.find(x=>/출장|외근|교육|홍보/.test(String(x.type||'')));
+   const auto=isToday?(fullLeave?String(fullLeave.type||'연차'):bookings.length?'출근 (일정 기준)':outside?'외근 (일정 기준)':'근무상태 미등록'):'';
+   const shown=manuallySet?saved:auto;
    const details=[bookings.length?'상담 '+bookings.length+'건'+(bookings.length<=5?' · '+bookings.join(', '):''):'',...workDetails].filter(Boolean);
-   const pill=shown?'<span class="executive-pill'+(status==='미확인'?' is-unknown':'')+'">'+escapeHtml(shown)+'</span>':'';
+   const pill=shown?'<span class="executive-pill'+(shown==='근무상태 미등록'?' is-unknown':'')+'">'+escapeHtml(shown)+'</span>':'';
    return '<div class="executive-person"><strong>'+escapeHtml(person.name)+'</strong><div class="executive-person-details">'+pill+(details.length?'<small>'+details.map(escapeHtml).join(' / ')+'</small>':'<small class="executive-no-record">일정 등록 없음</small>')+'</div></div>';
   }).join('');
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+'</h4>'+(items||'<div class="executive-empty">직원 명단 없음</div>')+'</div>';
@@ -2204,6 +2251,8 @@ async function executiveLoad(){
  if(!executiveAllowed()||executiveState.loading)return;
  executiveState.loading=true;
  $('executiveRefresh').disabled=true;
+ $('executiveSheetPrevDay').disabled=true;
+ $('executiveSheetNextDay').disabled=true;
  $('executiveStatus').textContent='총괄 현황을 조회하는 중…';
  try{
   const period=executiveMonthRange(executiveState.month);
@@ -2213,7 +2262,7 @@ async function executiveLoad(){
   executiveState.data=data;
   executiveRender();
  }catch(err){$('executiveStatus').textContent='총괄 현황을 불러오지 못했어요: '+String(err?.message||'서버 응답 오류');}
- finally{executiveState.loading=false;$('executiveRefresh').disabled=false}
+ finally{executiveState.loading=false;$('executiveRefresh').disabled=false;$('executiveSheetPrevDay').disabled=false;$('executiveSheetNextDay').disabled=false}
 }
 async function executiveOpen(){
  if(!executiveAllowed()){alert('총괄 현황 조회 권한이 없어요.');return}
@@ -2246,7 +2295,7 @@ function executiveClose(force=false){
 function executiveInitialize(){
  executiveSheetInitialize();
  $('executiveOpen').onclick=()=>directorPreviewState.active?executiveOpen():(executiveState.open?executiveClose():executiveOpen());
- $('executiveBack').onclick=executiveClose;
+ $('executiveBack').onclick=()=>directorPreviewState.active||cloud.identity?.isAdmin===true?directorPreviewExit():executiveClose();
  $('executiveRefresh').onclick=executiveLoad;
  $('executivePrev').onclick=()=>executiveMoveMonth(-1);
  $('executiveNext').onclick=()=>executiveMoveMonth(1);
