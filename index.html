@@ -2941,6 +2941,7 @@ window.addEventListener('message',async event=>{
 });
 
 function alertDraw(){
+ window.dispatchEvent(new Event('goodjob:mini-update'));
  const unseen=alertUnread(),badge=$('alertBadge');
  badge.textContent=unseen.length>99?'99+':String(unseen.length);
  badge.classList.toggle('hide',unseen.length===0);
@@ -4193,6 +4194,8 @@ $('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(
 /* Mini PC window bridge: a *read-only* personal snapshot plus existing validated booking actions.
    This is intentionally in the existing calendar closure, not a duplicate Supabase client. */
 window.goodjobMiniBridge={
+ arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen):[]},
+ async ackArrivals(keys){if(!cloud.active)throw Error('로그인 후 이용하세요');await alertAck(keys.filter(x=>x.startsWith('arrival:')))},
  async arrivals(){if(!cloud.active)return [];const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'list'});if(error)throw error;return Array.isArray(data?.items)?data.items:[]},
  async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;return data},
  snapshot(){
