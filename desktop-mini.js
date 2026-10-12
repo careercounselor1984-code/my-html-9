@@ -1,0 +1,158 @@
+/* Compact desktop shell. No separate data store or credentials; only the authenticated calendar bridge. */
+(()=>{
+'use strict';
+const bridge=window.goodjobMiniBridge;
+if(!bridge)return;
+const params=new URLSearchParams(location.search);
+const miniMode=params.get('mini')==='1';
+const fullUrl=new URL('./index.html',location.href).href;
+const miniUrl=new URL('./index.html?mini=1',location.href).href;
+function launchMini(){
+ const child=window.open(miniUrl,'goodjob_desktop_mini','popup=yes,width=410,height=690,resizable=yes,scrollbars=yes');
+ if(child)child.focus();
+ else location.assign(miniUrl);
+}
+if(!miniMode){
+ const target=document.querySelector('#mobileCloudActions');
+ if(target){
+  const btn=document.createElement('button');
+  btn.id='desktopMiniLaunch';btn.type='button';btn.textContent='▣ PC 미니 일정표';
+  btn.title='작은 창으로 내 상담 일정표 열기';
+  btn.addEventListener('click',launchMini);
+  target.prepend(btn);
+ }
+ return;
+}
+const root=document.createElement('section');
+root.id='desktopMiniRoot';root.className='hide';
+root.setAttribute('aria-label','좋은일자리 PC 미니 일정표');
+root.innerHTML=`<header class="mini-header">
+ <div><span class="mini-kicker">좋은일자리 · 상담 일정관리</span><h1 class="mini-heading">내 상담 일정</h1></div>
+ <div class="mini-actions"><button type="button" id="miniRefresh" title="서버에서 새 일정 불러오기">↻ 새로고침</button><button type="button" id="miniFull" title="전체 일정표를 새 창에서 열기">전체 보기 ↗</button></div>
+ </header>
+ <p class="mini-user" id="miniUser"></p>
+ <nav class="mini-toolbar" aria-label="일정 날짜 이동">
+  <button id="miniPrev" type="button" aria-label="이전 날짜">‹</button>
+  <div><strong id="miniDate"></strong><small id="miniDayLabel"></small></div>
+  <button id="miniToday" type="button">오늘</button><button id="miniNext" type="button" aria-label="다음 날짜">›</button>
+ </nav>
+ <section class="mini-card">
+  <div class="mini-card-top"><h2>예약 · 근무 일정</h2><span class="mini-count" id="miniCount"></span></div>
+  <div class="mini-events" id="miniEvents" aria-live="polite"></div>
+ </section>
+ <div class="mini-footer"><button id="miniAddWork" type="button">＋ 근무 일정</button><button id="miniAdd" class="mini-primary" type="button">＋ 빠른 상담등록</button></div>
+ <div class="mini-sync" id="miniSync" role="status" aria-live="polite"></div>
+ <p class="mini-note">기존 서버와 연결 · 켜진 창은 약 30초마다 새 일정을 확인합니다.</p>`;
+document.body.appendChild(root);
+const dlg=document.createElement('dialog');
+dlg.id='desktopMiniQuick';
+dlg.setAttribute('aria-label','빠른 상담등록');
+dlg.innerHTML=`<form class="mini-dialog-form" id="miniForm">
+ <h2>빠른 상담등록</h2>
+ <p>기존 상담 일정표에 바로 저장됩니다. 상담 구분은 ‘초기, 해석, IAP, 재진단’ 등으로 입력하세요.</p>
+ <label>내담자 이름 + 상담 구분<input id="miniText" placeholder="홍길동 초기" maxlength="110" autocomplete="off" required></label>
+ <label>상담 날짜<input id="miniFormDate" type="date" required></label>
+ <label>상담 시작 시간<select id="miniFormTime" required></select></label>
+ <p id="miniFormStatus" class="mini-dialog-status" role="status"></p>
+ <div class="mini-dialog-buttons"><button type="button" id="miniCancel">취소</button><button class="primary" id="miniSave" type="submit">바로 등록</button></div>
+</form>`;
+document.body.appendChild(dlg);
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+let selectedDate=today(),followsToday=true,lastToday=selectedDate,refreshing=false,saving=false;
+function changeDay(offset){
+ const p=selectedDate.split('-').map(Number);
+ const d=new Date(p[0],p[1]-1,p[2]+offset);
+ selectedDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ followsToday=false;render();
+}
+function eventType(e){
+ if(['연차','반차','2시간 연차','반반차'].includes(e.type))return 'leave';
+ return ['초기','해석','IAP','컨설팅','재진단','훈련등록','카드발급','신청','일경험','연계'].includes(e.type)?'consult':'work';
+}
+function createEventButton(e){
+ const btn=document.createElement('button');btn.type='button';
+ const kind=eventType(e);
+ btn.className='mini-event'+(kind==='consult'?'':' '+kind);
+ btn.title='일정 수정 및 상세 보기';
+ const time=document.createElement('span');time.className='mini-event-time';time.textContent=e.allDay?'종일':(e.time||'09:00');
+ const main=document.createElement('span');main.className='mini-event-main';
+ const name=document.createElement('b');name.textContent=e.title||e.type||'개인 일정';
+ const desc=document.createElement('small');desc.textContent=e.type+(e.allDay?' · 종일':' · '+(e.end||''));
+ main.append(name,desc);btn.append(time,main);
+ btn.addEventListener('click',()=>bridge.edit(e.id));
+ return btn;
+}
+function render(){
+ const snap=bridge.snapshot();
+ const gate=$('cloudGate');
+ const online=!!snap.active;
+ root.classList.toggle('hide',!online);
+ if(gate)gate.classList.toggle('hide',online);
+ if(!online)return;
+ $('miniUser').textContent=snap.center+' · '+snap.name;
+ const chunks=selectedDate.split('-').map(Number);
+ const d=new Date(chunks[0],chunks[1]-1,chunks[2]);
+ $('miniDate').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+['일','월','화','수','목','금','토'][d.getDay()]+'요일';
+ $('miniDayLabel').textContent=followsToday?'오늘 일정 · 자동 날짜 변경':'선택한 날짜의 일정';
+ const events=(snap.events||[]).filter(e=>e.date===selectedDate).sort((a,b)=>(a.allDay?'00:00':a.time||'09:00').localeCompare(b.allDay?'00:00':b.time||'09:00'));
+ $('miniCount').textContent=events.length+'건';
+ const container=$('miniEvents');container.replaceChildren();
+ if(!events.length){
+  const empty=document.createElement('p');empty.className='mini-empty';empty.textContent='등록된 일정이 없습니다.
+＋ 빠른 상담등록으로 일정을 추가해 보세요.';
+  empty.style.whiteSpace='pre-line';container.appendChild(empty);
+ }else events.forEach(e=>container.appendChild(createEventButton(e)));
+ $('miniSync').textContent=snap.sync||'일정 연결 상태 확인 중';
+ $('miniSync').classList.toggle('error',!!snap.error);
+}
+function availableTimes(){
+ const date=$('miniFormDate').value;
+ const choices=bridge.times(date);
+ const previous=$('miniFormTime').value;
+ const sel=$('miniFormTime');sel.replaceChildren();
+ if(!choices.length){
+  const o=document.createElement('option');o.value='';o.textContent='등록 가능한 시간이 없습니다';sel.append(o);return;
+ }
+ const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='시간 선택';sel.append(placeholder);
+ for(const t of choices){const o=document.createElement('option');o.value=t;o.textContent=t;sel.append(o)}
+ if(choices.includes(previous))sel.value=previous;
+}
+function openQuick(){
+ if(!bridge.snapshot().active)return;
+ $('miniForm').reset();
+ $('miniFormDate').value=selectedDate;
+ $('miniFormStatus').textContent='';
+ availableTimes();dlg.showModal();
+ $('miniText').focus();
+}
+$('miniPrev').addEventListener('click',()=>changeDay(-1));
+$('miniNext').addEventListener('click',()=>changeDay(1));
+$('miniToday').addEventListener('click',()=>{selectedDate=today();followsToday=true;render()});
+$('miniRefresh').addEventListener('click',async()=>{
+ if(refreshing)return;
+ refreshing=true;$('miniRefresh').disabled=true;
+ try{await bridge.refresh()}catch(e){$('miniSync').textContent='동기화 실패 · '+(e.message||String(e));$('miniSync').classList.add('error')}
+ finally{refreshing=false;$('miniRefresh').disabled=false;render()}
+});
+$('miniFull').addEventListener('click',()=>{const w=window.open(fullUrl,'_blank','noopener');if(!w)location.assign(fullUrl)});
+$('miniAdd').addEventListener('click',openQuick);
+$('miniAddWork').addEventListener('click',()=>bridge.addWork(selectedDate));
+$('miniCancel').addEventListener('click',()=>dlg.close());
+$('miniFormDate').addEventListener('change',availableTimes);
+$('miniForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(saving)return;
+ const text=$('miniText').value, date=$('miniFormDate').value,time=$('miniFormTime').value;
+ const btn=$('miniSave');saving=true;btn.disabled=true;btn.textContent='등록 중…';$('miniFormStatus').textContent='';
+ try{
+  const result=await bridge.reserve(date,time,text);
+  if(result.ok){dlg.close();selectedDate=date;followsToday=(date===today());render()}
+  else{$('miniFormStatus').textContent=result.message||'등록을 완료하지 못했습니다';if(result.detailOpen)dlg.close();availableTimes()}
+ }catch(err){$('miniFormStatus').textContent='등록 실패: '+(err?.message||String(err))}
+ finally{saving=false;btn.disabled=false;btn.textContent='바로 등록'}
+});
+window.addEventListener('goodjob:mini-update',render);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+setInterval(()=>{const now=today();if(now!==lastToday){lastToday=now;if(followsToday)selectedDate=now}render()},45000);
+render();
+})();
