@@ -33,6 +33,8 @@ root.innerHTML=`<header class="mini-header">
  <div class="mini-actions"><button type="button" id="miniPin" title="크롬 지원 환경에서 설치 없이 화면 위에 고정">항상 위에</button><button type="button" id="miniRefresh" title="서버에서 새 일정 불러오기">↻ 동기화</button><button type="button" id="miniFull" title="전체 일정표를 새 창에서 열기">전체 ↗</button></div>
  </header>
  <p class="mini-user" id="miniUser"></p>
+ <div class="mini-arrival-banner" id="miniArrivalInbox" hidden><strong id="miniArrivalTitle"></strong>
+  <button id="miniArrivalAck" type="button">확인</button></div>
  <div class="mini-view-controls" role="group" aria-label="조회할 상담사 범위">
   <button type="button" id="miniMine" aria-pressed="true">내 일정</button>
   <button type="button" id="miniCenter" aria-pressed="false">우리 센터 전체</button>
@@ -129,6 +131,7 @@ async function toggleAlwaysOnTop(){
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let selectedDate=today(),followsToday=true,lastToday=selectedDate,refreshing=false,saving=false;
 let miniScope='mine',miniRange='near';
+let arrivalsByEvent=new Map(),arrivalBusy=false,arrivalLast=0;
 function changeDay(offset){
  const p=selectedDate.split('-').map(Number);
  const d=new Date(p[0],p[1]-1,p[2]+offset);
@@ -154,7 +157,38 @@ function createEventButton(e){
  const desc=document.createElement('small');desc.textContent=(e.type||'근무 일정')+(e.allDay?' · 종일':e.end?' · '+e.end:'')+(readonly?' · 조회만 가능':'');
  main.append(name,desc);el.append(time,main);
  if(!readonly&&e.id)el.addEventListener('click',()=>focusEditor(()=>bridge.edit(e.id)));
+ if(miniScope==='center'&&e.kind==='consult'&&e.date===today()&&e.arrivalEventId){
+  const wrapper=document.createElement('div');wrapper.className='mini-item-row';
+  wrapper.appendChild(el);
+  const arrival=arrivalsByEvent.get(e.arrivalEventId);
+  const check=document.createElement('button');check.type='button';
+  check.className='mini-arrival'+(arrival?' done':'');
+  check.textContent=arrival?'도착 '+arrival.arrivedAt:'도착';
+  check.title=arrival?('도착 확인: '+arrival.markedBy):'내담자가 도착했으면 체크하여 담당 상담사에게 알립니다';
+  check.disabled=!!arrival||arrivalBusy;
+  if(!arrival)check.addEventListener('click',async()=>{
+   if(!confirm(e.owner+' 상담사의 '+e.time+' 상담 예약이 도착했나요?'))return;
+   if(arrivalBusy)return;arrivalBusy=true;check.disabled=true;check.textContent='처리 중';
+   try{
+    const out=await bridge.markArrival(e.arrivalEventId);
+    if(out?.ok){await refreshArrivals(true);render()}
+   }catch(err){alert('도착 처리 실패: '+(err?.message||String(err)))}
+   finally{arrivalBusy=false;render()}
+  });
+  wrapper.appendChild(check);return wrapper;
+ }
  return el;
+}
+async function refreshArrivals(force=false){
+ if(miniScope!=='center'&&!force)return;
+ const now=Date.now();
+ if(!force&&now-arrivalLast<24000)return;
+ arrivalLast=now;
+ try{
+  const items=await bridge.arrivals();
+  arrivalsByEvent=new Map(items.map(x=>[x.eventId,x]));
+  render();
+ }catch(err){console.warn('도착 현황 갱신 지연',err?.message||err)}
 }
 function eventStartMinutes(e){const parts=String(e.time||'09:00').split(':').map(Number);return parts[0]*60+parts[1]}
 function inTimeWindow(e,nowMinutes){
@@ -172,6 +206,10 @@ function render(){
  if(gate)gate.classList.toggle('hide',online);
  if(!online){if(pipActive())pipWindow.close();return}
  $('miniUser').textContent=snap.center+' · '+snap.name;
+ const inbox=typeof bridge.arrivalInbox==='function'?bridge.arrivalInbox():[];
+ const inboxPanel=$('miniArrivalInbox');
+ inboxPanel.hidden=!inbox.length;
+ if(inbox.length)$('miniArrivalTitle').textContent=inbox.length>1?inbox.length+'건의 내담자 도착 알림 · '+inbox[0].title:inbox[0].title;
  const chunks=selectedDate.split('-').map(Number);
  const d=new Date(chunks[0],chunks[1]-1,chunks[2]);
  $('miniDate').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+['일','월','화','수','목','금','토'][d.getDay()]+'요일';
@@ -223,7 +261,11 @@ function openQuick(){
  $('miniText').focus();
 }
 $('miniMine').addEventListener('click',()=>{miniScope='mine';render()});
-$('miniCenter').addEventListener('click',()=>{miniScope='center';miniRange='near';render()});
+$('miniCenter').addEventListener('click',()=>{miniScope='center';miniRange='near';render();refreshArrivals(true)});
+$('miniArrivalAck').addEventListener('click',async()=>{
+ const inbox=bridge.arrivalInbox();
+ try{await bridge.ackArrivals(inbox.map(x=>x.key));render()}catch(e){alert('알림 확인 실패: '+(e?.message||String(e)))}
+});
 $('miniNear').addEventListener('click',()=>{miniRange='near';render()});
 $('miniWhole').addEventListener('click',()=>{miniRange='whole';render()});
 $('miniPrev').addEventListener('click',()=>changeDay(-1));
@@ -255,6 +297,6 @@ $('miniForm').addEventListener('submit',async e=>{
 });
 window.addEventListener('goodjob:mini-update',render);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden||pipActive())render()});
-setInterval(()=>{const now=today();if(now!==lastToday){lastToday=now;if(followsToday)selectedDate=now}render()},45000);
+setInterval(()=>{const now=today();if(now!==lastToday){lastToday=now;if(followsToday)selectedDate=now}render();refreshArrivals()},30000);
 render();
 })();
