@@ -4183,8 +4183,18 @@ window.goodjobMiniBridge={
    error:!!status?.classList.contains('error'),
    events:model.events.filter(e=>e.center===center&&e.owner===name&&!e.readonly).map(e=>({
     id:e.id,date:e.date,time:e.time||'09:00',end:e.end||'',type:e.type||'',title:e.title||'',
-    allDay:!!e.allDay
-   }))};
+    allDay:!!e.allDay,owner:name,kind:isConsultEvent(e)?'consult':'work'
+   })),
+   // Staff at the same center are already restricted and masked by schedule_get_snapshot.
+   // Never expose another employee's client name, memo, participantId or editable id.
+   teamEvents:model.events.filter(e=>e.center===center&&e.owner).map(e=>{
+    const mine=e.owner===name&&!e.readonly;
+    const consult=isConsultEvent(e);
+    return {id:mine?e.id:null,owner:e.owner,date:e.date,time:e.time||'09:00',
+     end:e.end||'',type:e.type||'',allDay:!!e.allDay,kind:consult?'consult':'work',
+     title:mine?(e.title||e.type||'일정'):(consult?'상담 예약':(e.type||'근무 일정')),
+     readonly:!mine};
+   })};
  },
  times(date){
   if(!cloud.active||!cloud.identity||!/^\d{4}-\d{2}-\d{2}$/.test(date))return [];
