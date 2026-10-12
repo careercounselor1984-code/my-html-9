@@ -4253,7 +4253,7 @@ window.goodjobMiniBridge={
  arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen):[]},
  async ackArrivals(keys){if(!cloud.active)throw Error('로그인 후 이용하세요');await alertAck(keys.filter(x=>x.startsWith('arrival:')))},
  async arrivals(){if(!cloud.active)return [];const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'list'});if(error)throw error;return Array.isArray(data?.items)?data.items:[]},
- async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;if(data?.ok&&!data.mine&&!data.already)pushNotify('arrival',eventId);return data},
+ async markArrival(eventId){if(!cloud.active)throw Error('로그인 후 이용하세요');const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'mark',p_event_id:eventId});if(error)throw error;if(data?.ok&&!data.mine&&data.newArrival===true)pushNotify('arrival',eventId);return data},
  snapshot(){
   const status=$('cloudStatus');
   if(!cloud.active||!cloud.identity)return {active:false,sync:status?.textContent||'로그인 필요'};
