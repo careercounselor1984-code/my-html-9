@@ -153,3 +153,13 @@ html.desktop-mini #dlg .field.full{grid-column:1/-1}
  html.desktop-mini #dlg .form-layout{grid-template-columns:minmax(0,1fr)}
  html.desktop-mini #dlg .field{grid-column:1/-1}
 }
+
+/* Arrival check-in lives next to, never inside, the edit button. */
+#desktopMiniRoot .mini-arrival-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;padding:10px;border:1px solid #ffccb4;background:#fff3e9;border-radius:10px;color:#8e3c14}
+#desktopMiniRoot .mini-arrival-banner[hidden]{display:none!important}
+#desktopMiniRoot .mini-arrival-banner strong{font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+#desktopMiniRoot .mini-arrival-banner button{flex:none;padding:7px 11px;color:white;background:#c85f27;border-color:#c85f27;font-size:12px}
+#desktopMiniRoot .mini-item-row{display:flex;min-width:0;gap:6px;align-items:stretch}
+#desktopMiniRoot .mini-item-row>.mini-event{flex:1 1 auto;min-width:0}
+#desktopMiniRoot .mini-item-row>.mini-arrival{min-width:64px;font-size:11px;padding:5px;flex:0 0 auto}
+@media(max-width:390px){#desktopMiniRoot .mini-item-row>.mini-arrival{min-width:56px;font-size:10px;padding:4px}}
