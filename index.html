@@ -833,6 +833,14 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
  #quickEntryOpen{display:none!important}
 }
 @media print{#quickEntrySection,.mobile-quick-backdrop{display:none!important}}
+
+/* Admin-only director screen preview; no auth role impersonation. */
+.director-preview-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:#edf5ff;border:1px solid #a2c2e6;border-radius:12px;margin:12px 0;color:#183d64}
+.director-preview-banner strong{display:block;font-size:14px}
+.director-preview-banner p{font-size:12px;line-height:1.5;margin:3px 0 0;color:#4c6987}
+.director-preview-banner button{background:white;border-color:#87acd5;color:#205582}
+body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sharedBoard .shared-quick-actions,body.director-preview-mode #sharedBoard #sharedCreateDetails{display:none!important}
+@media(max-width:760px){.director-preview-banner{flex-direction:column;align-items:stretch;margin:9px 0}.director-preview-banner button{width:100%}}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.5 · 화면 구성 정리</span></header>
@@ -852,6 +860,7 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
   <button id="presenceBtn" type="button">오늘 근무현황</button>
   <button id="messageBtn" type="button">쪽지</button>
   <details id="manageActionMenu" class="cloud-menu-section hide"><summary>관리·보고 <span aria-hidden="true">▾</span></summary><div class="cloud-menu-popover">
+    <button id="directorPreviewToggle" type="button" class="hide">👁️ 부장 화면 미리보기</button>
     <button id="executiveOpen" type="button" class="hide">📊 총괄 현황</button>
     <button id="workReportBtn" type="button" class="hide">📋 직원 일정 종합보고</button>
     <button id="energySchoolManageBtn" type="button" class="hide">🏫 에너지고 출입 신청 확인</button>
@@ -871,7 +880,11 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
 </div>
 
 
-<div id="directorAbsenceStrip" class="hide no-print" style="margin:8px 12px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:13px" aria-live="polite"></div>
+<div id="directorPreviewBanner" class="director-preview-banner hide no-print" role="status" aria-live="polite">
+  <div><strong>👁️ 부장 화면 미리보기 · 조회 전용</strong><p>관리자 계정으로 부장용 화면을 확인합니다. 로그인 계정이나 서버 권한은 바뀌지 않으며, 부장 일정의 등록·삭제는 할 수 없습니다.</p></div>
+  <button id="directorPreviewExit" type="button">← 관리자 화면으로 돌아가기</button>
+ </div>
+ <div id="directorAbsenceStrip" class="hide no-print" style="margin:8px 12px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:13px" aria-live="polite"></div>
 <section id="sharedBoard" class="shared-board hide no-print" aria-labelledby="sharedBoardTitle">
  <div class="shared-hero">
   <div><span class="shared-overline">팀 일정 협업</span><h2 id="sharedBoardTitle">공유 일정 · 참여 모집</h2>
@@ -1372,6 +1385,7 @@ function cloudApplyIdentity(info){
  $('executiveOpen').classList.toggle('hide',!(info.isAdmin||info.role==='director'));
   $('manageActionMenu').classList.toggle('hide',!(info.isAdmin||['manager','director'].includes(info.role)));
  $('executiveBack').classList.toggle('hide',info.role==='director');
+ directorPreviewUI();
  document.querySelector('.context-note').textContent='로그인 계정으로 담당 센터와 상담사가 자동 지정돼요. 다른 직원 일정은 센터 전체 보기에서 확인할 수 있어요.';
  document.querySelector('.mobile-banner span:last-child').innerHTML='휴대폰과 PC의 일정을 같은 계정으로 확인할 수 있어요. <b>서버에 저장 완료 ✓</b> 표시를 확인해 주세요.';
 
@@ -1380,7 +1394,7 @@ async function cloudStartSession(){
  try{
  cloudStatus('계정 확인 중…');
  const {data:{session}}=await cloud.client.auth.getSession();
- if(!session){executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');cloudStatus('회사 이메일로 로그인해 주세요');return;}
+ if(!session){directorPreviewExit();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');cloudStatus('회사 이메일로 로그인해 주세요');return;}
  const {data,error}=await cloud.client.rpc('schedule_claim_identity');
  if(error)throw error;
  if(data?.mustChangePassword){
@@ -1891,6 +1905,51 @@ window.addEventListener('load',()=>setTimeout(journalBookingAnnounce,400));
 /* Executive overview v23. The API returns only scheduled categories/counts,
    not client names, notes, participant IDs or contact information. */
 const executiveState={center:'전체',month:'',day:'',data:null,loading:false,open:false};
+const directorPreviewState={active:false,wasExecutiveOpen:false};
+function directorPreviewAllowed(){return !!(cloud.active&&cloud.identity?.isAdmin===true&&cloud.identity?.role!=='director')}
+function directorPreviewUI(){
+ const active=directorPreviewState.active;
+ document.body.classList.toggle('director-preview-mode',active);
+ $('directorPreviewBanner').classList.toggle('hide',!active);
+ $('directorPreviewToggle').classList.toggle('hide',!directorPreviewAllowed());
+ $('directorPreviewToggle').textContent=active?'← 부장 미리보기 종료':'👁️ 부장 화면 미리보기';
+ $('directorAbsentBtn').classList.toggle('hide',!(active||cloud.identity?.role==='director'));
+ $('executiveBack').classList.toggle('hide',active||cloud.identity?.role==='director');
+ $('sharedBack').textContent=active?'총괄 현황으로':'내 일정으로';
+ if(active)$('executiveOpen').textContent='📊 총괄 현황';
+}
+async function directorPreviewEnter(){
+ if(!directorPreviewAllowed()){alert('관리자 계정에서만 부장 화면을 미리볼 수 있습니다.');return}
+ if(directorPreviewState.active)return;
+ if(sharedState.open)sharedClose();
+ directorPreviewState.wasExecutiveOpen=executiveState.open;
+ directorPreviewState.active=true;directorPreviewUI();$('manageActionMenu').open=false;
+ await executiveOpen();
+}
+function directorPreviewExit(){
+ if(!directorPreviewState.active)return;
+ const wasExecutiveOpen=directorPreviewState.wasExecutiveOpen;
+ directorPreviewState.active=false;directorPreviewState.wasExecutiveOpen=false;
+ if($('directorAbsentDialog').open)$('directorAbsentDialog').close();
+ if(sharedState.open)sharedClose();
+ directorPreviewUI();
+ if(wasExecutiveOpen){if(!executiveState.open)executiveOpen().catch(()=>{})}
+ else if(executiveState.open)executiveClose();
+}
+function directorPreviewInitialize(){
+ $('directorPreviewToggle').onclick=()=>directorPreviewState.active?directorPreviewExit():directorPreviewEnter().catch(e=>alert('미리보기 조회 오류: '+String(e?.message||e)));
+ $('directorPreviewExit').onclick=directorPreviewExit;
+ // Preview shared posts, but never accept a request or mutate a shared schedule.
+ $('sharedBoard').addEventListener('click',e=>{
+  if(!directorPreviewState.active)return;
+  const x=e.target.closest('button,summary,[role="button"]');
+  if(!x||x.id==='sharedBack'||x.id==='sharedRefresh'||x.id==='handoffReload'||x.hasAttribute('data-shared-filter'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  alert('조회 전용 미리보기입니다. 실제 업무는 관리자 화면에서 진행해 주세요.');
+ },true);
+ $('sharedBoard').addEventListener('submit',e=>{if(directorPreviewState.active){e.preventDefault();e.stopImmediatePropagation()}},true);
+}
+
 const EXEC_CENTERS=['남부본사','북부센터','동구지사','서부센터'];
 function executiveAllowed(){return !!(cloud.active&&(cloud.identity?.isAdmin===true||cloud.identity?.role==='director'));}
 function executiveMonthRange(month){
@@ -1988,7 +2047,7 @@ async function executiveOpen(){
  executiveState.open=true;
  document.body.classList.add('executive-mode');
  $('executiveDashboard').classList.remove('hide');
- $('executiveOpen').textContent='내 일정 / 총괄 현황';
+ $('executiveOpen').textContent=directorPreviewState.active?'📊 총괄 현황':'내 일정 / 총괄 현황';
  if(!executiveState.month)executiveState.month=dateKey(new Date()).slice(0,7);
  $('executiveMonth').value=executiveState.month;
  if(!executiveState.data)await executiveLoad();
@@ -2012,7 +2071,7 @@ function executiveClose(force=false){
  }
 }
 function executiveInitialize(){
- $('executiveOpen').onclick=()=>executiveState.open?executiveClose():executiveOpen();
+ $('executiveOpen').onclick=()=>directorPreviewState.active?executiveOpen():(executiveState.open?executiveClose():executiveOpen());
  $('executiveBack').onclick=executiveClose;
  $('executiveRefresh').onclick=executiveLoad;
  $('executivePrev').onclick=()=>executiveMoveMonth(-1);
@@ -2280,7 +2339,7 @@ async function sharedOpen(){
 }
 function sharedClose(){
  sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');
- if(cloud.identity?.role==='director')executiveOpen();
+ if(cloud.identity?.role==='director'||directorPreviewState.active)executiveOpen();
  else{render();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===currentView))}
 }
 async function sharedPublish(e){
@@ -2670,7 +2729,11 @@ function directorAbsRender(){
  list.innerHTML='<strong>등록된 부재 일정</strong>'+(next.length?next.map(x=>'<div style="padding:9px 0;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;justify-content:space-between"><span>'+escapeHtml(x.start)+(x.start===x.end?'':' ~ '+escapeHtml(x.end))+' · '+escapeHtml(x.kind)+' · '+escapeHtml(x.period)+'</span>'+(cloud.identity?.role==='director'?'<button type="button" data-director-absence-delete="'+escapeHtml(x.id)+'">삭제</button>':'')+'</div>').join(''):'<p style="color:#64748b">등록된 일정이 없습니다.</p>');
 }
 function directorAbsOpen(){
- if(cloud.identity?.role!=='director')return;
+ const preview=directorPreviewState.active&&directorPreviewAllowed();
+ if(cloud.identity?.role!=='director'&&!preview)return;
+ for(const id of ['directorAbsentType','directorAbsentStart','directorAbsentEnd','directorAbsentPeriod'])$(id).disabled=preview;
+ $('directorAbsentForm').querySelector('button[type="submit"]').classList.toggle('hide',preview);
+ $('directorAbsentError').textContent=preview?'미리보기에서는 부재 일정 조회만 가능합니다. 등록·삭제는 부장 본인만 할 수 있습니다.':'';
  $('directorAbsentDialog').showModal();
  const today=dateKey(new Date());
  $('directorAbsentStart').value=today;$('directorAbsentEnd').value=today;
@@ -2685,6 +2748,7 @@ function directorAbsInitialize(){
  };
  $('directorAbsentForm').onsubmit=async e=>{
   e.preventDefault();if(directorAbs.busy)return;
+  if(directorPreviewState.active||cloud.identity?.role!=='director'){$('directorAbsentError').textContent='미리보기에서는 등록할 수 없습니다.';return}
   const start=$('directorAbsentStart').value,end=$('directorAbsentEnd').value,period=$('directorAbsentPeriod').value,kind=$('directorAbsentType').value;
   directorAbs.busy=true;
   try{
@@ -2696,7 +2760,7 @@ function directorAbsInitialize(){
   finally{directorAbs.busy=false}
  };
  $('directorAbsentList').onclick=async e=>{
-  const btn=e.target.closest('[data-director-absence-delete]');if(!btn||!confirm('이 부재 일정을 삭제할까요?'))return;
+  const btn=e.target.closest('[data-director-absence-delete]');if(!btn||directorPreviewState.active||cloud.identity?.role!=='director'||!confirm('이 부재 일정을 삭제할까요?'))return;
   try{
    const {error}=await cloud.client.rpc('schedule_director_absence_action',{p_action:'delete',p_payload:{id:btn.dataset.directorAbsenceDelete}});
    if(error)throw error;await directorAbsFetch();
@@ -3146,6 +3210,7 @@ async function cloudBoot(){
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
  executiveInitialize();
+ directorPreviewInitialize();
  sharedInitialize();
  alertInitialize();
  workReportInitialize();
@@ -3313,7 +3378,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
