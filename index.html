@@ -839,6 +839,9 @@ body.mobile-quick-open #quickEntrySection .quick-entry-heading{display:flex;alig
 @media print{#quickEntrySection,.mobile-quick-backdrop{display:none!important}}
 
 /* Admin-only director screen preview; no auth role impersonation. */
+.director-preview-return-link{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 12px;border:1px solid #a2bfdf;border-radius:10px;color:#18518d;text-decoration:none;font-size:13px;font-weight:750;background:#fff;min-height:40px}
+.director-preview-return-link:hover{background:#eaf3fd}
+
 .director-preview-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:#edf5ff;border:1px solid #a2c2e6;border-radius:12px;margin:12px 0;color:#183d64}
 .director-preview-banner strong{display:block;font-size:14px}
 .director-preview-banner p{font-size:12px;line-height:1.5;margin:3px 0 0;color:#4c6987}
@@ -892,7 +895,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-monthly-details>.executive-center-cards{margin-top:9px}
 </style></head>
 <body>
-<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v24.5 · 화면 구성 정리</span></header>
+<header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
  <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
@@ -931,7 +934,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 
 <div id="directorPreviewBanner" class="director-preview-banner hide no-print" role="status" aria-live="polite">
   <div><strong>👁️ 부장 화면 미리보기 · 조회 전용</strong><p>관리자 계정으로 부장용 화면을 확인합니다. 로그인 계정이나 서버 권한은 바뀌지 않으며, 부장 일정의 등록·삭제는 할 수 없습니다.</p></div>
-  <button id="directorPreviewExit" type="button">← 관리자 화면으로 돌아가기</button>
+  <a id="directorPreviewExit" class="director-preview-return-link" href="./index.html?calendarView=1">← 관리자 화면으로 돌아가기</a>
  </div>
  <div id="directorAbsenceStrip" class="hide no-print" style="margin:8px 12px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:13px" aria-live="polite"></div>
 <section id="sharedBoard" class="shared-board hide no-print" aria-labelledby="sharedBoardTitle">
@@ -975,7 +978,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  <div class="shared-posts" id="sharedPosts"></div>
 </section>
 <section id="executiveDashboard" class="executive-dashboard hide no-print" aria-labelledby="executiveTitle">
- <div class="executive-head"><div><span class="executive-eyebrow">좋은일자리 · 관리 현황</span><h2 id="executiveTitle">4개 지사 총괄 현황</h2><p>월별 등록 일정과 센터별 근무현황 · 조회 전용</p></div><button id="executiveSharedOpen" type="button">🤝 공유 일정</button><button id="executivePreviewExit" type="button" class="hide">← 미리보기 종료 · 내 일정으로</button><button id="executiveBack" type="button">내 일정으로</button></div>
+ <div class="executive-head"><div><span class="executive-eyebrow">좋은일자리 · 관리 현황</span><h2 id="executiveTitle">4개 지사 총괄 현황</h2><p>월별 등록 일정과 센터별 근무현황 · 조회 전용</p></div><button id="executiveSharedOpen" type="button">🤝 공유 일정</button><a id="executivePreviewExit" class="director-preview-return-link hide" href="./index.html?calendarView=1">← 미리보기 종료 · 내 일정으로</a><button id="executiveBack" type="button">내 일정으로</button></div>
  <div class="executive-controls">
   <div class="executive-centers" id="executiveCenterChips" role="group" aria-label="조회할 지사"></div>
   <div class="executive-dates"><button id="executivePrev" type="button" aria-label="이전 달">◀</button><label>조회 월<input id="executiveMonth" type="month" required></label><button id="executiveNext" type="button" aria-label="다음 달">▶</button><button id="executiveRefresh" type="button">새로고침</button></div>
@@ -1478,12 +1481,22 @@ async function cloudStartSession(){
  cloud.initialPasswordChange=false;
  cloudApplyIdentity(data);
  await cloudReload();
+ if(directorHomeAllowed()){
+  const accepted=['personalDay','personalWeek','personalMonth','teamLeave','teamDay'];
+  let previous='personalWeek';
+  try{const stored=sessionStorage.getItem(DIRECTOR_HOME_KEY);if(accepted.includes(stored))previous=stored}catch{}
+  // This is only a client-side view choice. Server identity and write permissions remain unchanged.
+  directorPreviewState.active=false;
+  executiveClose(true);
+  directorPreviewUI();
+  changeView(previous);
+ }
  await alertPoll(true);
  arrivalRealtimeStart();
  pushRefresh().catch(()=>{});
  directorAbsFetch().catch(()=>{});
  calendarRestore().catch(()=>{});
- if(cloud.identity?.role==='director')await executiveOpen();
+ if(cloud.identity?.role==='director'&&!directorHomeAllowed())await executiveOpen();
  const energyFromLink=new URLSearchParams(location.search).get('energySchool')==='1'||sessionStorage.getItem('goodjob_open_energy_school')==='1';
  if(energyFromLink)sessionStorage.removeItem('goodjob_open_energy_school');
  if(energyFromLink){
@@ -1975,6 +1988,20 @@ window.addEventListener('load',()=>setTimeout(journalBookingAnnounce,400));
    not client names, notes, participant IDs or contact information. */
 const executiveState={center:'전체',month:'',day:'',data:null,loading:false,open:false};
 const directorPreviewState={active:false,wasExecutiveOpen:false};
+const DIRECTOR_HOME_KEY='goodjob_director_preview_return_view';
+function directorHomeRequested(){return new URLSearchParams(location.search).get('calendarView')==='1'}
+function directorHomeAllowed(){return directorHomeRequested()&&cloud.active&&cloud.identity?.isAdmin===true}
+function directorHomePath(){return './index.html?calendarView=1'}
+function directorPreviewSaveReturnView(){
+ try{
+  const allowed=['personalDay','personalWeek','personalMonth','teamLeave','teamDay'];
+  sessionStorage.setItem(DIRECTOR_HOME_KEY,allowed.includes(currentView)?currentView:'personalWeek');
+ }catch{}
+}
+function directorPreviewNavigateHome(){
+ // Full navigation is independent of the modal/executive UI lifecycle.
+ location.assign(directorHomePath());
+}
 function directorPreviewAllowed(){return !!(cloud.active&&cloud.identity?.isAdmin===true&&cloud.identity?.role!=='director')}
 function directorPreviewUI(){
  const active=directorPreviewState.active;
@@ -1994,6 +2021,10 @@ async function directorPreviewEnter(){
  if(!directorPreviewAllowed()){alert('관리자 계정에서만 부장 화면을 미리볼 수 있습니다.');return}
  if(directorPreviewState.active)return;
  if(sharedState.open)sharedClose();
+ directorPreviewSaveReturnView();
+ // A former return-route query must not pin the next preview after page reload.
+ const route=new URL(location.href);route.searchParams.delete('calendarView');
+ if(route.href!==location.href)history.replaceState(null,'',route.pathname+route.search+route.hash);
  directorPreviewState.wasExecutiveOpen=executiveState.open;
  directorPreviewState.active=true;directorPreviewUI();$('manageActionMenu').open=false;
  await executiveOpen();
@@ -2012,9 +2043,10 @@ function directorPreviewExit(){
  window.scrollTo?.({top:0,behavior:'instant'});
 }
 function directorPreviewInitialize(){
- $('directorPreviewToggle').onclick=()=>directorPreviewState.active?directorPreviewExit():directorPreviewEnter().catch(e=>alert('미리보기 조회 오류: '+String(e?.message||e)));
- $('directorPreviewExit').onclick=directorPreviewExit;
- $('executivePreviewExit').onclick=directorPreviewExit;
+ $('directorPreviewToggle').onclick=()=>directorPreviewState.active?directorPreviewNavigateHome():directorPreviewEnter().catch(e=>alert('미리보기 조회 오류: '+String(e?.message||e)));
+ // Native links remain navigable even if the script is interrupted. Never prevent default.
+ // Save the view before leaving the preview when possible.
+ for(const id of ['directorPreviewExit','executivePreviewExit'])$(id).addEventListener('click',()=>{if(!directorPreviewState.active)directorPreviewSaveReturnView()});
  // Preview shared posts, but never accept a request or mutate a shared schedule.
  $('sharedBoard').addEventListener('click',e=>{
   if(!directorPreviewState.active)return;
@@ -2295,7 +2327,7 @@ function executiveClose(force=false){
 function executiveInitialize(){
  executiveSheetInitialize();
  $('executiveOpen').onclick=()=>directorPreviewState.active?executiveOpen():(executiveState.open?executiveClose():executiveOpen());
- $('executiveBack').onclick=()=>directorPreviewState.active||cloud.identity?.isAdmin===true?directorPreviewExit():executiveClose();
+ $('executiveBack').onclick=()=>directorPreviewState.active||cloud.identity?.isAdmin===true?directorPreviewNavigateHome():executiveClose();
  $('executiveRefresh').onclick=executiveLoad;
  $('executivePrev').onclick=()=>executiveMoveMonth(-1);
  $('executiveNext').onclick=()=>executiveMoveMonth(1);
