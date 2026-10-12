@@ -893,16 +893,34 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-monthly-details>summary{font-weight:750;color:#3a5976;font-size:13px;cursor:pointer;padding:12px 2px}
 .executive-monthly-details>summary small{font-weight:400;color:#8496a8;font-size:11px;margin-left:7px}
 .executive-monthly-details>.executive-center-cards{margin-top:9px}
+
+.cloud-reset-help{padding:11px 13px;background:#f5f9fd;border:1px solid #d7e3f0;border-radius:11px;font-size:12px;line-height:1.6;color:#3c5974;margin:10px 0}
+.cloud-reset-help strong{color:#174f87;font-size:13px}.cloud-reset-help p{margin:6px 0 0;line-height:1.6}
+.cloud-reset-help details{margin-top:8px}.cloud-reset-help summary{font-weight:700;color:#155d98;cursor:pointer}
+.cloud-reset-followup{padding:9px;background:#e6f7ec;color:#176b49;border-radius:8px;margin-top:10px!important}
+.cloud-recovery-visible{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:4px;color:#43637c}
+.cloud-recovery-visible input{width:18px;height:18px;flex:0 0 auto}
+.cloud-recovery-only #cloudLogin,.cloud-recovery-only .cloud-magic,.cloud-recovery-only #cloudResetHelp{display:none!important}
+.cloud-recovery-status{font-size:13px;margin:14px 0 0;line-height:1.6;color:#496580}
+.cloud-recovery-status.error{color:#9f4051}
+.cloud-recovery-action{display:inline-flex;padding:10px 12px;border-radius:9px;margin-top:14px;background:#2366b4;color:white;text-decoration:none;font-weight:750}
+@media(max-width:600px){.password-dialog{width:calc(100vw - 24px)}.password-dialog input[type=password]{font-size:16px}}
 </style></head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
  <div class="cloud-login-panel"><div class="cloud-login-mark">📅</div><h2>좋은일자리 상담 일정</h2><p>직원 연락망에 등록된 회사 이메일로만 일정표를 이용할 수 있어요.</p>
- <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 찾기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
- <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">직원 전용 계정으로 로그인해 주세요. 기존 PC에서 로그인 중이라면 로그인 후 비밀번호를 설정할 수 있습니다.</p>
+ <form id="cloudLogin"><label for="cloudEmail">회사 이메일</label><input id="cloudEmail" type="email" placeholder="name@ulsan1.kr" autocomplete="username" required><label for="cloudPassword">비밀번호</label><input id="cloudPassword" type="password" minlength="8" autocomplete="current-password" placeholder="등록된 비밀번호 (8자 이상)" required><label class="cloud-reveal"><input type="checkbox" id="cloudPasswordReveal"> 입력한 비밀번호 보기</label><div class="cloud-extra-row"><label class="cloud-remember" for="cloudRemember"><input type="checkbox" id="cloudRemember" checked>로그인 상태 유지 (자동 로그인)</label><button type="button" class="cloud-forgot" id="cloudForgot">비밀번호 재설정 메일 받기</button></div><button class="primary" id="cloudSend" type="submit">비밀번호로 로그인</button></form>
+ <p id="cloudAuthMessage" class="cloud-feedback" role="status" aria-live="polite">회사 이메일과 비밀번호로 로그인하세요. 비밀번호를 잊었다면 아래 재설정 메일을 요청하세요.</p>
+ <div id="cloudResetHelp" class="cloud-reset-help" aria-live="polite">
+  <strong>🔑 비밀번호를 잊으셨나요?</strong>
+  <p>회사 이메일 입력 → <b>비밀번호 재설정 메일 받기</b> → 받은 메일의 가장 최근 링크 열기 → 새 비밀번호 저장. PC·휴대폰에서 같은 새 비밀번호로 로그인할 수 있습니다.</p>
+  <details><summary>휴대폰에서 재설정 링크가 열리지 않을 때</summary><p>카카오톡·메일 앱 내부 브라우저에서 열리지 않으면 메일 안의 링크 주소를 길게 눌러 복사한 뒤 Chrome(안드로이드) 또는 Safari(아이폰) 주소창에서 열어보세요. 링크가 만료되면 다시 요청해야 합니다.</p></details>
+  <p class="cloud-reset-followup hide" id="cloudResetFollowup">메일 발송 요청 완료. 받은편지함·스팸함에서 가장 최근 메일을 열어주세요. 휴대폰에서 열리지 않으면 위 안내를 참고하세요.</p>
+ </div>
  <details class="cloud-magic"><summary>기존 이메일 링크 로그인 (메일 한도 제한)</summary><p class="cloud-help">이메일 링크로 이미 가입한 직원의 보조 로그인 수단입니다. 신규 계정은 만들지 않으며, 발송 제한으로 실패할 수 있습니다.</p><button id="cloudMagic" type="button">인증 링크 요청</button></details><small>공용 PC에서는 ‘로그인 상태 유지’를 해제해 주세요. 비밀번호는 기기에 저장하지 않으며, 신규 직원 계정은 관리자가 생성합니다. 비밀번호 찾기는 메일 발송 제한이 적용될 수 있어요.</small></div>
 </section>
-<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
+<dialog id="cloudPasswordDialog" class="password-dialog"><form id="cloudPasswordForm" method="dialog"><h2>내 비밀번호 설정·변경</h2><p>현재 로그인한 본인 계정의 비밀번호를 설정합니다. 8자 이상의 고유한 비밀번호를 사용하고 다른 사람과 공유하지 마세요.</p><label for="cloudNewPassword">새 비밀번호</label><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8자 이상"><label for="cloudConfirmPassword">비밀번호 확인</label><input id="cloudConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="동일한 비밀번호 다시 입력"><label class="cloud-recovery-visible"><input id="cloudPasswordShowBoth" type="checkbox"> 입력한 새 비밀번호 보기</label><p id="cloudPasswordFeedback" role="status" aria-live="polite"></p><div class="password-actions"><button id="cloudPassCancel" type="button">취소</button><button class="primary" id="cloudPassSave" type="submit">비밀번호 저장</button></div></form></dialog>
 <main class="wrap">
 <div id="cloudArea" class="cloud-area no-print hide">
  <div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div>
@@ -3459,11 +3477,87 @@ function alertInitialize(){
  window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000);
 }
 
+/* Recovery-only route: do not enter schedule_claim_identity or calendar loading until the password has been changed. */
+function cloudIsRecoveryCallback(){
+ const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
+ const query=new URLSearchParams(location.search);
+ return hash.get('type')==='recovery'||query.get('type')==='recovery'||
+  ['otp_expired','access_denied'].includes(hash.get('error_code'))||
+  ['otp_expired','access_denied'].includes(query.get('error_code'));
+}
+async function cloudRecoveryOnly(){
+ document.body.classList.add('cloud-recovery-only');
+ $('cloudAuthMessage').textContent='재설정 메일의 인증 링크를 확인하는 중…';
+ const dialog=$('cloudPasswordDialog'),form=$('cloudPasswordForm');
+ const pageHome=new URL('./',location.href).href;
+ function recoveryMessage(message,success=false){
+  let panel=$('cloudRecoveryStandalone');
+  if(!panel){panel=document.createElement('div');panel.id='cloudRecoveryStandalone';panel.className='cloud-recovery-status';document.querySelector('.cloud-login-panel').appendChild(panel)}
+  panel.classList.toggle('error',!success);
+  const explanation=document.createElement('p');explanation.textContent=message;
+  const link=document.createElement('a');link.href=pageHome;link.className='cloud-recovery-action';
+  link.textContent=success?'새 비밀번호로 로그인하기':'로그인 화면에서 새 재설정 메일 받기';
+  panel.replaceChildren(explanation,link);
+ }
+ const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
+ const query=new URLSearchParams(location.search);
+ if(hash.get('error_code')||query.get('error_code')||hash.get('error_description')||query.get('error_description')){
+  $('cloudAuthMessage').textContent='비밀번호 재설정 링크가 유효하지 않습니다.';
+  recoveryMessage('링크가 만료되었거나 이미 사용되었을 수 있습니다. 메일함에서 가장 최근 링크를 확인하거나 새 재설정 메일을 요청하세요.');
+  return;
+ }
+ try{
+  // Supabase processes the recovery token in the URL before getSession resolves.
+  const {data,error}=await cloud.client.auth.getSession();
+  if(error)throw error;
+  if(!data?.session)throw new Error('no_recovery_session');
+ }catch(error){
+  $('cloudAuthMessage').textContent='재설정 인증을 확인하지 못했습니다.';
+  recoveryMessage('브라우저에서 인증 링크를 처리할 수 없습니다. 메일 링크를 Chrome 또는 Safari 주소창에 직접 열거나 새 링크를 요청하세요.');
+  return;
+ }
+ cloud.recovering=true;
+ $('cloudAuthMessage').textContent='이메일 인증 완료 · 새 비밀번호를 설정하세요.';
+ dialog.querySelector('h2').textContent='새 비밀번호 설정';
+ $('cloudPassCancel').textContent='로그인 화면으로';
+ form.reset();
+ $('cloudNewPassword').type='password';$('cloudConfirmPassword').type='password';
+ $('cloudPasswordFeedback').textContent='8자 이상 새 비밀번호를 입력하면 PC와 휴대폰에서 동일하게 로그인할 수 있습니다.';
+ $('cloudPassCancel').onclick=()=>location.replace(pageHome);
+ $('cloudPasswordShowBoth').onchange=()=>{
+  const type=$('cloudPasswordShowBoth').checked?'text':'password';
+  $('cloudNewPassword').type=type;$('cloudConfirmPassword').type=type;
+ };
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const password=$('cloudNewPassword').value,confirmation=$('cloudConfirmPassword').value;
+  if(password.length<8){$('cloudPasswordFeedback').textContent='8자 이상 입력해 주세요.';return}
+  if(password!==confirmation){$('cloudPasswordFeedback').textContent='비밀번호 확인이 일치하지 않습니다.';return}
+  $('cloudPassSave').disabled=true;
+  $('cloudPasswordFeedback').textContent='새 비밀번호를 저장하는 중…';
+  try{
+   const {error}=await cloud.client.auth.updateUser({password});
+   if(error)throw error;
+   // Re-authenticate with the new password rather than leaving a temporary recovery session active.
+   try{await cloud.client.auth.signOut()}catch{}
+   dialog.close();
+   $('cloudAuthMessage').textContent='비밀번호 변경이 완료되었습니다.';
+   recoveryMessage('새 비밀번호로 PC와 휴대폰에서 로그인하세요.',true);
+  }catch(error){
+   const code=String(error?.code||'').toLowerCase();
+   $('cloudPasswordFeedback').textContent=code==='same_password'?'이전과 다른 비밀번호를 입력해 주세요.':
+    code.includes('weak')?'비밀번호 강도가 부족합니다. 더 길고 복잡한 비밀번호로 변경해 주세요.':
+    '변경에 실패했어요. 링크 만료 여부 또는 비밀번호 조건을 확인해 주세요. ('+code.replace(/[^a-z0-9_-]/g,'').slice(0,35)+')';
+  }finally{$('cloudPassSave').disabled=false}
+ });
+ if(!dialog.open)dialog.showModal();
+}
 async function cloudBoot(){
  if(!window.supabase?.createClient){$('cloudAuthMessage').textContent='로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';return;}
- const incomingRecovery=location.hash.includes('type=recovery')||new URLSearchParams(location.search).get('type')==='recovery';
+ const incomingRecovery=cloudIsRecoveryCallback();
  cloud.client=window.supabase.createClient(CLOUD_URL,CLOUD_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:CLOUD_AUTH_STORAGE_KEY,storage:cloudAuthStorage}});
  $('cloudRemember').checked=cloudRemember();
+ if(incomingRecovery){await cloudRecoveryOnly();return}
  executiveInitialize();
  directorPreviewInitialize();
  sharedInitialize();
@@ -3482,6 +3576,11 @@ async function cloudBoot(){
  $('messageRefresh').onclick=refreshMessages;
  $('messageForm').onsubmit=sendMessage;$('messageList').onclick=async e=>{const button=e.target.closest('[data-msg-delete]');if(!button||!confirm('이 쪽지를 삭제할까?'))return;const {error}=await cloud.client.from('schedule_messages').delete().eq('id',button.dataset.msgDelete);if(error){$('messageFeedback').textContent='삭제 오류: '+error.message;return}await refreshMessages()};
  $('cloudPasswordReveal').onchange=()=>{$('cloudPassword').type=$('cloudPasswordReveal').checked?'text':'password';};
+ $('cloudPasswordShowBoth').onchange=()=>{
+  const type=$('cloudPasswordShowBoth').checked?'text':'password';
+  $('cloudNewPassword').type=type;$('cloudConfirmPassword').type=type;
+ };
+ $('cloudPasswordForm').addEventListener('reset',()=>{$('cloudNewPassword').type='password';$('cloudConfirmPassword').type='password'});
  document.getElementById('cloudLogin').addEventListener('submit',async e=>{
   e.preventDefault();const email=$('cloudEmail').value.trim().toLowerCase();const password=$('cloudPassword').value;
   if(!email||password.length<8)return;
@@ -3530,9 +3629,12 @@ async function cloudBoot(){
   $('cloudForgot').disabled=true;
   $('cloudAuthMessage').textContent='비밀번호 재설정 메일을 요청 중…';
   try{
-   const {error}=await cloud.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+   // Redirect to the same origin's canonical app entry, independent of mobile PWA location.
+   const redirectTo=new URL('./index.html',location.href).href;
+   const {error}=await cloud.client.auth.resetPasswordForEmail(email,{redirectTo});
    if(error)throw error;
-   $('cloudAuthMessage').textContent='메일을 보낼 수 있는 계정이라면 재설정 링크가 도착합니다. 메일에서 가장 최근 링크를 열어 새 비밀번호를 입력하세요.';
+   $('cloudAuthMessage').textContent='재설정 메일 발송 요청이 완료됐어요. 받은편지함과 스팸함을 확인해 주세요.';
+   $('cloudResetFollowup').classList.remove('hide');
   }catch(err){
    const code=String(err?.code||'').toLowerCase();
    const msg=String(err?.message||'').toLowerCase();
@@ -3641,10 +3743,7 @@ async function cloudBoot(){
   if(session&&!cloud.active)setTimeout(cloudStartSession,100);
  });
  await cloudStartSession();
- if(incomingRecovery){
-  const {data}=await cloud.client.auth.getSession();
-  if(data?.session)setTimeout(cloudOpenRecoveryDialog,100);
- }
+
  setInterval(()=>{if(cloud.active&&(document.visibilityState==='visible'||window.goodjobMiniPiPActive)&&!document.querySelector('dialog[open]'))cloudReload().catch(()=>{})},30000);
  window.addEventListener('focus',()=>{if(cloud.active&&!cloud.needsSave)cloudReload().catch(()=>{})});
 }
