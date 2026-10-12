@@ -2220,7 +2220,7 @@ function executiveSheetPrint(){
  doc.document.close();doc.focus();setTimeout(()=>doc.print(),450);
 }
 function executiveSheetSetMonth(month){
- if(executiveState.loading||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(String(month||'')))return;
+ if(executiveState.loading||!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(month||'')))return;
  executiveSheetState.view='leaveMonth';
  if(month===executiveState.month){
   executiveRender();return;
