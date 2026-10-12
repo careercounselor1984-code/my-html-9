@@ -99,8 +99,7 @@ function render(){
  $('miniCount').textContent=events.length+'건';
  const container=$('miniEvents');container.replaceChildren();
  if(!events.length){
-  const empty=document.createElement('p');empty.className='mini-empty';empty.textContent='등록된 일정이 없습니다.
-＋ 빠른 상담등록으로 일정을 추가해 보세요.';
+  const empty=document.createElement('p');empty.className='mini-empty';empty.textContent='등록된 일정이 없습니다.\n＋ 빠른 상담등록으로 일정을 추가해 보세요.';
   empty.style.whiteSpace='pre-line';container.appendChild(empty);
  }else events.forEach(e=>container.appendChild(createEventButton(e)));
  $('miniSync').textContent=snap.sync||'일정 연결 상태 확인 중';
@@ -135,7 +134,7 @@ $('miniRefresh').addEventListener('click',async()=>{
  try{await bridge.refresh()}catch(e){$('miniSync').textContent='동기화 실패 · '+(e.message||String(e));$('miniSync').classList.add('error')}
  finally{refreshing=false;$('miniRefresh').disabled=false;render()}
 });
-$('miniFull').addEventListener('click',()=>{const w=window.open(fullUrl,'_blank','noopener');if(!w)location.assign(fullUrl)});
+$('miniFull').addEventListener('click',()=>{window.open(fullUrl,'_blank','noopener')});
 $('miniAdd').addEventListener('click',openQuick);
 $('miniAddWork').addEventListener('click',()=>bridge.addWork(selectedDate));
 $('miniCancel').addEventListener('click',()=>dlg.close());
