@@ -30,7 +30,7 @@ assert(html.includes("filter:'recipient_id=eq.'+staffId"),'real-time arrivals ar
 assert(html.includes("arrivalRealtimeStart();"),'real-time receiver starts after login');
 assert(html.includes("arrivalRealtimeStop();await cloud.client.auth.signOut()"),'logout closes the arrival receiver');
 assert(html.includes("arrivalRealtimeRefresh()"),'arrival notification refreshes authenticated server feed');
-assert(html.includes("!data.mine&&!data.already)pushNotify('arrival',eventId)"),'check-in sends immediate push once for another counselor');
+assert(html.includes("!data.mine&&data.newArrival===true)pushNotify('arrival',eventId)"),'check-in sends immediate push once for another counselor');
 assert(html.includes("window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000)"),'periodic inbox polling remains a fallback');
 assert(sw.includes("showNotification("),'existing service worker displays web push');
 assert(mini.includes("refreshArrivals(true)"),'team UI refreshes authoritative check-in state');
