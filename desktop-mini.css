@@ -67,3 +67,42 @@ html.desktop-mini #dlg { width:min(690px, calc(100vw - 16px)); }
 #desktopMiniRoot .mini-actions{max-width:215px}
 #desktopMiniRoot .mini-actions button{font-size:11px;padding:6px 7px}
 @media (max-width:370px){#desktopMiniRoot .mini-header{flex-wrap:wrap}#desktopMiniRoot .mini-actions{max-width:none;justify-content:flex-start}}
+
+/* Compact PiP document has NO inherited global CSS from the main page. */
+html.desktop-mini,html.desktop-mini body{width:100%;max-width:100%;min-width:0!important;overflow-x:hidden}
+html.desktop-mini *,html.desktop-mini *::before,html.desktop-mini *::after{box-sizing:border-box}
+html.desktop-mini body{margin:0;padding:0}
+html.desktop-mini button,html.desktop-mini input,html.desktop-mini select{font:inherit;color:inherit}
+html.desktop-mini button{cursor:pointer}
+#desktopMiniRoot{box-sizing:border-box!important;width:100%;min-width:0;max-width:540px;overflow-x:hidden;padding:10px 10px 22px}
+#desktopMiniRoot .mini-header{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:4px 1px 6px;min-width:0}
+#desktopMiniRoot .mini-header >div{min-width:0}
+#desktopMiniRoot .mini-heading{font-size:19px;line-height:1.25;margin:1px 0 0}
+#desktopMiniRoot .mini-actions{width:100%;max-width:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;justify-content:stretch}
+#desktopMiniRoot .mini-actions button{min-width:0;width:100%;font-size:11px;padding:8px 3px;white-space:nowrap}
+#desktopMiniRoot .mini-user{margin:0 2px 9px}
+#desktopMiniRoot .mini-toolbar{min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr)44px 34px;gap:5px;padding:7px}
+#desktopMiniRoot .mini-toolbar strong{display:block;font-size:13px;white-space:normal;word-break:keep-all}
+#desktopMiniRoot .mini-toolbar small{font-size:10px}
+#desktopMiniRoot .mini-toolbar button{min-width:0;width:100%;padding:6px 0;font-size:12px}
+#desktopMiniRoot .mini-card{min-width:0}
+#desktopMiniRoot .mini-events{min-width:0;padding:3px 8px 9px}
+#desktopMiniRoot .mini-event{min-width:0;padding:8px 7px;gap:9px}
+#desktopMiniRoot .mini-event-time{min-width:40px;font-size:12px}
+#desktopMiniRoot .mini-event-main{flex:1;min-width:0}
+#desktopMiniRoot .mini-event-main b{overflow-wrap:anywhere;word-break:break-word;font-size:12px}
+#desktopMiniRoot .mini-event.readonly{cursor:default;background:#f7f8fb;border-color:#e2e6ed;border-left:3px solid #9aa6b5}
+#desktopMiniRoot .mini-footer{min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+#desktopMiniRoot .mini-footer button{width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere;padding:10px 4px;font-size:12px}
+#desktopMiniRoot .mini-view-controls{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:2px 0 9px;padding:3px;background:#dce7f3;border-radius:10px}
+#desktopMiniRoot .mini-view-controls button,#desktopMiniRoot .mini-window-buttons button{min-width:0;font-size:12px;padding:7px 5px;border-radius:8px;border:0;background:transparent;white-space:normal}
+#desktopMiniRoot .mini-view-controls button[aria-pressed="true"],#desktopMiniRoot .mini-window-buttons button[aria-pressed="true"]{background:#fff;color:#1e5791;box-shadow:0 1px 6px #123e601a;font-weight:800}
+#desktopMiniRoot .mini-window-controls{margin-bottom:9px;background:#eff5fb;padding:7px;border:1px solid #d9e6f3;border-radius:10px}
+#desktopMiniRoot .mini-window-controls[hidden]{display:none!important}
+#desktopMiniRoot .mini-window-buttons{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+#desktopMiniRoot .mini-window-buttons button:disabled{opacity:.5;cursor:not-allowed}
+#desktopMiniRoot .mini-window-controls small{display:block;color:#657c93;text-align:center;font-size:10px;margin-top:5px}
+#desktopMiniQuick{box-sizing:border-box!important;width:min(420px,calc(100vw - 18px));max-width:calc(100vw - 18px);margin:auto}
+#desktopMiniQuick .mini-dialog-form{padding:14px;min-width:0}
+#desktopMiniQuick .mini-dialog-form input,#desktopMiniQuick .mini-dialog-form select{max-width:100%;min-width:0}
+@media(max-width:370px){#desktopMiniRoot .mini-header{flex-wrap:nowrap}#desktopMiniRoot .mini-actions{max-width:none}}
