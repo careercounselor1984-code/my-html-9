@@ -16,10 +16,12 @@ if(!miniMode){
  const target=document.querySelector('#mobileCloudActions');
  if(target){
   const btn=document.createElement('button');
-  btn.id='desktopMiniLaunch';btn.type='button';btn.textContent='▣ PC 미니 일정표';
+  btn.id='desktopMiniLaunch';btn.type='button';btn.textContent='▣ 미니 일정표';
   btn.title='작은 창으로 내 상담 일정표 열기';
   btn.addEventListener('click',launchMini);
   target.prepend(btn);
+  const quick=document.querySelector('#quickEntryOpen');
+  if(quick){const launcher=btn.cloneNode(true);launcher.id='desktopMiniToolbar';launcher.addEventListener('click',launchMini);quick.insertAdjacentElement('afterend',launcher)}
  }
  return;
 }
@@ -28,7 +30,7 @@ root.id='desktopMiniRoot';root.className='hide';
 root.setAttribute('aria-label','좋은일자리 PC 미니 일정표');
 root.innerHTML=`<header class="mini-header">
  <div><span class="mini-kicker">좋은일자리 · 상담 일정관리</span><h1 class="mini-heading">내 상담 일정</h1></div>
- <div class="mini-actions"><button type="button" id="miniRefresh" title="서버에서 새 일정 불러오기">↻ 새로고침</button><button type="button" id="miniFull" title="전체 일정표를 새 창에서 열기">전체 보기 ↗</button></div>
+ <div class="mini-actions"><button type="button" id="miniPin" title="크롬 지원 환경에서 설치 없이 화면 위에 고정">항상 위에</button><button type="button" id="miniRefresh" title="서버에서 새 일정 불러오기">↻ 동기화</button><button type="button" id="miniFull" title="전체 일정표를 새 창에서 열기">전체 ↗</button></div>
  </header>
  <p class="mini-user" id="miniUser"></p>
  <nav class="mini-toolbar" aria-label="일정 날짜 이동">
@@ -42,7 +44,7 @@ root.innerHTML=`<header class="mini-header">
  </section>
  <div class="mini-footer"><button id="miniAddWork" type="button">＋ 근무 일정</button><button id="miniAdd" class="mini-primary" type="button">＋ 빠른 상담등록</button></div>
  <div class="mini-sync" id="miniSync" role="status" aria-live="polite"></div>
- <p class="mini-note">기존 서버와 연결 · 켜진 창은 약 30초마다 새 일정을 확인합니다.</p>`;
+ <p class="mini-note" id="miniNote">별도 PC앱 설치 불필요 · 서버 자동 동기화</p>`;
 document.body.appendChild(root);
 const dlg=document.createElement('dialog');
 dlg.id='desktopMiniQuick';
@@ -57,7 +59,59 @@ dlg.innerHTML=`<form class="mini-dialog-form" id="miniForm">
  <div class="mini-dialog-buttons"><button type="button" id="miniCancel">취소</button><button class="primary" id="miniSave" type="submit">바로 등록</button></div>
 </form>`;
 document.body.appendChild(dlg);
-const $=id=>document.getElementById(id);
+let pipWindow=null;
+const $=id=>(pipWindow&&!pipWindow.closed?pipWindow.document.getElementById(id):null)||document.getElementById(id);
+function pipActive(){return !!pipWindow&&!pipWindow.closed}
+function restoreMini(){
+ window.goodjobMiniPiPActive=false;
+ pipWindow=null;
+ if(!document.body)return;
+ if(root.ownerDocument!==document)document.body.appendChild(root);
+ if(dlg.ownerDocument!==document)document.body.appendChild(dlg);
+ $('miniPin').textContent='항상 위에';
+ $('miniPin').setAttribute('aria-pressed','false');
+ $('miniNote').textContent='별도 PC앱 설치 불필요 · 서버 자동 동기화';
+ render();
+}
+function focusEditor(action){
+ if(pipActive())pipWindow.close();
+ window.focus();
+ action();
+}
+async function toggleAlwaysOnTop(){
+ if(pipActive()){pipWindow.close();return}
+ if(!window.isSecureContext||!window.documentPictureInPicture){
+  $('miniSync').textContent='이 크롬에서는 항상 위 기능을 사용할 수 없습니다. 미니창을 이용해 주세요.';
+  return;
+ }
+ // requestWindow must be called directly from the click handler's user activation.
+ let opened;
+ try{
+  opened=await window.documentPictureInPicture.requestWindow({width:420,height:660});
+  pipWindow=opened;
+  opened.document.documentElement.classList.add('desktop-mini');
+  opened.document.title='좋은일자리 · 화면 위 일정';
+  const link=opened.document.createElement('link');
+  link.rel='stylesheet';link.href=new URL('./desktop-mini.css',location.href).href;
+  opened.document.head.appendChild(link);
+  opened.document.body.append(root,dlg);
+  opened.addEventListener('pagehide',restoreMini,{once:true});
+  window.goodjobMiniPiPActive=true;
+  $('miniPin').textContent='고정 해제';
+  $('miniPin').setAttribute('aria-pressed','true');
+  $('miniNote').textContent='항상 위 표시 중 · 원래 미니창을 닫으면 함께 종료됩니다.';
+  render();
+  // The initiating browser window can be hidden behind other applications.
+  // Keep its existing sync loop active while the always-on-top view is visible.
+  bridge.refresh().catch(()=>{});
+ }catch(err){
+  if(opened&&!opened.closed)opened.close();
+  restoreMini();
+  $('miniSync').textContent='화면 위 표시 실패: '+(err?.message||String(err));
+  $('miniSync').classList.add('error');
+ }
+}
+
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let selectedDate=today(),followsToday=true,lastToday=selectedDate,refreshing=false,saving=false;
 function changeDay(offset){
@@ -80,7 +134,7 @@ function createEventButton(e){
  const name=document.createElement('b');name.textContent=e.title||e.type||'개인 일정';
  const desc=document.createElement('small');desc.textContent=e.type+(e.allDay?' · 종일':' · '+(e.end||''));
  main.append(name,desc);btn.append(time,main);
- btn.addEventListener('click',()=>bridge.edit(e.id));
+ btn.addEventListener('click',()=>focusEditor(()=>bridge.edit(e.id)));
  return btn;
 }
 function render(){
@@ -89,7 +143,7 @@ function render(){
  const online=!!snap.active;
  root.classList.toggle('hide',!online);
  if(gate)gate.classList.toggle('hide',online);
- if(!online)return;
+ if(!online){if(pipActive())pipWindow.close();return}
  $('miniUser').textContent=snap.center+' · '+snap.name;
  const chunks=selectedDate.split('-').map(Number);
  const d=new Date(chunks[0],chunks[1]-1,chunks[2]);
@@ -134,9 +188,11 @@ $('miniRefresh').addEventListener('click',async()=>{
  try{await bridge.refresh()}catch(e){$('miniSync').textContent='동기화 실패 · '+(e.message||String(e));$('miniSync').classList.add('error')}
  finally{refreshing=false;$('miniRefresh').disabled=false;render()}
 });
+$('miniPin').addEventListener('click',toggleAlwaysOnTop);
+if(!window.isSecureContext||!window.documentPictureInPicture)$('miniPin').hidden=true;
 $('miniFull').addEventListener('click',()=>{window.open(fullUrl,'_blank','noopener')});
 $('miniAdd').addEventListener('click',openQuick);
-$('miniAddWork').addEventListener('click',()=>bridge.addWork(selectedDate));
+$('miniAddWork').addEventListener('click',()=>focusEditor(()=>bridge.addWork(selectedDate)));
 $('miniCancel').addEventListener('click',()=>dlg.close());
 $('miniFormDate').addEventListener('change',availableTimes);
 $('miniForm').addEventListener('submit',async e=>{
@@ -146,12 +202,12 @@ $('miniForm').addEventListener('submit',async e=>{
  try{
   const result=await bridge.reserve(date,time,text);
   if(result.ok){dlg.close();selectedDate=date;followsToday=(date===today());render()}
-  else{$('miniFormStatus').textContent=result.message||'등록을 완료하지 못했습니다';if(result.detailOpen)dlg.close();availableTimes()}
+  else{$('miniFormStatus').textContent=result.message||'등록을 완료하지 못했습니다';if(result.detailOpen){dlg.close();focusEditor(()=>{})}availableTimes()}
  }catch(err){$('miniFormStatus').textContent='등록 실패: '+(err?.message||String(err))}
  finally{saving=false;btn.disabled=false;btn.textContent='바로 등록'}
 });
 window.addEventListener('goodjob:mini-update',render);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden||pipActive())render()});
 setInterval(()=>{const now=today();if(now!==lastToday){lastToday=now;if(followsToday)selectedDate=now}render()},45000);
 render();
 })();
