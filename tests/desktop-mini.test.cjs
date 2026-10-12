@@ -22,6 +22,14 @@ assert(sw.includes('./desktop-mini.js')&&sw.includes('./mini.webmanifest'),'mini
 assert(css.includes(':not(#cloudGate):not(#desktopMiniRoot)'),'login gate preserved in mini view');
 assert(!mini.includes('createClient('),'mini never creates a separate Supabase client');
 assert(!mini.includes('localStorage.setItem'),'mini does not store another copy of appointments');
+assert(mini.includes('window.documentPictureInPicture.requestWindow'),'Chrome always-on-top uses the browser API, not a Windows executable');
+assert(mini.includes("opened.document.body.append(root,dlg)"),'mini calendar and booking form move together into PiP');
+assert(mini.includes("opened.addEventListener('pagehide',restoreMini"),'closing PiP restores the normal mini browser window');
+assert(mini.includes("focusEditor(()=>bridge.edit(e.id))"),'editing in PiP brings the original editor to foreground');
+assert(mini.includes("if(!window.isSecureContext||!window.documentPictureInPicture)$('miniPin').hidden=true"),'unsupported browsers use normal mini window');
+assert(html.includes("document.visibilityState==='visible'||window.goodjobMiniPiPActive"),'server polling continues when browser PiP is visible');
+assert(mini.includes("quick.insertAdjacentElement('afterend',launcher)"),'main calendar has a direct mini button');
+
 
 const a=html.indexOf('window.goodjobMiniBridge={');
 const b=html.indexOf('\n};\n\nchangeView(currentView);',a);
