@@ -28,7 +28,7 @@ assert(html.includes("schedule_arrival_ack"),'arrival acknowledgement uses scope
 assert(html.includes("on('postgres_changes'"),'real-time arrival listens to PostgreSQL changes');
 assert(html.includes("filter:'recipient_id=eq.'+staffId"),'real-time arrivals are scoped by logged-in recipient');
 assert(html.includes("arrivalRealtimeStart();"),'real-time receiver starts after login');
-assert(html.includes("arrivalRealtimeStop();await cloud.client.auth.signOut()"),'logout closes the arrival receiver');
+assert(/arrivalRealtimeStop\(\);(?:directorPreviewExit\(\);)?await cloud\.client\.auth\.signOut\(\)/.test(html),'logout closes the arrival receiver');
 assert(html.includes("arrivalRealtimeRefresh()"),'arrival notification refreshes authenticated server feed');
 assert(html.includes("!data.mine&&data.newArrival===true)pushNotify('arrival',eventId)"),'check-in sends immediate push once for another counselor');
 assert(html.includes("window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000)"),'periodic inbox polling remains a fallback');
