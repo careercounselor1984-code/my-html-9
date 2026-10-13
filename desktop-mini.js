@@ -131,7 +131,7 @@ async function toggleAlwaysOnTop(){
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let selectedDate=today(),followsToday=true,lastToday=selectedDate,refreshing=false,saving=false;
 let miniScope='mine',miniRange='near';
-let arrivalsByEvent=new Map(),arrivalBusy=false,arrivalLast=0;
+let arrivalsByEvent=new Map(),arrivalNamesByEvent=new Map(),arrivalBusy=false,arrivalLast=0;
 function changeDay(offset){
  const p=selectedDate.split('-').map(Number);
  const d=new Date(p[0],p[1]-1,p[2]+offset);
@@ -152,7 +152,11 @@ function createEventButton(e){
  const time=document.createElement('span');time.className='mini-event-time';time.textContent=e.allDay?'종일':(e.time||'09:00');
  const main=document.createElement('span');main.className='mini-event-main';
  const name=document.createElement('b');
- const title=e.title||e.type||'일정';
+ // Other counselors' titles are masked in the general schedule snapshot.
+ // Display the unmasked client name ONLY for today's center arrival workflow.
+ const clientName=miniScope==='center'&&kind==='consult'&&e.date===today()
+   ?arrivalNamesByEvent.get(e.arrivalEventId):'';
+ const title=clientName||e.title||e.type||'일정';
  name.textContent=(miniScope==='center'?(e.owner+' · '):'')+title;
  const desc=document.createElement('small');desc.textContent=(e.type||'근무 일정')+(e.allDay?' · 종일':e.end?' · '+e.end:'')+(readonly?' · 조회만 가능':'');
  main.append(name,desc);el.append(time,main);
@@ -164,10 +168,10 @@ function createEventButton(e){
   const check=document.createElement('button');check.type='button';
   check.className='mini-arrival'+(arrival?' done':'');
   check.textContent=arrival?'도착 '+arrival.arrivedAt:'도착';
-  check.title=arrival?('도착 확인: '+arrival.markedBy):'내담자가 도착했으면 체크하여 담당 상담사에게 알립니다';
+  check.title=arrival?('도착 확인: '+arrival.markedBy):(title+' 내담자 도착 확인 · 담당: '+e.owner);
   check.disabled=!!arrival||arrivalBusy;
   if(!arrival)check.addEventListener('click',async()=>{
-   if(!confirm(e.owner+' 상담사의 '+e.time+' 상담 예약이 도착했나요?'))return;
+   if(!confirm(e.owner+' 상담사의 '+e.time+' · '+title+' 내담자가 도착했나요?'))return;
    if(arrivalBusy)return;arrivalBusy=true;check.disabled=true;check.textContent='처리 중';
    try{
     const out=await bridge.markArrival(e.arrivalEventId);
@@ -185,8 +189,10 @@ async function refreshArrivals(force=false){
  if(!force&&now-arrivalLast<24000)return;
  arrivalLast=now;
  try{
-  const items=await bridge.arrivals();
+  // Keep the ordinary shared schedule masked; names come from a separately authorized, date-limited RPC.
+  const [items,names]=await Promise.all([bridge.arrivals(),bridge.arrivalNames()]);
   arrivalsByEvent=new Map(items.map(x=>[x.eventId,x]));
+  arrivalNamesByEvent=new Map(names.filter(x=>typeof x.eventId==='string'&&typeof x.title==='string').map(x=>[x.eventId,x.title]));
   render();
  }catch(err){console.warn('도착 현황 갱신 지연',err?.message||err)}
 }
