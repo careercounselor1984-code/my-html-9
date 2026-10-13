@@ -3289,6 +3289,30 @@ function energySchoolInitialize(){
 const alerts={items:[],busy:false,shown:new Set(),snoozedUntil:0,staffId:null,initialized:false};
 function alertUnread(){return alerts.items.filter(x=>!x.seen)}
 
+/* 에너지고 출입 신청 알림: 방문 전 영업일에 1회만 팝업.
+   상담 일정 변경으로 signature가 달라지면 재알림, 미완료 현황은 계속 표시. */
+const ENERGY_POPUP_LOG_KEY='goodjob_energy_popup_once_per_visit_v1';
+function energyPopupPreviouslyShown(item){
+ if(item?.source!=='energy'||!cloud.identity?.id)return false;
+ try{
+  const stored=JSON.parse(localStorage.getItem(ENERGY_POPUP_LOG_KEY)||'{}');
+  return Number(stored[cloud.identity.id+'|'+item.key])>0;
+ }catch{return false}
+}
+function rememberEnergyPopup(items){
+ const energy=items.filter(x=>x.source==='energy');
+ if(!energy.length||!cloud.identity?.id)return;
+ try{
+  const stored=JSON.parse(localStorage.getItem(ENERGY_POPUP_LOG_KEY)||'{}');
+  const cutoff=Date.now()-60*24*60*60*1000;
+  for(const [key,value] of Object.entries(stored)){
+   if(!Number.isFinite(Number(value))||Number(value)<cutoff)delete stored[key];
+  }
+  for(const item of energy)stored[cloud.identity.id+'|'+item.key]=Date.now();
+  localStorage.setItem(ENERGY_POPUP_LOG_KEY,JSON.stringify(stored));
+ }catch(error){console.warn('에너지고 팝업 중복 방지 기록 지연',error?.message||error)}
+}
+
 /* Alert bridge to the trusted organization counseling journal (same GitHub origin).
    Never exposes auth tokens, client names, or request bodies. */
 const ALERT_BRIDGE_ORIGIN='https://careercounselor1984-code.github.io';
@@ -3500,8 +3524,9 @@ async function alertPoll(pop=true){
   }catch(err){console.warn('내담자 도착 알림 조회 지연',err?.message||err)}
   alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
   alertDraw();
-  const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key));
+  const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key)&&!energyPopupPreviouslyShown(x));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
+   rememberEnergyPopup(fresh);
    fresh.forEach(x=>alerts.shown.add(x.key));$('alertDialog').showModal();
   }
  }catch(e){console.warn('업무 알림 조회 지연',e?.message||'')}
