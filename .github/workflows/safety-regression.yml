@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "fix/schedule-safety-20261011"
+      - main
   pull_request:
     branches:
       - main
@@ -18,6 +19,7 @@ jobs:
         run: |
           node tests/schedule-safety.test.cjs
           node tests/desktop-mini.test.cjs
+          node tests/energy-alert-once.test.cjs
 
       - name: Headless Chrome initial-screen smoke (unauthenticated)
         shell: bash
