@@ -163,3 +163,9 @@ html.desktop-mini #dlg .field.full{grid-column:1/-1}
 #desktopMiniRoot .mini-item-row>.mini-event{flex:1 1 auto;min-width:0}
 #desktopMiniRoot .mini-item-row>.mini-arrival{min-width:64px;font-size:11px;padding:5px;flex:0 0 auto}
 @media(max-width:390px){#desktopMiniRoot .mini-item-row>.mini-arrival{min-width:56px;font-size:10px;padding:4px}}
+
+/* Show the entire participant name in the same-center arrival cards; keep arrival action tappable. */
+#desktopMiniRoot .mini-item-row>.mini-event{flex:1 1 0;min-width:0}
+#desktopMiniRoot .mini-item-row .mini-event-main{min-width:0}
+#desktopMiniRoot .mini-item-row .mini-event-main b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;word-break:break-word;line-height:1.4}
+#desktopMiniRoot .mini-item-row>.mini-arrival{flex:0 0 auto;align-self:stretch}
