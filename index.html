@@ -4586,7 +4586,7 @@ function buildDailyPrint(date,{audience='visitor'}={}){
   html+='</tr>';
  }
  html+='</tbody></table>';
- const notes=sharedNotices(date);
+ const notes=includeWork?sharedNotices(date):[];
  if(notes.length)html+='<div class="day-print-footnote">'+notes.map(n=>escapeHtml(n.type+': '+n.title)).join(' · ')+'</div>';
  html+='</div>';
  let target=$('schedulePrintOneDay');
@@ -4738,7 +4738,7 @@ function renderDailyShareCanvas(){
    const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
    ctx.strokeStyle='#6d99c5';ctx.lineWidth=3;
    ctx.strokeRect(x+3,top+3,colWidth-6,spanHeight-6);
-   const twoLines=spanHeight>=145&&/^\\d+시간 연차$/.test(label);
+   const twoLines=spanHeight>=145&&/^\d+시간 연차$/.test(label);
    const lines=twoLines?[label.replace(' 연차',''),'연차']:[label];
    const badgeHeight=Math.min(spanHeight-16,twoLines?120:60);
    const badgeWidth=Math.min(colWidth-20,Math.max(132,colWidth*.80));
