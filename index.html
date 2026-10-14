@@ -749,7 +749,6 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  #schedulePrintOneDay .day-print-blocked{background:#e9ebef!important}
  #schedulePrintOneDay .day-print-closed,#schedulePrintOneDay .day-print-ongoing{font-size:9px;color:#8793a0}
  #schedulePrintOneDay .day-print-table tbody td.day-print-leave{background:repeating-linear-gradient(135deg,#edf4fb 0px,#edf4fb 12px,#c8d9ea 12px,#c8d9ea 14px)!important}
- #schedulePrintOneDay .day-print-leave-label{display:inline-block;padding:2px 6px;border:1px solid #86a5c4;border-radius:3px;background:white;font-weight:900;color:#1c476b}
  #schedulePrintOneDay .day-print-footnote{font-size:10px;border-top:1px solid #cbd5e1;margin-top:2mm;padding:1mm 1.5mm;overflow-wrap:anywhere}
 }
 </style>
@@ -4572,17 +4571,17 @@ function buildDailyPrint(date,{audience='visitor'}={}){
   for(const name of owners){
    const closed=isFridayClosed(date,t)||isClosedDay(date);
    const matching=events.filter(e=>e.owner===name&&matchingAt(e,t));
-   const leave=includeWork&&matching.some(isLeavePrintEvent);
+   const leaveEvent=includeWork&&!closed?matching.find(isLeavePrintEvent):null;
+   const leave=!!leaveEvent;
    const first=matching.filter(e=>e.allDay?t==='09:00':e.time===t);
    let cellContent='';
    if(closed)cellContent='<span class="day-print-closed">비근무</span>';
    else if(first.length){
-    // Show the leave label once; all covered slots receive a hatched background.
-    cellContent=first.map(e=>isLeavePrintEvent(e)
-     ?'<span class="day-print-leave-label">'+escapeHtml(e.type)+'</span>'
-     :'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
+    // Leave itself is drawn as one continuous band by the staff-image renderer.
+    cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
    }else if(matching.some(e=>!isLeavePrintEvent(e)))cellContent='<span class="day-print-ongoing">계속</span>';
-   html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':''].filter(Boolean).join(' ')+'">'+cellContent+'</td>';
+   const leaveMeta=leave?' data-leave-id="'+escapeHtml(String(leaveEvent.id||leaveEvent.owner+'|'+leaveEvent.time+'|'+leaveEvent.type))+'" data-leave-type="'+escapeHtml(leaveEvent.type)+'"':'';
+   html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':''].filter(Boolean).join(' ')+'"'+leaveMeta+'>'+cellContent+'</td>';
   }
   html+='</tr>';
  }
@@ -4661,6 +4660,8 @@ function renderDailyShareCanvas(){
   return {time:cells[0]?.textContent.trim()||'',lines,height,
    blocked:cells.slice(1).map(el=>el.classList.contains('day-print-blocked')),
    leave:cells.slice(1).map(el=>el.classList.contains('day-print-leave')),
+   leaveId:cells.slice(1).map(el=>el.dataset.leaveId||''),
+   leaveType:cells.slice(1).map(el=>el.dataset.leaveType||''),
    hour:tr.classList.contains('hour-start')};
  });
  const note=page.querySelector('.day-print-footnote')?.textContent.trim()||'';
@@ -4696,7 +4697,9 @@ function renderDailyShareCanvas(){
   ctx.fillText(columns[i+1],x+colWidth/2,y+headerHeight/2,colWidth-16);
  }
  y+=headerHeight;
+ const rowTops=[];
  for(let r=0;r<prepared.length;r++){
+  rowTops.push(y);
   const row=prepared[r],bg=r%2===0?'#ffffff':'#f5f9fd';
   boxCell(pad,y,timeWidth,row.height,row.hour?'#e5eef8':'#f1f5fa',row.hour);
   ctx.fillStyle='#294766';ctx.font='800 27px '+fontFamily;
@@ -4715,16 +4718,48 @@ function renderDailyShareCanvas(){
     ctx.strokeStyle='#bdd0e3';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
    }
    const lines=row.lines[i];if(!lines?.length)continue;
-   if(isLeave){
-    ctx.fillStyle='rgba(255,255,255,.93)';
-    ctx.fillRect(x+8,y+(row.height-44)/2,colWidth-16,44);
-   }
-   ctx.fillStyle=row.blocked[i]?'#7b8795':isLeave?'#1c476b':'#1a344f';
-   ctx.font=(isLeave?'800 ':'700 ')+labelSize+'px '+fontFamily;
+   ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
+   ctx.font='700 '+labelSize+'px '+fontFamily;
    const first=y+(row.height-(lines.length-1)*lineHeight)/2;
    for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],x+colWidth/2,first+n*lineHeight,colWidth-22);
   }
   y+=row.height;
+ }
+ // Draw one outlined, vertically extended leave block per contiguous leave period.
+ // The band spans multiple 30-minute cells; the type appears once in the center.
+ for(let i=0;i<count;i++){
+  for(let start=0;start<prepared.length;){
+   const current=prepared[start],key=current.leaveId[i];
+   if(!current.leave[i]||!key){start++;continue;}
+   let end=start+1;
+   while(end<prepared.length&&prepared[end].leave[i]&&prepared[end].leaveId[i]===key)end++;
+   const x=pad+timeWidth+i*colWidth;
+   const top=rowTops[start],bottom=rowTops[end-1]+prepared[end-1].height;
+   const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
+   ctx.strokeStyle='#6d99c5';ctx.lineWidth=3;
+   ctx.strokeRect(x+3,top+3,colWidth-6,spanHeight-6);
+   const twoLines=spanHeight>=145&&/^\\d+시간 연차$/.test(label);
+   const lines=twoLines?[label.replace(' 연차',''),'연차']:[label];
+   const badgeHeight=Math.min(spanHeight-16,twoLines?120:60);
+   const badgeWidth=Math.min(colWidth-20,Math.max(132,colWidth*.80));
+   const badgeX=x+(colWidth-badgeWidth)/2;
+   const badgeY=top+(spanHeight-badgeHeight)/2;
+   ctx.fillStyle='#eff6ff';
+   ctx.fillRect(badgeX,badgeY,badgeWidth,badgeHeight);
+   ctx.strokeStyle='#7199bf';ctx.lineWidth=2;
+   ctx.strokeRect(badgeX+.5,badgeY+.5,badgeWidth-1,badgeHeight-1);
+   ctx.fillStyle='#16466f';ctx.textAlign='center';
+   if(twoLines){
+    ctx.font='800 29px '+fontFamily;
+    ctx.fillText(lines[0],x+colWidth/2,badgeY+badgeHeight*.31,badgeWidth-16);
+    ctx.font='900 46px '+fontFamily;
+    ctx.fillText(lines[1],x+colWidth/2,badgeY+badgeHeight*.70,badgeWidth-16);
+   }else{
+    ctx.font='900 '+Math.min(39,Math.max(22,Math.floor(colWidth/6)))+'px '+fontFamily;
+    ctx.fillText(label,x+colWidth/2,top+spanHeight/2,badgeWidth-18);
+   }
+   start=end;
+  }
  }
  if(notes.length){
   ctx.fillStyle='#edf3f9';ctx.fillRect(pad,y+13,tableWidth,notes.length*31+18);
