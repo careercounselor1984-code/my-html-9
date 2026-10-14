@@ -930,7 +930,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .legend{display:flex!important;gap:6px!important;flex-wrap:wrap;margin:11px 0!important;font-size:11px;color:#526d86}
  body[data-view="teamDay"] .legend span{display:inline-flex;align-items:center;gap:5px;border:1px solid #e8eef5;background:#f6f9fc;border-radius:40px;padding:5px 9px;white-space:nowrap}
  body[data-view="teamDay"] .legend i{width:8px;height:8px;margin:0;border-radius:50%;flex:none}
- body[data-view="teamDay"] .legend span:nth-child(3) i{background:#89a8c7!important}
+ body[data-view="teamDay"] .legend span:nth-child(3) i{background:#c789a4!important}
  body[data-view="teamDay"] .scroll{max-height:min(76vh,970px);overflow:auto;overscroll-behavior:contain;border:1px solid #d9e5f1;border-radius:11px;scrollbar-color:#c5d5e5 #f5f8fc}
  body[data-view="teamDay"] .team-day-overview{position:sticky;left:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 13px;background:linear-gradient(105deg,#f3f8fe,#fafcff);border-bottom:1px solid #dbe7f3}
  body[data-view="teamDay"] .team-day-overview-title{display:flex;align-items:center;gap:9px;color:#2c4e6c;font-size:12px}
@@ -959,8 +959,8 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .team-day-table .teamday-progress-iap{background:#d5efe3;border-color:#279067}
  body[data-view="teamDay"] .team-day-table .teamday-progress-trip{background:#e5dafa;border-color:#8660ca}
  body[data-view="teamDay"] .team-day-table .teamday-progress-field{background:#fbe9c7;border-color:#cd943c}
- body[data-view="teamDay"] .team-day-table td.teamday-leave,body[data-view="teamDay"] .team-day-table tbody tr.half-hour td.teamday-leave{background:repeating-linear-gradient(135deg,#f6f8fd 0,#f6f8fd 12px,#e5edf7 12px,#e5edf7 14px)!important;box-shadow:inset 4px 0 #9cb5d0;text-align:center;padding:0 6px}
- body[data-view="teamDay"] .team-day-table .teamday-leave-word{display:inline-block;color:#325b80;line-height:1.05;text-align:center;letter-spacing:-.02em;text-shadow:0 1px 0 #fff}
+ body[data-view="teamDay"] .team-day-table td.teamday-leave,body[data-view="teamDay"] .team-day-table tbody tr.half-hour td.teamday-leave{background:repeating-linear-gradient(135deg,#fbf2f6 0,#fbf2f6 12px,#e7ccd8 12px,#e7ccd8 14px)!important;box-shadow:inset 4px 0 #c789a4;text-align:center;padding:0 6px}
+ body[data-view="teamDay"] .team-day-table .teamday-leave-word{display:inline-block;color:#8b4763;line-height:1.05;text-align:center;letter-spacing:-.02em;text-shadow:0 1px 0 #fff}
  body[data-view="teamDay"] .team-day-table .teamday-leave-small{font-size:13px;font-weight:800;margin-top:6px}
  body[data-view="teamDay"] .team-day-table .teamday-leave-large{font-size:18px;font-weight:900;margin-bottom:5px}
  body[data-view="teamDay"] .team-day-table .hint-cell{font-size:11px;color:#8b98a7}
@@ -4805,7 +4805,7 @@ function renderDailyShareCanvas(){
   for(let i=0;i<count;i++){
    const x=pad+timeWidth+i*colWidth;
    const isLeave=row.leave[i];
-   boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':isLeave?'#edf4fb':bg,row.hour);
+   boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':isLeave?'#fbf2f6':bg,row.hour);
    const lines=row.lines[i];if(!lines?.length)continue;
    ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
    ctx.font='700 '+labelSize+'px '+fontFamily;
@@ -4826,20 +4826,20 @@ function renderDailyShareCanvas(){
    const top=rowTops[start],bottom=rowTops[end-1]+prepared[end-1].height;
    const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
    // Continuous hatching and soft central text, no hard white label box.
-   ctx.save();ctx.fillStyle='#edf5fb';ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
+   ctx.save();ctx.fillStyle='#fbf2f6';ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
    ctx.beginPath();ctx.rect(x+5,top+4,colWidth-10,spanHeight-8);ctx.clip();ctx.beginPath();
    for(let offset=-spanHeight;offset<colWidth+spanHeight;offset+=23){
     ctx.moveTo(x+offset,top+spanHeight);ctx.lineTo(x+offset+spanHeight,top);
    }
-   ctx.strokeStyle='#d3e2f0';ctx.lineWidth=2;ctx.stroke();ctx.restore();
-   ctx.fillStyle='#a9c4e1';ctx.fillRect(x+4,top+4,5,spanHeight-8);
-   ctx.strokeStyle='#8eaccb';ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
+   ctx.strokeStyle='#e7ccd8';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+   ctx.fillStyle='#c789a4';ctx.fillRect(x+4,top+4,5,spanHeight-8);
+   ctx.strokeStyle='#c789a4';ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
    const cx=x+colWidth/2,cy=top+spanHeight/2;
    const wash=ctx.createRadialGradient(cx,cy,8,cx,cy,Math.min(colWidth*.73,spanHeight*.67));
-   wash.addColorStop(0,'rgba(237,246,253,.97)');wash.addColorStop(.62,'rgba(237,246,253,.91)');wash.addColorStop(1,'rgba(237,246,253,0)');
+   wash.addColorStop(0,'rgba(251,242,246,.98)');wash.addColorStop(.62,'rgba(251,242,246,.91)');wash.addColorStop(1,'rgba(251,242,246,0)');
    ctx.fillStyle=wash;ctx.fillRect(x+6,top+5,colWidth-12,spanHeight-10);
    const duration=label.match(/^(\d+(?:\.\d+)?)시간 연차$/);
-   ctx.fillStyle='#204b70';ctx.textAlign='center';
+   ctx.fillStyle='#8b4763';ctx.textAlign='center';
    if(duration&&spanHeight>=140){
     ctx.font='700 '+Math.min(31,Math.max(22,colWidth*.11))+'px '+fontFamily;
     ctx.fillText(duration[1]+'시간',cx,cy-29,colWidth-32);
