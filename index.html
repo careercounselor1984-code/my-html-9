@@ -920,7 +920,66 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 .executive-sheet-date-nav .executive-sheet-today-btn{min-width:52px;padding:7px 10px;color:#215b99;background:#e9f3ff;border-color:#bed6ef}
 .executive-sheet-date-nav .executive-sheet-today-btn:disabled{color:#7893aa;background:#f2f6fb;opacity:.78}
 @media(max-width:760px){#executiveSheetDayNav{flex:1 1 100%;justify-content:flex-start;flex-wrap:wrap}}
-</style></head>
+</style><style id="team-day-ui-refresh-20261014">
+/* Center daily board only; personal views and visitor printing stay separate. */
+@media screen{
+ body[data-view="teamDay"] .sheet{padding:18px!important;border-color:#dce7f1;box-shadow:0 8px 28px #16345210}
+ body[data-view="teamDay"] .sheet-head{align-items:center;padding:0 1px 12px!important;margin:0;border-bottom:1px solid #e5edf5}
+ body[data-view="teamDay"] .sheet-title{font-size:20px!important;font-weight:850;letter-spacing:-.025em;color:#1c3856}
+ body[data-view="teamDay"] .sheet-meta{display:block!important;font-size:12px;margin-top:5px;color:#71859b}
+ body[data-view="teamDay"] .legend{display:flex!important;gap:6px!important;flex-wrap:wrap;margin:11px 0!important;font-size:11px;color:#526d86}
+ body[data-view="teamDay"] .legend span{display:inline-flex;align-items:center;gap:5px;border:1px solid #e8eef5;background:#f6f9fc;border-radius:40px;padding:5px 9px;white-space:nowrap}
+ body[data-view="teamDay"] .legend i{width:8px;height:8px;margin:0;border-radius:50%;flex:none}
+ body[data-view="teamDay"] .scroll{max-height:min(76vh,970px);overflow:auto;overscroll-behavior:contain;border:1px solid #d9e5f1;border-radius:11px;scrollbar-color:#c5d5e5 #f5f8fc}
+ body[data-view="teamDay"] .team-day-overview{position:sticky;left:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 13px;background:linear-gradient(105deg,#f3f8fe,#fafcff);border-bottom:1px solid #dbe7f3}
+ body[data-view="teamDay"] .team-day-overview-title{display:flex;align-items:center;gap:9px;color:#2c4e6c;font-size:12px}
+ body[data-view="teamDay"] .team-day-overview-title strong{font-size:13px;font-weight:850}
+ body[data-view="teamDay"] .team-day-marker{font-size:10px;font-weight:850;color:#376797;border:1px solid #cadbee;background:#e8f2fc;border-radius:5px;padding:4px 7px}
+ body[data-view="teamDay"] .team-day-metrics{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+ body[data-view="teamDay"] .team-day-metrics span{font-size:11px;color:#60768b;background:white;border:1px solid #e0eaf4;border-radius:6px;padding:5px 9px;white-space:nowrap}
+ body[data-view="teamDay"] .team-day-metrics b{font-size:12px;color:#20588e;font-weight:850;margin-left:3px}
+ body[data-view="teamDay"] .team-day-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;margin:0}
+ body[data-view="teamDay"] .team-day-table thead th{position:sticky;top:0;z-index:3;background:#eaf2fa!important;color:#264766;font-size:15px;font-weight:850;height:49px;padding:10px 7px;border-top:0;border-bottom:1px solid #cbdcec;box-shadow:0 2px 4px #1741690a}
+ body[data-view="teamDay"] .team-day-table thead th:first-child{left:0;z-index:5;width:76px}
+ body[data-view="teamDay"] .team-day-table tbody tr .time{position:sticky;left:0;z-index:2;width:76px;vertical-align:middle;text-align:center;background:#f5f9fd!important;color:#49647e;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums;padding:6px 4px}
+ body[data-view="teamDay"] .team-day-table tbody tr.half-hour .time{background:#f9fbfd!important;color:#71869b;font-size:12px}
+ body[data-view="teamDay"] .team-day-table tbody tr.hour-start>th,body[data-view="teamDay"] .team-day-table tbody tr.hour-start>td{border-top:2px solid #c8d7e6}
+ body[data-view="teamDay"] .team-day-table th,body[data-view="teamDay"] .team-day-table td{border-right:1px solid #e5edf5;border-bottom:1px solid #e7eef6}
+ body[data-view="teamDay"] .team-day-table td.slot{height:51px;padding:6px 8px;vertical-align:middle;cursor:default;background:white}
+ body[data-view="teamDay"] .team-day-table tbody tr.half-hour td.slot:not(.teamday-leave):not(.blocked){background:#f8fbfe}
+ body[data-view="teamDay"] .team-day-table td.slot:hover:not(.blocked):not(.teamday-leave){background:#f2f8ff}
+ body[data-view="teamDay"] .team-day-table .entry{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;margin:0;min-height:34px;border-left-width:3px;border-radius:6px;padding:7px 9px;line-height:1.25;white-space:normal;box-shadow:inset 0 0 0 1px #20528209}
+ body[data-view="teamDay"] .team-day-table .entry+.entry{margin-top:4px}
+ body[data-view="teamDay"] .team-day-table .entry strong{font-size:clamp(12px,1.1vw,15px);font-weight:850;letter-spacing:-.015em}
+ body[data-view="teamDay"] .team-day-table .entry .pilltype{font-size:clamp(11px,1vw,13px);font-weight:700;white-space:normal;margin:0;opacity:.88}
+ body[data-view="teamDay"] .team-day-table .entry small{width:100%;margin-top:3px;font-size:10px}
+ body[data-view="teamDay"] .team-day-table .teamday-progress{display:block;height:7px;max-width:60%;border-radius:7px;background:#d5e6f6;border-left:3px solid #7aaad5;margin:0 0 0 3px;opacity:.7}
+ body[data-view="teamDay"] .team-day-table .teamday-progress-iap{background:#d5efe3;border-color:#279067}
+ body[data-view="teamDay"] .team-day-table .teamday-progress-trip{background:#e5dafa;border-color:#8660ca}
+ body[data-view="teamDay"] .team-day-table .teamday-progress-field{background:#fbe9c7;border-color:#cd943c}
+ body[data-view="teamDay"] .team-day-table td.teamday-leave,body[data-view="teamDay"] .team-day-table tbody tr.half-hour td.teamday-leave{background:repeating-linear-gradient(135deg,#f6f8fd 0,#f6f8fd 12px,#e5edf7 12px,#e5edf7 14px)!important;box-shadow:inset 4px 0 #9cb5d0;text-align:center;padding:0 6px}
+ body[data-view="teamDay"] .team-day-table .teamday-leave-word{display:inline-block;color:#325b80;line-height:1.05;text-align:center;letter-spacing:-.02em;text-shadow:0 1px 0 #fff}
+ body[data-view="teamDay"] .team-day-table .teamday-leave-small{font-size:13px;font-weight:800;margin-top:6px}
+ body[data-view="teamDay"] .team-day-table .teamday-leave-large{font-size:18px;font-weight:900;margin-bottom:5px}
+ body[data-view="teamDay"] .team-day-table .hint-cell{font-size:11px;color:#8b98a7}
+ body[data-view="teamDay"] .team-day-table td.blocked{background:#f0f2f6!important}
+}
+@media screen and (max-width:760px){
+ body[data-view="teamDay"] .sheet{padding:10px!important}
+ body[data-view="teamDay"] .sheet-title{font-size:18px!important}
+ body[data-view="teamDay"] .sheet-meta{font-size:11px!important}
+ body[data-view="teamDay"] .legend{gap:5px!important;margin:8px 0!important}
+ body[data-view="teamDay"] .legend span{font-size:10px;padding:5px 7px}
+ body[data-view="teamDay"] .scroll{max-height:70dvh}
+ body[data-view="teamDay"] .team-day-overview{padding:8px 10px}
+ body[data-view="teamDay"] .team-day-overview-title strong{font-size:12px}
+ body[data-view="teamDay"] .team-day-metrics{gap:5px}
+ body[data-view="teamDay"] .team-day-metrics span{font-size:10px;padding:4px 7px}
+ body[data-view="teamDay"] .team-day-table td.slot{height:49px;padding:4px 6px}
+ body[data-view="teamDay"] .team-day-table .entry{padding:7px 8px}
+}
+</style>
+</head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
 <section id="cloudGate" class="cloud-gate">
