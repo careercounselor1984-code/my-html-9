@@ -4062,8 +4062,43 @@ function personalWeek(){
  }
  return h;
 }
-function teamDay(){const date=dateKey(focusDate),names=employees(currentCenter());let h=`<table class="timetable" style="--staff-count:${names.length};min-width:${Math.max(700,70+names.length*116)}px"><thead><tr><th>시간</th>`+names.map(n=>`<th>${escapeHtml(n)}</th>`).join('')+'</tr></thead><tbody>';
- const counts=allEventsFor(date);for(const t of slots()){const closed=isFridayClosed(date,t)||isClosedDay(date);h+=`<tr><th class="time">${t}</th>`;for(const n of names){h+=`<td class="slot ${closed?'blocked':holidays(date).length?'dayoff':''}" data-date="${date}" data-time="${t}" data-owner="${escapeHtml(n)}">`;if(!closed){for(const ev of counts.filter(e=>e.owner===n&&matchingAt(e,t))){const repeated=ev.allDay?t!=='09:00':t!==ev.time;if(!repeated)h+=eventBlock(ev);else h+=`<div class="entry entry-${typeClass(ev)} gap" style="height:12px" title="${escapeHtml(ev.type)} 계속"></div>`}}else h+='<span class="hint-cell">비근무</span>';h+='</td>'}h+='</tr>'}return h+'</tbody></table>'}
+function teamDay(){
+ const date=dateKey(focusDate),names=employees(currentCenter()),events=allEventsFor(date),daySlots=slots();
+ const consultCount=events.filter(isConsultEvent).length,workCount=events.filter(isWorkEvent).length;
+ let h='<div class="team-day-overview"><div class="team-day-overview-title"><span class="team-day-marker">센터 전체</span><strong>시간대별 상담 현황</strong></div><div class="team-day-metrics"><span>상담 예약 <b>'+consultCount+'건</b></span><span>상담사 <b>'+names.length+'명</b></span><span>근무·외부 일정 <b>'+workCount+'건</b></span></div></div>';
+ h+='<table class="timetable team-day-table" style="--staff-count:'+names.length+';min-width:'+Math.max(690,82+names.length*160)+'px" aria-label="센터 일일 상담 일정표"><thead><tr><th scope="col">시간</th>'+names.map(n=>'<th scope="col">'+escapeHtml(n)+'</th>').join('')+'</tr></thead><tbody>';
+ for(const t of daySlots){
+  const closed=isFridayClosed(date,t)||isClosedDay(date);
+  h+='<tr class="'+(t.endsWith(':00')?'hour-start':'half-hour')+'"><th scope="row" class="time">'+t+'</th>';
+  for(const name of names){
+   const active=closed?[]:events.filter(e=>e.owner===name&&matchingAt(e,t));
+   const leave=active.find(isLeavePrintEvent);
+   const cls=['slot',closed?'blocked':'',!closed&&holidays(date).length?'dayoff':'',leave?'teamday-leave':''].filter(Boolean).join(' ');
+   h+='<td class="'+cls+'" data-date="'+date+'" data-time="'+t+'" data-owner="'+escapeHtml(name)+'">';
+   if(closed)h+='<span class="hint-cell">비근무</span>';
+   else {
+    for(const ev of active){
+     if(isLeavePrintEvent(ev))continue;
+     const repeated=ev.allDay?t!=='09:00':t!==ev.time;
+     if(!repeated)h+=eventBlock(ev);
+     else h+='<span class="teamday-progress teamday-progress-'+typeClass(ev)+'" title="'+escapeHtml(ev.type)+' 진행 중"></span>';
+    }
+    if(leave){
+     const range=daySlots.filter(slot=>!isFridayClosed(date,slot)&&!isClosedDay(date)&&matchingAt(leave,slot));
+     const i=range.indexOf(t),middle=Math.floor((range.length-1)/2);
+     const duration=String(leave.type).match(/^(\d+(?:\.\d+)?)시간 연차$/);
+     if(duration&&range.length>=4){
+      if(i===Math.floor(range.length/2)-1)h+='<span class="teamday-leave-word teamday-leave-small">'+escapeHtml(duration[1])+'시간</span>';
+      if(i===Math.floor(range.length/2))h+='<strong class="teamday-leave-word teamday-leave-large">연차</strong>';
+     }else if(i===middle)h+='<strong class="teamday-leave-word teamday-leave-large">'+escapeHtml(leave.type)+'</strong>';
+    }
+   }
+   h+='</td>';
+  }
+  h+='</tr>';
+ }
+ return h+'</tbody></table>';
+}
 function workSlots(date){return isClosedDay(date)?[]:slots().filter(t=>!isFridayClosed(date,t))}
 function coveredSlots(e,date){return workSlots(date).filter(t=>matchingAt(e,t))}
 function leaveDuration(e){if(e.allDay)return workSlots(e.date).length*30;return coveredSlots(e,e.date).length*30}
@@ -4708,15 +4743,6 @@ function renderDailyShareCanvas(){
    const x=pad+timeWidth+i*colWidth;
    const isLeave=row.leave[i];
    boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':isLeave?'#edf4fb':bg,row.hour);
-   if(isLeave){
-    ctx.save();ctx.beginPath();ctx.rect(x+2,y+2,colWidth-4,row.height-4);ctx.clip();
-    ctx.beginPath();
-    for(let offset=-row.height;offset<colWidth+row.height;offset+=19){
-     ctx.moveTo(x+offset,y+row.height);
-     ctx.lineTo(x+offset+row.height,y);
-    }
-    ctx.strokeStyle='#bdd0e3';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
-   }
    const lines=row.lines[i];if(!lines?.length)continue;
    ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
    ctx.font='700 '+labelSize+'px '+fontFamily;
@@ -4736,27 +4762,29 @@ function renderDailyShareCanvas(){
    const x=pad+timeWidth+i*colWidth;
    const top=rowTops[start],bottom=rowTops[end-1]+prepared[end-1].height;
    const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
-   ctx.strokeStyle='#6d99c5';ctx.lineWidth=3;
-   ctx.strokeRect(x+3,top+3,colWidth-6,spanHeight-6);
-   const twoLines=spanHeight>=145&&/^\d+시간 연차$/.test(label);
-   const lines=twoLines?[label.replace(' 연차',''),'연차']:[label];
-   const badgeHeight=Math.min(spanHeight-16,twoLines?120:60);
-   const badgeWidth=Math.min(colWidth-20,Math.max(132,colWidth*.80));
-   const badgeX=x+(colWidth-badgeWidth)/2;
-   const badgeY=top+(spanHeight-badgeHeight)/2;
-   ctx.fillStyle='#eff6ff';
-   ctx.fillRect(badgeX,badgeY,badgeWidth,badgeHeight);
-   ctx.strokeStyle='#7199bf';ctx.lineWidth=2;
-   ctx.strokeRect(badgeX+.5,badgeY+.5,badgeWidth-1,badgeHeight-1);
-   ctx.fillStyle='#16466f';ctx.textAlign='center';
-   if(twoLines){
-    ctx.font='800 29px '+fontFamily;
-    ctx.fillText(lines[0],x+colWidth/2,badgeY+badgeHeight*.31,badgeWidth-16);
-    ctx.font='900 46px '+fontFamily;
-    ctx.fillText(lines[1],x+colWidth/2,badgeY+badgeHeight*.70,badgeWidth-16);
+   // Continuous hatching and soft central text, no hard white label box.
+   ctx.save();ctx.fillStyle='#edf5fb';ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
+   ctx.beginPath();ctx.rect(x+5,top+4,colWidth-10,spanHeight-8);ctx.clip();ctx.beginPath();
+   for(let offset=-spanHeight;offset<colWidth+spanHeight;offset+=23){
+    ctx.moveTo(x+offset,top+spanHeight);ctx.lineTo(x+offset+spanHeight,top);
+   }
+   ctx.strokeStyle='#d3e2f0';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+   ctx.fillStyle='#a9c4e1';ctx.fillRect(x+4,top+4,5,spanHeight-8);
+   ctx.strokeStyle='#8eaccb';ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
+   const cx=x+colWidth/2,cy=top+spanHeight/2;
+   const wash=ctx.createRadialGradient(cx,cy,8,cx,cy,Math.min(colWidth*.73,spanHeight*.67));
+   wash.addColorStop(0,'rgba(237,246,253,.97)');wash.addColorStop(.62,'rgba(237,246,253,.91)');wash.addColorStop(1,'rgba(237,246,253,0)');
+   ctx.fillStyle=wash;ctx.fillRect(x+6,top+5,colWidth-12,spanHeight-10);
+   const duration=label.match(/^(\d+(?:\.\d+)?)시간 연차$/);
+   ctx.fillStyle='#204b70';ctx.textAlign='center';
+   if(duration&&spanHeight>=140){
+    ctx.font='700 '+Math.min(31,Math.max(22,colWidth*.11))+'px '+fontFamily;
+    ctx.fillText(duration[1]+'시간',cx,cy-29,colWidth-32);
+    ctx.font='900 '+Math.min(48,Math.max(30,colWidth*.18))+'px '+fontFamily;
+    ctx.fillText('연차',cx,cy+25,colWidth-32);
    }else{
-    ctx.font='900 '+Math.min(39,Math.max(22,Math.floor(colWidth/6)))+'px '+fontFamily;
-    ctx.fillText(label,x+colWidth/2,top+spanHeight/2,badgeWidth-18);
+    ctx.font='850 '+Math.min(39,Math.max(23,colWidth*.14))+'px '+fontFamily;
+    ctx.fillText(label,cx,cy,colWidth-30);
    }
    start=end;
   }
