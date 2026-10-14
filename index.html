@@ -930,10 +930,12 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .legend{display:flex!important;gap:6px!important;flex-wrap:wrap;margin:11px 0!important;font-size:11px;color:#526d86}
  body[data-view="teamDay"] .legend span{display:inline-flex;align-items:center;gap:5px;border:1px solid #e8eef5;background:#f6f9fc;border-radius:40px;padding:5px 9px;white-space:nowrap}
  body[data-view="teamDay"] .legend i{width:8px;height:8px;margin:0;border-radius:50%;flex:none}
+ body[data-view="teamDay"] .legend span:nth-child(3) i{background:#89a8c7!important}
  body[data-view="teamDay"] .scroll{max-height:min(76vh,970px);overflow:auto;overscroll-behavior:contain;border:1px solid #d9e5f1;border-radius:11px;scrollbar-color:#c5d5e5 #f5f8fc}
  body[data-view="teamDay"] .team-day-overview{position:sticky;left:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 13px;background:linear-gradient(105deg,#f3f8fe,#fafcff);border-bottom:1px solid #dbe7f3}
  body[data-view="teamDay"] .team-day-overview-title{display:flex;align-items:center;gap:9px;color:#2c4e6c;font-size:12px}
  body[data-view="teamDay"] .team-day-overview-title strong{font-size:13px;font-weight:850}
+ body[data-view="teamDay"] .team-day-swipe-tip{display:none}
  body[data-view="teamDay"] .team-day-marker{font-size:10px;font-weight:850;color:#376797;border:1px solid #cadbee;background:#e8f2fc;border-radius:5px;padding:4px 7px}
  body[data-view="teamDay"] .team-day-metrics{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
  body[data-view="teamDay"] .team-day-metrics span{font-size:11px;color:#60768b;background:white;border:1px solid #e0eaf4;border-radius:6px;padding:5px 9px;white-space:nowrap}
@@ -972,6 +974,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .legend span{font-size:10px;padding:5px 7px}
  body[data-view="teamDay"] .scroll{max-height:70dvh}
  body[data-view="teamDay"] .team-day-overview{padding:8px 10px}
+ body[data-view="teamDay"] .team-day-swipe-tip{display:block;position:sticky;left:0;margin:0;padding:5px 9px;background:#f7fafe;color:#7189a2;font-size:10px;text-align:center;border-bottom:1px solid #e5edf4}
  body[data-view="teamDay"] .team-day-overview-title strong{font-size:12px}
  body[data-view="teamDay"] .team-day-metrics{gap:5px}
  body[data-view="teamDay"] .team-day-metrics span{font-size:10px;padding:4px 7px}
@@ -4125,6 +4128,7 @@ function teamDay(){
  const date=dateKey(focusDate),names=employees(currentCenter()),events=allEventsFor(date),daySlots=slots();
  const consultCount=events.filter(isConsultEvent).length,workCount=events.filter(isWorkEvent).length;
  let h='<div class="team-day-overview"><div class="team-day-overview-title"><span class="team-day-marker">센터 전체</span><strong>시간대별 상담 현황</strong></div><div class="team-day-metrics"><span>상담 예약 <b>'+consultCount+'건</b></span><span>상담사 <b>'+names.length+'명</b></span><span>근무·외부 일정 <b>'+workCount+'건</b></span></div></div>';
+ if(names.length>2)h+='<p class="team-day-swipe-tip">↔ 좌우로 밀어 다른 상담사 보기</p>';
  h+='<table class="timetable team-day-table" style="--staff-count:'+names.length+';min-width:'+Math.max(690,82+names.length*160)+'px" aria-label="센터 일일 상담 일정표"><thead><tr><th scope="col">시간</th>'+names.map(n=>'<th scope="col">'+escapeHtml(n)+'</th>').join('')+'</tr></thead><tbody>';
  for(const t of daySlots){
   const closed=isFridayClosed(date,t)||isClosedDay(date);
