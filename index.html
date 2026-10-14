@@ -748,6 +748,8 @@ body.shared-board-mode .mobile-bottom-action{display:none!important}
  #schedulePrintOneDay .day-print-entry span{font-weight:750}
  #schedulePrintOneDay .day-print-blocked{background:#e9ebef!important}
  #schedulePrintOneDay .day-print-closed,#schedulePrintOneDay .day-print-ongoing{font-size:9px;color:#8793a0}
+ #schedulePrintOneDay .day-print-table tbody td.day-print-leave{background:repeating-linear-gradient(135deg,#edf4fb 0px,#edf4fb 12px,#c8d9ea 12px,#c8d9ea 14px)!important}
+ #schedulePrintOneDay .day-print-leave-label{display:inline-block;padding:2px 6px;border:1px solid #86a5c4;border-radius:3px;background:white;font-weight:900;color:#1c476b}
  #schedulePrintOneDay .day-print-footnote{font-size:10px;border-top:1px solid #cbd5e1;margin-top:2mm;padding:1mm 1.5mm;overflow-wrap:anywhere}
 }
 </style>
@@ -4551,12 +4553,15 @@ $('staff').onclick=()=>{setOptions($('staffCenter'),CENTERS,currentCenter());upd
 $('staffAdd').onclick=()=>{const c=$('staffCenter').value,n=$('staffName').value.trim();if(!n)return;model.staff[c]=[...new Set([...(model.staff[c]||[]),n.slice(0,30)])];$('staffName').value='';save();updateStaff();refreshEmployees(currentOwner());render()};
 $('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return;const c=$('staffCenter').value,n=b.dataset.staff;if(!confirm(n+' 직원을 기본 목록에서 제외할까? 기존 일정은 유지돼.'))return;model.staff[c]=model.staff[c].filter(x=>x!==n);save();updateStaff();refreshEmployees(currentOwner());render()};
 
-/* A4 1-page daily-only print. Screen calendar remains unchanged. */
-function buildDailyPrint(date){
+/* Visitor print excludes staff records; staff-shared images retain them. */
+const isLeavePrintEvent=e=>isWorkEvent(e)&&['연차','반차','2시간 연차','반반차'].includes(e.type);
+function buildDailyPrint(date,{audience='visitor'}={}){
+ const includeWork=audience==='staff';
  const allPeople=['teamDay','teamLeave'].includes(currentView);
  const owners=allPeople?employees(currentCenter()):[currentOwner()];
  if(!owners.length){alert('인쇄할 상담사를 선택해 주세요.');return false}
- const events=allEventsFor(date);
+ // Never expose leave or other internal employee schedules on the visitor-facing sheet.
+ const events=allEventsFor(date).filter(e=>includeWork||isConsultEvent(e));
  const weekday=['일','월','화','수','목','금','토'][parseDate(date).getDay()];
  const number=owners.length;
  const cols=owners.map(n=>'<th>'+escapeHtml(n)+'</th>').join('');
@@ -4567,13 +4572,17 @@ function buildDailyPrint(date){
   for(const name of owners){
    const closed=isFridayClosed(date,t)||isClosedDay(date);
    const matching=events.filter(e=>e.owner===name&&matchingAt(e,t));
+   const leave=includeWork&&matching.some(isLeavePrintEvent);
    const first=matching.filter(e=>e.allDay?t==='09:00':e.time===t);
    let cellContent='';
    if(closed)cellContent='<span class="day-print-closed">비근무</span>';
    else if(first.length){
-    cellContent=first.map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
-   }else if(matching.length)cellContent='<span class="day-print-ongoing">계속</span>';
-   html+='<td class="'+(closed?'day-print-blocked':'')+'">'+cellContent+'</td>';
+    // Show the leave label once; all covered slots receive a hatched background.
+    cellContent=first.map(e=>isLeavePrintEvent(e)
+     ?'<span class="day-print-leave-label">'+escapeHtml(e.type)+'</span>'
+     :'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
+   }else if(matching.some(e=>!isLeavePrintEvent(e)))cellContent='<span class="day-print-ongoing">계속</span>';
+   html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':''].filter(Boolean).join(' ')+'">'+cellContent+'</td>';
   }
   html+='</tr>';
  }
@@ -4595,7 +4604,12 @@ function fitDailyPrint(){
  const sy=(188*pxPerMm)/Math.max(1,inner.scrollHeight);
  inner.style.transform='scale('+Math.min(1,sx,sy).toFixed(4)+')';
 }
-window.addEventListener('beforeprint',fitDailyPrint);
+window.addEventListener('beforeprint',()=>{
+ // Ctrl+P is visitor-only, including immediately after a staff image.
+ const date=$('printDayDate')?.value;
+ if(/^\d{4}-\d{2}-\d{2}$/.test(date||''))buildDailyPrint(date,{audience:'visitor'});
+ fitDailyPrint();
+});
 window.addEventListener('afterprint',()=>{const el=$('schedulePrintOneDay')?.querySelector('.day-print-inner');if(el)el.style.transform='none'});
 function printSelectedDay(){
  const date=$('printDayDate').value;
@@ -4646,6 +4660,7 @@ function renderDailyShareCanvas(){
   const height=Math.max(74,...lines.map(ls=>ls.length*lineHeight+22));
   return {time:cells[0]?.textContent.trim()||'',lines,height,
    blocked:cells.slice(1).map(el=>el.classList.contains('day-print-blocked')),
+   leave:cells.slice(1).map(el=>el.classList.contains('day-print-leave')),
    hour:tr.classList.contains('hour-start')};
  });
  const note=page.querySelector('.day-print-footnote')?.textContent.trim()||'';
@@ -4688,10 +4703,24 @@ function renderDailyShareCanvas(){
   ctx.fillText(row.time,pad+timeWidth/2,y+row.height/2,timeWidth-12);
   for(let i=0;i<count;i++){
    const x=pad+timeWidth+i*colWidth;
-   boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':bg,row.hour);
+   const isLeave=row.leave[i];
+   boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':isLeave?'#edf4fb':bg,row.hour);
+   if(isLeave){
+    ctx.save();ctx.beginPath();ctx.rect(x+2,y+2,colWidth-4,row.height-4);ctx.clip();
+    ctx.beginPath();
+    for(let offset=-row.height;offset<colWidth+row.height;offset+=19){
+     ctx.moveTo(x+offset,y+row.height);
+     ctx.lineTo(x+offset+row.height,y);
+    }
+    ctx.strokeStyle='#bdd0e3';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+   }
    const lines=row.lines[i];if(!lines?.length)continue;
-   ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
-   ctx.font='700 '+labelSize+'px '+fontFamily;
+   if(isLeave){
+    ctx.fillStyle='rgba(255,255,255,.93)';
+    ctx.fillRect(x+8,y+(row.height-44)/2,colWidth-16,44);
+   }
+   ctx.fillStyle=row.blocked[i]?'#7b8795':isLeave?'#1c476b':'#1a344f';
+   ctx.font=(isLeave?'800 ':'700 ')+labelSize+'px '+fontFamily;
    const first=y+(row.height-(lines.length-1)*lineHeight)/2;
    for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],x+colWidth/2,first+n*lineHeight,colWidth-22);
   }
@@ -4712,7 +4741,7 @@ async function shareDailyPrint(kind){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).getTime())){
   alert('이미지로 만들 날짜를 먼저 선택해 주세요.');return;
  }
- if(!buildDailyPrint(date))return;
+ if(!buildDailyPrint(date,{audience:'staff'}))return;
  const button=$(kind==='copy'?'copyDailyImage':'saveDailyImage');
  button.disabled=true;
  try{
@@ -4733,7 +4762,10 @@ async function shareDailyPrint(kind){
  }catch(error){
   console.error('상담일정 이미지 처리 실패',error);
   alert('이미지를 처리하지 못했습니다. '+(kind==='copy'?'브라우저 복사 권한을 확인하거나 PNG 저장을 이용해 주세요.':'다시 시도해 주세요.'));
- }finally{button.disabled=false}
+ }finally{
+  button.disabled=false;
+  buildDailyPrint(date,{audience:'visitor'});
+ }
 }
 
 $('copyDailyImage').onclick=()=>shareDailyPrint('copy');$('saveDailyImage').onclick=()=>shareDailyPrint('save');
