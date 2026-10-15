@@ -1320,8 +1320,11 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 <dialog id="offDlg"><form class="modal" id="offForm"><div class="modal-head"><h2>공동 휴무일 등록</h2><button type="button" id="offCancel">✕</button></div><p class="notice">공휴일 외에 센터 운영이 중단되는 날만 등록해 주세요. <strong>개인 연차·외부교육·출장은 여기서 등록하지 않습니다.</strong> 전체 센터 또는 해당 센터에 적용할 수 있어요.</p><div class="form-layout"><label class="field">시작 날짜<input type="date" name="start" required></label><label class="field">종료 날짜<input type="date" name="end" required></label><label class="field">적용 센터<select name="center" id="offCenter"></select></label><label class="field">휴무명<input name="title" value="센터 휴무" required></label></div><div class="actions"><button class="primary" type="submit">휴무 등록</button></div><div id="offs" style="margin-top:16px"></div></form></dialog>
 <dialog id="staffDlg"><div class="modal"><div class="modal-head"><h2>센터별 직원 목록</h2><button id="staffClose" type="button">✕</button></div><p class="notice">직원 연락망을 기본 목록으로 등록했어. 새 직원 추가 또는 목록에서 제외할 수 있어. 일정이 등록된 직원은 목록 제외 후에도 기존 일정이 남아 있어.</p><div class="manage-row"><select id="staffCenter"></select><input id="staffName" placeholder="추가할 직원명" maxlength="30"><button id="staffAdd" class="primary" type="button">직원 추가</button></div><div id="staffList"></div></div></dialog>
 <dialog id="peopleDlg"><div class="modal"><div class="modal-head"><div><h2>기억된 참여자 관리</h2><span class="modal-sub" id="peopleScope"></span></div><button type="button" id="peopleClose" aria-label="닫기">✕</button></div><p class="notice">자동완성 명단에서만 삭제해. 이미 등록된 상담 일정은 그대로 유지돼. 구분표시에는 생년월일이나 연락처를 쓰지 않는 것을 권장해.</p><input id="peopleSearch" class="people-search" placeholder="이름 또는 구분표시로 검색"><div class="people-list" id="peopleList"></div></div></dialog>
+<link rel="stylesheet" href="./private-planner.css">
+<script src="./private-planner.js"></script>
 <script>
 (()=>{'use strict';
+let privatePlanner=null;
 const KEY='standalone_schedule_v2',PREF='standalone_schedule_v5_pref';
 const CLOUD_URL='https://hnhccnyitrlzqprnredi.supabase.co';
 const CLOUD_KEY='sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds';
@@ -1352,7 +1355,7 @@ function cloudOpenRecoveryDialog(){
  $('cloudPasswordFeedback').textContent='재설정 링크를 확인했어요. 새 비밀번호를 8자 이상으로 입력해 주세요.';
  dlg.showModal();
 }
-const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}window.dispatchEvent(new Event('goodjob:mini-update'))};
+const cloudStatus=(text,bad=false)=>{const el=document.getElementById('cloudStatus');if(el){el.textContent=text;el.classList.toggle('error',bad)}window.dispatchEvent(new Event('goodjob:mini-update'));privatePlanner?.sync()};
 function cloudOwnRows(list){return list.filter(v=>!v.readonly&&v.center===cloud.identity.center&&v.owner===cloud.identity.name)}
 function cloudMap(rows){return new Map(rows.map(x=>[x.id,JSON.stringify(x)]))}
 function cloudClean(x){const c={...x};delete c.readonly;delete c._serverVersion;return c}
@@ -3908,7 +3911,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;privatePlanner?.reset();$('privatePlanner')?.classList.add('hide');cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
@@ -4283,7 +4286,7 @@ function render(){let start=monday(focusDate),isAgenda=currentView==='personalDa
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('quickEntryOpen').classList.toggle('hide',team);$('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
  $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches?(isAgenda||isWeek?mobileSwipeMarkup():!isDay?mobileMonthCalendar(currentView==='teamLeave'):teamDay()):isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;mobileSwipeSize();$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
- const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate();window.dispatchEvent(new Event('goodjob:mini-update'))}
+ const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate();window.dispatchEvent(new Event('goodjob:mini-update'));privatePlanner?.sync()}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
  const year=focusDate.getFullYear(),month=pad(focusDate.getMonth()+1),a=dateKey(monday(focusDate)),b=dateKey(addDays(monday(focusDate),6)),today=dateKey(focusDate);
@@ -4986,6 +4989,13 @@ $('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(
 
 /* Mini PC window bridge: a *read-only* personal snapshot plus existing validated booking actions.
    This is intentionally in the existing calendar closure, not a duplicate Supabase client. */
+privatePlanner=window.PrivatePlanner.mount({
+ escape:escapeHtml,dateKey,
+ state:()=>({active:cloud.active,identity:cloud.identity,client:cloud.client,view:currentView,date:dateKey(focusDate),weeks:weekCount,owner:currentOwner(),center:currentCenter(),preview:directorPreviewState.active,executive:document.body.classList.contains('executive-mode'),shared:sharedState.open}),
+ render:()=>render(),focus:date=>{focusDate=parseDate(date);render()},
+ subscribeAuth:fn=>{let attempts=0;const timer=setInterval(()=>{if(cloud.client){clearInterval(timer);cloud.client.auth.onAuthStateChange(event=>{setTimeout(()=>fn(event),0)})}else if(++attempts>120)clearInterval(timer)},500)}
+});
+
 window.goodjobMiniBridge={
  arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen):[]},
  async ackArrivals(keys){if(!cloud.active)throw Error('로그인 후 이용하세요');await alertAck(keys.filter(x=>x.startsWith('arrival:')))},
