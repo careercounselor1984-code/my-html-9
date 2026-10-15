@@ -4652,6 +4652,7 @@ $('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return
 
 /* Visitor print excludes staff records; staff-shared images retain them. */
 const isLeavePrintEvent=e=>isWorkEvent(e)&&['연차','반차','2시간 연차','반반차'].includes(e.type);
+const isContinuousWorkPrintEvent=e=>isWorkEvent(e)&&!isLeavePrintEvent(e);
 function buildDailyPrint(date,{audience='visitor'}={}){
  const includeWork=audience==='staff';
  const allPeople=['teamDay','teamLeave'].includes(currentView);
@@ -4671,6 +4672,8 @@ function buildDailyPrint(date,{audience='visitor'}={}){
    const matching=events.filter(e=>e.owner===name&&matchingAt(e,t));
    const leaveEvent=includeWork&&!closed?matching.find(isLeavePrintEvent):null;
    const leave=!!leaveEvent;
+   // Keep unrelated overlapping schedules separate instead of merging them.
+   const workEvent=includeWork&&!closed&&!leave&&matching.length===1&&isContinuousWorkPrintEvent(matching[0])?matching[0]:null;
    const first=matching.filter(e=>e.allDay?t==='09:00':e.time===t);
    let cellContent='';
    if(closed)cellContent='<span class="day-print-closed">비근무</span>';
@@ -4679,7 +4682,8 @@ function buildDailyPrint(date,{audience='visitor'}={}){
     cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
    }else if(matching.some(e=>!isLeavePrintEvent(e)))cellContent='<span class="day-print-ongoing">계속</span>';
    const leaveMeta=leave?' data-leave-id="'+escapeHtml(String(leaveEvent.id||leaveEvent.owner+'|'+leaveEvent.time+'|'+leaveEvent.type))+'" data-leave-type="'+escapeHtml(leaveEvent.type)+'"':'';
-   html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':''].filter(Boolean).join(' ')+'"'+leaveMeta+'>'+cellContent+'</td>';
+   const workMeta=workEvent?' data-work-id="'+escapeHtml(String(workEvent.id||workEvent.owner+'|'+workEvent.time+'|'+workEvent.end+'|'+workEvent.type+'|'+workEvent.title))+'" data-work-title="'+escapeHtml(showName(workEvent,true))+'" data-work-type="'+escapeHtml(workEvent.type)+'"':'';
+   html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':'',workEvent?'day-print-work':''].filter(Boolean).join(' ')+'"'+leaveMeta+workMeta+'>'+cellContent+'</td>';
   }
   html+='</tr>';
  }
@@ -4760,6 +4764,9 @@ function renderDailyShareCanvas(){
    leave:cells.slice(1).map(el=>el.classList.contains('day-print-leave')),
    leaveId:cells.slice(1).map(el=>el.dataset.leaveId||''),
    leaveType:cells.slice(1).map(el=>el.dataset.leaveType||''),
+   workId:cells.slice(1).map(el=>el.dataset.workId||''),
+   workTitle:cells.slice(1).map(el=>el.dataset.workTitle||''),
+   workType:cells.slice(1).map(el=>el.dataset.workType||''),
    hour:tr.classList.contains('hour-start')};
  });
  const note=page.querySelector('.day-print-footnote')?.textContent.trim()||'';
@@ -4806,6 +4813,8 @@ function renderDailyShareCanvas(){
    const x=pad+timeWidth+i*colWidth;
    const isLeave=row.leave[i];
    boxCell(x,y,colWidth,row.height,row.blocked[i]?'#e8ecf1':isLeave?'#fbf2f6':bg,row.hour);
+   // These slots are drawn together as a continuous activity band below.
+   if(row.workId[i])continue;
    const lines=row.lines[i];if(!lines?.length)continue;
    ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
    ctx.font='700 '+labelSize+'px '+fontFamily;
@@ -4849,6 +4858,47 @@ function renderDailyShareCanvas(){
     ctx.font='850 '+Math.min(39,Math.max(23,colWidth*.14))+'px '+fontFamily;
     ctx.fillText(label,cx,cy,colWidth-30);
    }
+   start=end;
+  }
+ }
+ // Match the leave treatment: one centered, hatched block for contiguous external/work slots.
+ // Staff images show the work title; visitor print still excludes all work events.
+ for(let i=0;i<count;i++){
+  for(let start=0;start<prepared.length;){
+   const row=prepared[start],key=row.workId[i];
+   if(!key){start++;continue;}
+   let end=start+1;
+   while(end<prepared.length&&prepared[end].workId[i]===key)end++;
+   const x=pad+timeWidth+i*colWidth,top=rowTops[start];
+   const bottom=rowTops[end-1]+prepared[end-1].height,spanHeight=bottom-top;
+   const title=row.workTitle[i]||row.workType[i]||'외부일정',type=row.workType[i]||'외부일정';
+   const tone=type==='외부홍보'?['#eaf7f4','#b8dfd6','#428c7f','#286c61']:
+    /출장/.test(type)?['#f1ecfb','#d8ccef','#9278c4','#6e54a3']:
+    /교육/.test(type)?['#fff5e6','#edd7b2','#c29148','#986a30']:
+    ['#edf4fb','#cbdced','#7297bd','#426b93'];
+   ctx.save();ctx.fillStyle=tone[0];ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
+   ctx.beginPath();ctx.rect(x+5,top+4,colWidth-10,spanHeight-8);ctx.clip();ctx.beginPath();
+   for(let offset=-spanHeight;offset<colWidth+spanHeight;offset+=25){
+    ctx.moveTo(x+offset,top+spanHeight);ctx.lineTo(x+offset+spanHeight,top);
+   }
+   ctx.strokeStyle=tone[1];ctx.lineWidth=2;ctx.stroke();ctx.restore();
+   ctx.fillStyle=tone[2];ctx.fillRect(x+4,top+4,5,spanHeight-8);
+   ctx.strokeStyle=tone[2];ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
+   const cx=x+colWidth/2,cy=top+spanHeight/2;
+   const wash=ctx.createRadialGradient(cx,cy,7,cx,cy,Math.min(colWidth*.72,spanHeight*.7));
+   wash.addColorStop(0,tone[0]);wash.addColorStop(.6,tone[0]);wash.addColorStop(1,'rgba(255,255,255,0)');
+   ctx.fillStyle=wash;ctx.fillRect(x+7,top+5,colWidth-14,spanHeight-10);
+   const titleSize=Math.min(31,Math.max(20,Math.floor(colWidth*.105))),lineHeight=titleSize+5;
+   ctx.textAlign='center';ctx.fillStyle=tone[3];
+   ctx.font='850 '+titleSize+'px '+fontFamily;
+   const maxLines=Math.max(1,Math.min(3,Math.floor((spanHeight-40)/lineHeight)));
+   const lines=shareWrappedLines(ctx,title,colWidth-34,maxLines);
+   const typeSize=Math.min(24,Math.max(17,Math.floor(colWidth*.074)));
+   const total=lines.length*lineHeight+typeSize+8;
+   const firstY=cy-total/2+lineHeight/2;
+   for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],cx,firstY+n*lineHeight,colWidth-32);
+   ctx.font='750 '+typeSize+'px '+fontFamily;
+   ctx.fillText(type,cx,firstY+(lines.length-.5)*lineHeight+8,colWidth-32);
    start=end;
   }
  }
