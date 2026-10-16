@@ -2,6 +2,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8');
 for(const file of ['index.html','tasks.html','clients.html']){const source=fs.readFileSync(file,'utf8');assert(source.includes('id="workMenu"'));for(const target of ['schedule','tasks','clients','leave'])assert(source.includes('data-main-menu="'+target+'"'),file+' shows '+target)}
+assert(html.includes("['personalWeek','teamLeave'].includes(requested)"),'menu deep links override the last saved view');
 const fn=html.match(/function isLeaveOverviewEvent\(e\)\{[^\n]+\}/)[0];
 const context={isWorkEvent:e=>e.kind==='work'};vm.createContext(context);vm.runInContext(fn,context);
 for(const type of ['연차','반차','2시간 연차','반반차','시차','외부교육'])assert(context.isLeaveOverviewEvent({kind:'work',type}),type+' included');
