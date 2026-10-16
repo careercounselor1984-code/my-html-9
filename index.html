@@ -1173,7 +1173,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
 
 <dialog id="energySchoolDialog" class="staff-admin-dialog"><section class="staff-admin-body" style="max-height:90vh;overflow:auto">
  <header><h2>🏫 에너지고 출장상담 · 학교 출입 신청</h2><button type="button" id="energySchoolClose">닫기</button></header>
- <p class="notice" style="line-height:1.6">북부센터 상담사가 <b>에너지고 출장상담</b>을 체크한 날짜입니다. 같은 날 여러 건은 한 묶음입니다. 학교 출입 신청을 실제로 마친 뒤에만 <b>학교 등록 완료 ✓</b>를 눌러 주세요.</p>
+ <p class="notice" style="line-height:1.6">날짜별로 <b>학교에 보고·등록할 출장 상담사</b>를 표시합니다. 같은 상담사는 한 번만 표시합니다. 학교 출입 신청을 실제로 마친 뒤에만 <b>학교 등록 완료 ✓</b>를 눌러 주세요.</p>
  <div class="status-actions"><button type="button" id="energySchoolRefresh">새로고침</button></div>
  <div id="energySchoolList" aria-live="polite" style="margin-top:12px">확인 중…</div>
  <p id="energySchoolStatus" role="status" style="font-size:12px;color:#55677b"></p>
@@ -3315,16 +3315,20 @@ function workReportInitialize(){
 /* North branch Energy High School access request, grouped by date. */
 const energySchoolState={visits:[],busy:false,loading:false};
 function energySchoolAllowed(){return cloud.active&&cloud.identity?.center==='북부센터'&&(cloud.identity?.role==='manager'||cloud.identity?.isAdmin)}
+function energySchoolNames(visit){
+ return [...new Set((visit.appointments||[]).map(a=>String(a.name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+}
 function energySchoolRender(){
  const node=$('energySchoolList');if(!node||!energySchoolAllowed())return;
  const today=dateKey(new Date());
  const upcoming=energySchoolState.visits.filter(x=>x.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
  node.innerHTML=upcoming.length?upcoming.map(v=>{
-   const info=(v.appointments||[]).map(a=>escapeHtml(a.time)+' · '+escapeHtml(a.name)).join(' / ');
+   const names=energySchoolNames(v);
+   const info=names.map(escapeHtml).join(' · ');
    return '<article style="margin:9px 0;padding:12px;border:1px solid #d1dae5;border-radius:10px;background:#fff">'+
-    '<strong>'+escapeHtml(v.date)+' · 에너지고 출장상담 '+Number(v.count||0)+'건</strong>'+
+    '<strong>'+escapeHtml(v.date)+' · 학교 등록 대상 '+names.length+'명</strong>'+
     '<div style="margin:5px 0;color:'+(v.confirmed?'#087f5b':'#a24b00')+'">'+(v.confirmed?'✓ 학교 출입 신청 완료':'● 학교 출입 신청 필요')+'</div>'+
-    '<p style="font-size:12px;color:#475569">'+(info||'시간 미등록')+'</p>'+
+    '<p style="font-size:17px;font-weight:750;color:#17324f;margin:12px 0">'+(info||'등록 대상 확인 필요')+'</p>'+
     (v.confirmed?'':'<button type="button" class="primary" data-energy-confirm="'+escapeHtml(v.date)+'">학교 등록 완료 ✓</button>')+'</article>';
  }).join(''):'<p>현재 등록된 에너지고 출장상담 예정은 없습니다.</p>';
 }
