@@ -17,7 +17,8 @@ const rows=[{id:'a',kind:'iap',payload:{name:'김',dates:['2026-10-15','2026-11-
 assert.deepEqual(dueRows(rows,'2026-10-15','2026-10-15').map(x=>[x.row.id,x.round]),[['a',1]]);
 assert.deepEqual(dueRows(rows,'2026-10-01','2026-10-31').map(x=>x.date),['2026-10-12','2026-10-15','2026-10-31']);
 const html=fs.readFileSync('index.html','utf8'),js=fs.readFileSync('private-planner.js','utf8'),sql=fs.readFileSync('docs/sql/20261015_private_planner.sql','utf8');
-assert(html.includes('privatePlanner?.sync()'));
+assert(!html.includes('PrivatePlanner.mount'),'checklist is no longer mounted inside appointments');
+assert(html.includes('./tasks.html')&&html.includes('./clients.html'),'appointment page links to both independent screens');
 assert(js.includes(".eq('updated_at',row.updated_at)"),'CAS prevents stale overwrite');
 assert(js.includes("if(request!==token())"),'account switches reject stale reads/writes');
 assert(js.includes("s.owner===s.identity.name&&s.center===s.identity.center"),'view must belong to authenticated identity');

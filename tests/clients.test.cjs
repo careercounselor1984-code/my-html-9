@@ -20,4 +20,7 @@ assert(!planner.includes('drawDue')&&!planner.includes('plannerDueOnly'),'origin
 assert(js.includes(".eq('user_id',uid).eq('kind','iap')"),'both owner and client kind are explicit read filters');
 assert(js.includes(".eq('updated_at',row.updated_at)"),'stale updates/deletes remain protected');
 assert(js.includes("$('timeline').innerHTML=''")&&js.includes("$('roster').innerHTML=''"),'session reset removes all private names');
+const tasks=fs.readFileSync('tasks.html','utf8'),tasksJs=fs.readFileSync('tasks.js','utf8');
+assert(tasks.includes('내 할 일')&&tasks.includes('taskDay'));
+assert(tasksJs.includes('PrivatePlanner.mount')&&!tasksJs.includes("from('schedule_events')"),'standalone checklist only');
 console.log('PASS: separate client screen, legacy records, due/training/expiry dates, segment merging, owner and conflict guards');
