@@ -24,6 +24,7 @@ jobs:
           node tests/private-planner.test.cjs
           node tests/clients.test.cjs
           node tests/work-menus.test.cjs
+          node tests/work-periods.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
         shell: bash
