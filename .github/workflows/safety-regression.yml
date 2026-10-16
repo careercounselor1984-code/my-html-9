@@ -22,6 +22,7 @@ jobs:
           node tests/energy-alert-once.test.cjs
           node tests/daily-layout-alert-scope.test.cjs
           node tests/private-planner.test.cjs
+          node tests/clients.test.cjs
 
       - name: Headless Chrome initial-screen smoke (unauthenticated)
         shell: bash

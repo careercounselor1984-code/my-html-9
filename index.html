@@ -5035,7 +5035,7 @@ $('peopleList').onclick=e=>{const b=e.target.closest('[data-forget-person]');if(
 /* Mini PC window bridge: a *read-only* personal snapshot plus existing validated booking actions.
    This is intentionally in the existing calendar closure, not a duplicate Supabase client. */
 privatePlanner=window.PrivatePlanner.mount({
- escape:escapeHtml,dateKey,
+ escape:escapeHtml,dateKey,canLeave:()=>!cloud.busy&&!cloud.needsSave&&!cloud.queueBlocked,
  state:()=>({active:cloud.active,identity:cloud.identity,client:cloud.client,view:currentView,date:dateKey(focusDate),weeks:weekCount,owner:currentOwner(),center:currentCenter(),preview:directorPreviewState.active,executive:document.body.classList.contains('executive-mode'),shared:sharedState.open}),
  render:()=>render(),focus:date=>{focusDate=parseDate(date);render()},
  subscribeAuth:fn=>{let attempts=0;const timer=setInterval(()=>{if(cloud.client){clearInterval(timer);cloud.client.auth.onAuthStateChange(event=>{setTimeout(()=>fn(event),0)})}else if(++attempts>120)clearInterval(timer)},500)}

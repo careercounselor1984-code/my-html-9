@@ -19,11 +19,14 @@ assert.deepEqual(dueRows(rows,'2026-10-01','2026-10-31').map(x=>x.date),['2026-1
 const html=fs.readFileSync('index.html','utf8'),js=fs.readFileSync('private-planner.js','utf8'),sql=fs.readFileSync('docs/sql/20261015_private_planner.sql','utf8');
 assert(html.includes('privatePlanner?.sync()'));
 assert(js.includes(".eq('updated_at',row.updated_at)"),'CAS prevents stale overwrite');
-assert(js.includes("if(token!==currentToken())"),'account switches reject stale reads/writes');
+assert(js.includes("if(request!==token())"),'account switches reject stale reads/writes');
 assert(js.includes("s.owner===s.identity.name&&s.center===s.identity.center"),'view must belong to authenticated identity');
-assert(js.includes("if(dueOnly){$('calendar').innerHTML=''"),'logout clears visible private names');
+assert(!js.includes("$('calendar')"),'checklist never replaces the appointment display');
+assert(!js.includes('plannerDueOnly'),'designated-date toggle removed from appointment page');
+assert(js.includes(".eq('kind','todo')"),'checklist fetches tasks only');
+assert(js.includes('./clients.html'),'separate client page link exists');
 assert(!js.includes('model.events'),'private items never enter shared events');
 assert(sql.includes('enable row level security'));
 assert(sql.includes('user_id=(select auth.uid())'));
 assert(sql.includes('revoke all on public.schedule_private_items from anon,authenticated'));
-console.log('PASS: dates, saved IAP formats, due-only filtering, private scope, stale update and logout guards');
+console.log('PASS: date helpers, checklist-only storage, independent client link, owner/conflict/logout guards');
