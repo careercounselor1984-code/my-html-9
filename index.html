@@ -985,7 +985,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
 </style>
 <style>
 /* Continuous activity uses the table cell itself, without an inset card. */
-body[data-view="teamDay"] .team-day-table td.teamday-band{vertical-align:middle!important;text-align:center;padding:12px 9px!important;background:#f1ecfb!important;color:#6e54a3;box-shadow:none!important;border-radius:0}
+body[data-view="teamDay"] .team-day-table td.teamday-band{vertical-align:middle!important;text-align:center;padding:6px 9px!important;border-bottom:1px solid #b7c7d8!important;background:#f1ecfb!important;color:#6e54a3;box-shadow:none!important;border-radius:0}
 body[data-view="teamDay"] .team-day-table td.teamday-band-leave{background:#fbf2f6!important;color:#8b4763}
 body[data-view="teamDay"] .team-day-table td.teamday-band-promotion{background:#eaf7f4!important;color:#286c61}
 body[data-view="teamDay"] .team-day-table td.teamday-band-education{background:#fff5e6!important;color:#986a30}
@@ -4175,10 +4175,13 @@ function teamDay(){
     const range=daySlots.filter(slot=>!isFridayClosed(date,slot)&&!isClosedDay(date)&&matchingAt(band,slot));
     const unique=range.every(slot=>events.filter(e=>e.owner===name&&matchingAt(e,slot)).length===1);
     if(unique){
-     if(t!==range[0])continue;
      const tone=isLeavePrintEvent(band)?'leave':band.type==='외부홍보'?'promotion':/교육/.test(band.type)?'education':'outside';
-     h+='<td rowspan="'+range.length+'" class="slot teamday-band teamday-band-'+tone+'" data-date="'+date+'" data-time="'+t+'" data-owner="'+escapeHtml(name)+'" data-event="'+escapeHtml(band.id)+'"><strong>'+escapeHtml(isLeavePrintEvent(band)?band.type:showName(band,true))+'</strong>';
-     if(!isLeavePrintEvent(band)&&band.title!==band.type)h+='<small>'+escapeHtml(band.type)+'</small>';
+     const labelSlot=range[Math.floor((range.length-1)/2)];
+     h+='<td class="slot teamday-band teamday-band-'+tone+'" data-date="'+date+'" data-time="'+t+'" data-owner="'+escapeHtml(name)+'" data-event="'+escapeHtml(band.id)+'">';
+     if(t===labelSlot){
+      h+='<strong>'+escapeHtml(isLeavePrintEvent(band)?band.type:showName(band,true))+'</strong>';
+      if(!isLeavePrintEvent(band)&&band.title!==band.type)h+='<small>'+escapeHtml(band.type)+'</small>';
+     }
      h+='</td>';continue;
     }
    }
@@ -4324,37 +4327,12 @@ function changeView(v){
  if(v==='sharedBoard'){sharedOpen();return}
  if(sharedState.open){sharedState.open=false;document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide')}
  currentView=v;quickLeave=false;setQuickState();document.querySelectorAll('.viewtab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));savePreferences();render()}
-let teamDayGridObserver=null;
-function teamDayGridLines(){
- const table=$('calendar')?.querySelector('.team-day-table');
- if(!table)return;
- const rows=Array.from(table.querySelectorAll('tbody tr'));
- for(const cell of table.querySelectorAll('.teamday-band')){
-  const top=cell.getBoundingClientRect().top;
-  const start=rows.indexOf(cell.parentElement),layers=[];
-  for(let i=start;i<start+cell.rowSpan-1;i++){
-   const y=rows[i].getBoundingClientRect().bottom-top-1;
-   layers.push('linear-gradient(to bottom,transparent '+y+'px,#c3cfdd '+y+'px,#c3cfdd '+(y+1)+'px,transparent '+(y+1)+'px)');
-  }
-  cell.style.setProperty('background-image',layers.length?layers.join(','):'none','important');
- }
-}
-function teamDayGridWatch(){
- if(teamDayGridObserver)teamDayGridObserver.disconnect();
- const table=$('calendar')?.querySelector('.team-day-table');
- if(!table)return;
- teamDayGridLines();
- if(typeof ResizeObserver!=='undefined'){
-  teamDayGridObserver=new ResizeObserver(teamDayGridLines);
-  teamDayGridObserver.observe(table);
- }
-}
 function render(){let start=monday(focusDate),isAgenda=currentView==='personalDay',isWeek=currentView==='personalWeek',isDay=currentView==='teamDay',team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),month=focusDate.getFullYear()+'년 '+(focusDate.getMonth()+1)+'월',period=isWeek?dateWithWeekday(start)+' ~ '+dateWithWeekday(addDays(start,7*(weekCount-1)+4)):(isDay||isAgenda)?dateWithWeekday(focusDate):month;
  $('period').textContent=period;$('weekCountWrap').classList.toggle('hide',!isWeek);$('weekCount').value=String(weekCount);$('printDayDate').value=isWeek?dateKey(start):date;$('datePickerWrap').classList.toggle('hide',!(isDay||isAgenda));$('datePicker').value=date;
  const titles={personalDay:'오늘의 내 상담 일정',personalWeek:'개인 주간 상담 일정표',personalMonth:'개인 월간 상담·연차 요약표',teamLeave:'센터 연차·교육 월간표',teamDay:'센터 일일 상담 일정표'};
  $('reportTitle').textContent=titles[currentView];$('reportMeta').textContent=period+'  |  '+currentCenter()+(team?' · 직원 전체':' · '+currentOwner());
  $('quickEntryOpen').classList.toggle('hide',team);$('addConsult').classList.toggle('hide',team);$('addWork').classList.toggle('hide',team);$('specialWorkBtn').classList.toggle('hide',team);$('quickLeave').classList.toggle('hide',!isWeek);$('dayoff').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('noteBtn').classList.toggle('hide',!team||(cloud.active&&!['manager','director'].includes(cloud.identity.role)));$('staff').classList.toggle('hide',!team||cloud.active);$('helpText').textContent=isAgenda?'오늘의 상담 일정과 개인 근무·외부 일정. 빈 30분 칸을 눌러 상담을 등록하고, 등록된 일정을 눌러 수정할 수 있어.':isWeek?'내 일정: 시간 칸을 클릭하면 상담 30분 등록. 연차 칸 선택 ON 상태에서 클릭·드래그하면 연차를 여러 칸 한 번에 지정할 수 있어.':isDay?'센터 전체 보기 · 조회·출력 전용. 상담이나 개인 연차를 등록하지 않으며, 센터 자체 휴무만 등록할 수 있어.':currentView==='teamLeave'?'센터 전체 보기 · 날짜를 누르면 그날의 직원별 연차·교육·홍보 일정 요약만 확인할 수 있어. 센터 자체 휴무만 등록 가능해.':'나의 일정 · 상담 건수와 연차 사용시간 요약. 날짜를 누르면 종일 연차·외부교육·외부홍보·기타를 간편 등록할 수 있어.';
- $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches?(isAgenda||isWeek?mobileSwipeMarkup():!isDay?mobileMonthCalendar(currentView==='teamLeave'):teamDay()):isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;teamDayGridWatch();mobileSwipeSize();$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
+ $('calendar').innerHTML=window.matchMedia('(max-width:760px)').matches?(isAgenda||isWeek?mobileSwipeMarkup():!isDay?mobileMonthCalendar(currentView==='teamLeave'):teamDay()):isAgenda?personalDay():isWeek?personalWeek():isDay?teamDay():monthCalendar(currentView==='teamLeave');document.body.dataset.view=currentView;mobileSwipeSize();$('sharedNotes').innerHTML=printSharedNotes();$('sharedNotes').classList.toggle('hide',!(isWeek||isDay)||!$('sharedNotes').innerHTML);
  const totals=monthTotals();$('summary').textContent=(currentView==='personalMonth'?`이번 달 상담 ${totals.consultations}건 · 연차 ${durationLabel(totals.leaveMinutes)} · `:'')+'현재 센터 직원 '+employees(currentCenter()).length+'명 · '+(cloud.active?'PC·모바일 서버 연동':'기기별 로컬 저장');renderSpecialWork();setQuickState();quickSyncDate();window.dispatchEvent(new Event('goodjob:mini-update'));privatePlanner?.sync()}
 function renderSpecialWork(){
  const node=$('specialWorkSummary');if(currentView==='teamLeave'){node.innerHTML='';return}if(currentView==='teamDay'){const entries=allEventsFor(dateKey(focusDate)).filter(e=>e.specialWork).sort((a,b)=>a.time.localeCompare(b.time));node.innerHTML=entries.length?'<b>센터 연장·휴일근무 '+entries.length+'건</b><div class="entries">'+entries.map(e=>'<span class="status-person">'+escapeHtml(e.owner+' · '+e.time+' '+e.type)+'</span>').join('')+'</div>':'';return}
@@ -4863,7 +4841,7 @@ function renderDailyShareCanvas(){
  ctx.fillText(detail,pad,119,tableWidth-70);
  let y=headerTop;
  function bandGridLines(x,colWidth,start,end){
-  ctx.save();ctx.strokeStyle='#bfccda';ctx.lineWidth=1;
+  ctx.save();ctx.strokeStyle='#9dafc2';ctx.lineWidth=2;
   for(let r=start+1;r<end;r++){
    ctx.beginPath();ctx.moveTo(x+.5,rowTops[r]-.5);ctx.lineTo(x+colWidth-.5,rowTops[r]-.5);ctx.stroke();
   }
