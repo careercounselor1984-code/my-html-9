@@ -18,13 +18,12 @@ assert.equal(periods.days('2026-08-15','month').length,42,'six-week month is com
 assert.equal(periods.days('2026-10-16','week').length,7);
 const markup=periods.calendar('2026-10-16','month',(date,inside)=>inside?'<span>'+date+'</span>':'');
 assert(markup.includes('10/16 (금)'));assert(markup.includes('outside'));assert.equal((markup.match(/data-period-day=/g)||[]).length,35);
-const source=fs.readFileSync('private-planner.js','utf8'),start=source.indexOf(' function paint(){'),end=source.indexOf('\n function sync()',start),paintSource=source.slice(start,end);
-const rows=[{id:'inweek-done',kind:'todo',item_date:'2026-10-15',payload:{done:true}},{id:'today',kind:'todo',item_date:'2026-10-16',payload:{done:false}},{id:'sunday',kind:'todo',item_date:'2026-10-18',payload:{done:false}},{id:'nextweek',kind:'todo',item_date:'2026-10-19',payload:{done:false}},{id:'client',kind:'iap',item_date:'2026-10-16',payload:{name:'not a task'}}];
-const snapshot=JSON.stringify(rows),nodes=Object.fromEntries(['plannerTodoDate','plannerCount','plannerTasks'].map(id=>[id,{value:'',textContent:'',innerHTML:''}]));
-let state={date:'2026-10-16',periodView:'week'};
-const paint=new Function('usable','state','root','$','rows','esc','taskMarkup','loaded','lastPaintDay','todoWeekday','return ('+paintSource+')')(()=>true,()=>state,{WorkPeriods:periods},id=>nodes[id],rows,String,r=>'<span>'+r.id+'</span>',true,'',()=>{});
-paint();assert(nodes.plannerTasks.innerHTML.includes('inweek-done'));assert(nodes.plannerTasks.innerHTML.includes('sunday'));assert(!nodes.plannerTasks.innerHTML.includes('nextweek'));assert(!nodes.plannerTasks.innerHTML.includes('not a task'));assert(nodes.plannerCount.textContent.includes('1/3 완료'));
-state.periodView='month';paint();assert(nodes.plannerTasks.innerHTML.includes('nextweek'));assert(nodes.plannerCount.textContent.includes('1/4 완료'));
-state.periodView='day';paint();assert(nodes.plannerTasks.innerHTML.includes('today'));assert(!nodes.plannerTasks.innerHTML.includes('sunday'));assert(nodes.plannerCount.textContent.includes('(금)'));assert.equal(JSON.stringify(rows),snapshot,'view changes do not alter records');
+const model=require('../task-model.js');
+const rows=[{id:'done',kind:'todo',item_date:'2026-10-15',payload:{done:true}},{id:'today',kind:'todo',item_date:'2026-10-16',payload:{done:false}},{id:'sunday',kind:'todo',item_date:'2026-10-18',payload:{done:false}},{id:'nextweek',kind:'todo',item_date:'2026-10-19',payload:{done:false}}];
+const snapshot=JSON.stringify(rows);
+assert.deepEqual(model.select(rows,'period','2026-10-16',...periods.range('2026-10-16','week')).map(r=>r.id),['today','sunday','done']);
+assert.equal(model.select(rows,'period','2026-10-16',...periods.range('2026-10-16','month')).length,4);
+assert.deepEqual(model.select(rows,'period','2026-10-16',...periods.range('2026-10-16','day')).map(r=>r.id),['today']);
+assert.equal(JSON.stringify(rows),snapshot);
 for(const [file,attribute,modes] of [['clients.html','data-client-view',['list','month','week','day']],['tasks.html','data-task-view',['day','week','month']]]){const html=fs.readFileSync(file,'utf8');for(const mode of modes)assert(html.includes(attribute+'="'+mode+'"'));assert(html.includes('./work-periods.js'));assert(html.includes('./work-periods.css'))}
 console.log('PASS: period boundaries, leap/month-end/year changes, weekdays, task view filtering and unchanged stored records');

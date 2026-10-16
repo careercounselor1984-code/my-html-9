@@ -15,6 +15,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Check safety regression
         run: |
           node tests/schedule-safety.test.cjs
@@ -25,6 +28,8 @@ jobs:
           node tests/clients.test.cjs
           node tests/work-menus.test.cjs
           node tests/work-periods.test.cjs
+          node tests/task-model.test.cjs
+          node tests/task-dispatch.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
         shell: bash

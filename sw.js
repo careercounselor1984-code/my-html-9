@@ -1,5 +1,5 @@
-const CACHE='goodjob-schedule-v41-client-task-period-views-20261016';
-const ASSETS=['./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./icon-192.png','./icon-512.png'];
+const CACHE='goodjob-schedule-v42-memos-deadlines-reminders-20261016';
+const ASSETS=['./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request,event.request.mode==='navigate'?{ignoreSearch:true}:undefined)));});
@@ -18,11 +18,13 @@ self.addEventListener('notificationclick',event=>{
  let target=new URL('./index.html',self.registration.scope).href;
  const candidate=event.notification.data?.url;
  if(typeof candidate==='string'&&candidate.startsWith(self.registration.scope))target=candidate;
+ const taskId=new URL(target).pathname.endsWith('/tasks.html')?new URL(target).searchParams.get('task'):null;
  const isDirectorReport=new URL(target).searchParams.get('directorReport')==='1';
  const isEnergySchool=new URL(target).searchParams.get('energySchool')==='1';
  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async items=>{
   for(const client of items){
    if(new URL(client.url).origin===self.location.origin&&client.url.startsWith(self.registration.scope)){
+    if(taskId){if(!new URL(client.url).pathname.endsWith('/tasks.html'))continue;await client.focus();client.postMessage({type:'goodjob:open-task',taskId});return;}
     await client.focus();if(isDirectorReport)client.postMessage({type:'goodjob:open-director-report'});if(isEnergySchool)client.postMessage({type:'goodjob:open-energy-school'});return;
    }
   }

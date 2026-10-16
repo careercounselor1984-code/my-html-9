@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),M=require('../task-model.js');
+const day='2026-10-16',make=(id,p,item_date=day)=>({id,kind:'todo',item_date,payload:{text:id,done:false,...p}});
+const rows=[make('overdue',{dueDate:'2026-10-15',entryType:'task'}),make('today',{dueDate:day}),make('soon',{dueDate:'2026-10-23'}),make('later',{dueDate:'2026-10-24'}),make('memo',{entryType:'memo'}),make('done',{dueDate:'2026-10-15',done:true}),make('legacy',{},'2026-10-01')];
+assert.deepEqual(M.counts(rows,day),{noDue:1,overdue:1,today:1,soon:1,memo:1,done:1});
+assert.deepEqual(M.select(rows,'overdue',day,day,day).map(r=>r.id),['overdue'],'missed deadlines remain visible outside chosen date');
+assert.deepEqual(M.select(rows,'today',day,day,day).map(r=>r.id),['today']);
+assert.deepEqual(M.select(rows,'soon',day,day,day).map(r=>r.id),['soon']);
+assert.deepEqual(M.select(rows,'memo',day,day,day).map(r=>r.id),['memo']);
+assert.equal(M.badge(rows[0],day).tone,'overdue');assert.equal(M.due(rows.at(-1)),'','legacy planned dates are not invented deadlines');
+assert.deepEqual(M.select(rows,'period',day,day,'2026-10-31').map(r=>r.id),['today','soon','later'],'memos are not mixed into deadline calendar');
+assert.equal(M.reminderIso('2026-10-16T09:00'),'2026-10-16T00:00:00.000Z');
+assert.equal(M.localReminder('2026-10-16T00:00:00.000Z'),'2026-10-16T09:00');
+assert.equal(M.reminderIso('2026-02-30T09:00'),'');assert(M.dateLabel(day).includes('(금)'));
+const sw=fs.readFileSync('sw.js','utf8');assert(sw.includes("goodjob:open-task"));
+const client=fs.readFileSync('task-reminders.js','utf8');assert(!client.includes('unsubscribe()'),'disabling task notifications preserves schedule push subscription');
+assert(client.includes("from('schedule_task_devices')"));
+console.log('PASS: memo/deadline separation, overdue carryover, legacy dates, selective filters, KST alerts and independent device opt-in');

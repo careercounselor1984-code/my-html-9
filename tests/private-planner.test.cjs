@@ -25,7 +25,7 @@ assert(js.includes("s.owner===s.identity.name&&s.center===s.identity.center"),'v
 assert(!js.includes("$('calendar')"),'checklist never replaces the appointment display');
 assert(!js.includes('plannerDueOnly'),'designated-date toggle removed from appointment page');
 assert(js.includes(".eq('kind','todo')"),'checklist fetches tasks only');
-assert(js.includes('./clients.html'),'separate client page link exists');
+assert(html.includes('./clients.html'),'separate client page link exists');
 assert(!js.includes('model.events'),'private items never enter shared events');
 assert(sql.includes('enable row level security'));
 assert(sql.includes('user_id=(select auth.uid())'));
