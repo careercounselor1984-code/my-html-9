@@ -20,6 +20,8 @@ jobs:
           node tests/schedule-safety.test.cjs
           node tests/desktop-mini.test.cjs
           node tests/energy-alert-once.test.cjs
+          node tests/daily-layout-alert-scope.test.cjs
+          node tests/private-planner.test.cjs
 
       - name: Headless Chrome initial-screen smoke (unauthenticated)
         shell: bash

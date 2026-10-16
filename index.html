@@ -155,6 +155,7 @@ body[data-view="teamDay"] .timetable .entry strong,body[data-view="teamDay"] .ti
  body[data-view="teamDay"] .timetable .entry strong,body[data-view="teamDay"] .timetable .entry .pilltype{font-size:inherit;font-weight:800;white-space:normal}
  body[data-view="teamDay"] .timetable .entry.gap{min-height:3mm;max-height:4mm;overflow:hidden}
 }
+
 </style>
 <style>
 body:not(.cloud-ready) main.wrap{display:none}
@@ -980,6 +981,21 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .team-day-metrics span{font-size:10px;padding:4px 7px}
  body[data-view="teamDay"] .team-day-table td.slot{height:49px;padding:4px 6px}
  body[data-view="teamDay"] .team-day-table .entry{padding:7px 8px}
+}
+</style>
+<style>
+/* Continuous activity uses the table cell itself, without an inset card. */
+body[data-view="teamDay"] .team-day-table td.teamday-band{vertical-align:middle!important;text-align:center;padding:12px 9px!important;background:#f1ecfb!important;color:#6e54a3;box-shadow:none!important;border-radius:0}
+body[data-view="teamDay"] .team-day-table td.teamday-band-leave{background:#fbf2f6!important;color:#8b4763}
+body[data-view="teamDay"] .team-day-table td.teamday-band-promotion{background:#eaf7f4!important;color:#286c61}
+body[data-view="teamDay"] .team-day-table td.teamday-band-education{background:#fff5e6!important;color:#986a30}
+body[data-view="teamDay"] .team-day-table .teamday-band strong{display:block;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+body[data-view="teamDay"] .team-day-table .teamday-band small{display:block;margin-top:5px;font-size:12px;opacity:.8}
+body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!important;box-shadow:none!important}
+.timetable .closed-summary td{background:#f0f3f6!important;color:#687b8f;text-align:center;vertical-align:middle;padding:14px;font-size:13px}
+@media print{
+ #schedulePrintOneDay .friday-compact .day-print-table{min-height:0!important}
+ #schedulePrintOneDay .closed-summary td{background:#f0f3f6!important;text-align:center;color:#687b8f;font-size:12px}
 }
 </style>
 </head>
@@ -3237,7 +3253,7 @@ function directorSheetPrint(){
 /* Manager/director concise leave & outside-work reports, server-scoped. */
 const workReportState={period:'day',busy:false,latest:null};
 function workReportPeriodLabel(p){return ({day:'오늘',week:'이번 주',month:'이번 달'})[p]||p}
-function workReportScope(){return cloud.identity?.role==='director'||!!cloud.identity?.isAdmin?'전체 4개 지사':'본인 지사'}
+function workReportScope(){return cloud.identity?.role==='director'?'전체 4개 지사':'본인 지사'}
 function workReportRender(data){
  const el=$('workReportContent');if(!el)return;
  if(!data){el.textContent='현재 보고 자료를 불러오지 못했습니다.';return}
@@ -3353,7 +3369,13 @@ function energySchoolInitialize(){
 }
 
 const alerts={items:[],busy:false,shown:new Set(),snoozedUntil:0,staffId:null,initialized:false};
-function alertUnread(){return alerts.items.filter(x=>!x.seen)}
+function alertInScope(item){
+ if(!cloud.active||!cloud.identity?.id||!item)return false;
+ if(cloud.identity.role==='director')return true;
+ const scope=String(item.scope||'').trim();
+ return ['전체','all','전체 지사'].includes(scope)||scope===cloud.identity.center;
+}
+function alertUnread(){return alerts.items.filter(x=>!x.seen&&alertInScope(x))}
 
 /* 에너지고 출입 신청 알림: 방문 전 영업일에 1회만 팝업.
    상담 일정 변경으로 signature가 달라지면 재알림, 미완료 현황은 계속 표시. */
@@ -3392,7 +3414,7 @@ function alertBridgeUpdate(){
  if(!cloud.active){
   alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:false,items:[]});return;
  }
- const items=alerts.items.filter(x=>x.source!=='energy').slice(0,80).map(x=>({
+ const items=alerts.items.filter(x=>x.source!=='energy'&&alertInScope(x)).slice(0,80).map(x=>({
   key:String(x.key||'').slice(0,180),
   title:String(x.title||'').slice(0,100),
   date:String(x.date||'').slice(0,16),
@@ -3489,7 +3511,7 @@ async function alertBoardFetch(){
   const items=recent.map(x=>{
    const epoch=new Date(x.updatedAt||x.createdAt).getTime();
    return {key:'board:'+String(x.id).slice(0,100)+':'+epoch,
-    source:'board',scope:'전체',kind:String(x.category||'게시판'),
+    source:'board',scope:String(x.scope||x.center||'전체').trim(),kind:String(x.category||'게시판'),
     title:String(x.title).slice(0,100),date:String(x.updatedAt||x.createdAt).slice(0,10),seen:false};
   }).filter(x=>x.key.length<=180);
   if(items.length){
@@ -3523,7 +3545,7 @@ async function arrivalRealtimeRefresh(){
   const {data,error}=await cloud.client.rpc('schedule_arrival_feed');
   if(error)throw error;
   if(!cloud.active||cloud.identity?.id!==staffId||arrivalRealtime.staffId!==staffId)return;
-  const incoming=Array.isArray(data?.items)?data.items:[];
+  const incoming=(Array.isArray(data?.items)?data.items:[]).filter(alertInScope);
   alerts.items=[...incoming,...alerts.items.filter(x=>x.source!=='arrival')];
   alertDraw();
   const fresh=incoming.filter(x=>!x.seen&&!alerts.shown.has(x.key));
@@ -3561,6 +3583,7 @@ function arrivalRealtimeStart(){
 async function alertPoll(pop=true){
  if(!cloud.active||!cloud.identity?.id||alerts.busy)return;
  if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
+ const staffId=cloud.identity.id;
  alerts.busy=true;
  try{
   const {data,error}=await cloud.client.rpc('schedule_alert_feed');
@@ -3588,7 +3611,8 @@ async function alertPoll(pop=true){
   try{const {data:arrivalData,error:arrivalError}=await cloud.client.rpc('schedule_arrival_feed');
    if(arrivalError)throw arrivalError;arrivals=Array.isArray(arrivalData?.items)?arrivalData.items:[];
   }catch(err){console.warn('내담자 도착 알림 조회 지연',err?.message||err)}
-  alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board];
+  if(!cloud.active||cloud.identity?.id!==staffId)return;
+  alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board].filter(alertInScope);
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key)&&!energyPopupPreviouslyShown(x));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -3911,7 +3935,7 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;privatePlanner?.reset();$('privatePlanner')?.classList.add('hide');cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;alerts.items=[];alerts.staffId=null;alerts.shown.clear();alertDraw();privatePlanner?.reset();$('privatePlanner')?.classList.add('hide');cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
  $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
  $('cloudRefresh').onclick=()=>cloudReload();
  cloud.client.auth.onAuthStateChange((event,session)=>{
@@ -4134,10 +4158,26 @@ function teamDay(){
  if(names.length>2)h+='<p class="team-day-swipe-tip">↔ 좌우로 밀어 다른 상담사 보기</p>';
  h+='<table class="timetable team-day-table" style="--staff-count:'+names.length+';min-width:'+Math.max(690,82+names.length*160)+'px" aria-label="센터 일일 상담 일정표"><thead><tr><th scope="col">시간</th>'+names.map(n=>'<th scope="col">'+escapeHtml(n)+'</th>').join('')+'</tr></thead><tbody>';
  for(const t of daySlots){
+  if(isFridayClosed(date,t)){
+   if(t===daySlots.find(slot=>isFridayClosed(date,slot)))h+='<tr class="closed-summary"><th class="time">오후</th><td colspan="'+names.length+'">금요일 오후 비근무</td></tr>';
+   continue;
+  }
   const closed=isFridayClosed(date,t)||isClosedDay(date);
   h+='<tr class="'+(t.endsWith(':00')?'hour-start':'half-hour')+'"><th scope="row" class="time">'+t+'</th>';
   for(const name of names){
    const active=closed?[]:events.filter(e=>e.owner===name&&matchingAt(e,t));
+   const band=active.length===1&&isWorkEvent(active[0])?active[0]:null;
+   if(band){
+    const range=daySlots.filter(slot=>!isFridayClosed(date,slot)&&!isClosedDay(date)&&matchingAt(band,slot));
+    const unique=range.every(slot=>events.filter(e=>e.owner===name&&matchingAt(e,slot)).length===1);
+    if(unique){
+     if(t!==range[0])continue;
+     const tone=isLeavePrintEvent(band)?'leave':band.type==='외부홍보'?'promotion':/교육/.test(band.type)?'education':'outside';
+     h+='<td rowspan="'+range.length+'" class="slot teamday-band teamday-band-'+tone+'" data-date="'+date+'" data-time="'+t+'" data-owner="'+escapeHtml(name)+'" data-event="'+escapeHtml(band.id)+'"><strong>'+escapeHtml(isLeavePrintEvent(band)?band.type:showName(band,true))+'</strong>';
+     if(!isLeavePrintEvent(band)&&band.title!==band.type)h+='<small>'+escapeHtml(band.type)+'</small>';
+     h+='</td>';continue;
+    }
+   }
    const leave=active.find(isLeavePrintEvent);
    const cls=['slot',closed?'blocked':'',!closed&&holidays(date).length?'dayoff':'',leave?'teamday-leave':''].filter(Boolean).join(' ');
    h+='<td class="'+cls+'" data-date="'+date+'" data-time="'+t+'" data-owner="'+escapeHtml(name)+'">';
@@ -4666,9 +4706,13 @@ function buildDailyPrint(date,{audience='visitor'}={}){
  const weekday=['일','월','화','수','목','금','토'][parseDate(date).getDay()];
  const number=owners.length;
  const cols=owners.map(n=>'<th>'+escapeHtml(n)+'</th>').join('');
- let html='<div class="day-print-inner" style="--print-owners:'+number+'"><div class="day-print-heading"><div><h2>상담 일정표 · '+escapeHtml(date)+' ('+weekday+')</h2><p>'+escapeHtml(currentCenter())+' · '+(allPeople?'센터 전체':escapeHtml(currentOwner()))+'</p></div><div class="day-print-note">30분 단위 / A4 가로 한 장</div></div>';
+ let html='<div class="day-print-inner '+(parseDate(date).getDay()===5?'friday-compact':'')+'" style="--print-owners:'+number+'"><div class="day-print-heading"><div><h2>상담 일정표 · '+escapeHtml(date)+' ('+weekday+')</h2><p>'+escapeHtml(currentCenter())+' · '+(allPeople?'센터 전체':escapeHtml(currentOwner()))+'</p></div><div class="day-print-note">30분 단위 / A4 가로 한 장</div></div>';
  html+='<table class="day-print-table"><thead><tr><th class="day-print-time">시간</th>'+cols+'</tr></thead><tbody>';
  for(const t of slots()){
+  if(isFridayClosed(date,t)){
+   if(t===slots().find(slot=>isFridayClosed(date,slot)))html+='<tr class="closed-summary"><th class="day-print-time">오후</th><td colspan="'+number+'" class="day-print-blocked">금요일 오후 비근무</td></tr>';
+   continue;
+  }
   html+='<tr class="'+(t.endsWith(':00')?'hour-start':'half-hour')+'"><th class="day-print-time">'+t+'</th>';
   for(const name of owners){
    const closed=isFridayClosed(date,t)||isClosedDay(date);
@@ -4762,7 +4806,7 @@ function renderDailyShareCanvas(){
   const cells=Array.from(tr.children);
   const lines=cells.slice(1).map(cell=>shareWrappedLines(ctx,cell.textContent,colWidth-26,6));
   const height=Math.max(74,...lines.map(ls=>ls.length*lineHeight+22));
-  return {time:cells[0]?.textContent.trim()||'',lines,height,
+  return {time:cells[0]?.textContent.trim()||'',lines,height,summary:tr.classList.contains('closed-summary')?cells[1]?.textContent.trim():'',
    blocked:cells.slice(1).map(el=>el.classList.contains('day-print-blocked')),
    leave:cells.slice(1).map(el=>el.classList.contains('day-print-leave')),
    leaveId:cells.slice(1).map(el=>el.dataset.leaveId||''),
@@ -4812,6 +4856,12 @@ function renderDailyShareCanvas(){
   boxCell(pad,y,timeWidth,row.height,row.hour?'#e5eef8':'#f1f5fa',row.hour);
   ctx.fillStyle='#294766';ctx.font='800 27px '+fontFamily;
   ctx.fillText(row.time,pad+timeWidth/2,y+row.height/2,timeWidth-12);
+  if(row.summary){
+   boxCell(pad+timeWidth,y,tableWidth-timeWidth,row.height,'#f0f3f6',false);
+   ctx.fillStyle='#687b8f';ctx.font='600 27px '+fontFamily;
+   ctx.fillText(row.summary,pad+timeWidth+(tableWidth-timeWidth)/2,y+row.height/2,tableWidth-timeWidth-26);
+   y+=row.height;continue;
+  }
   for(let i=0;i<count;i++){
    const x=pad+timeWidth+i*colWidth;
    const isLeave=row.leave[i];
@@ -4837,19 +4887,8 @@ function renderDailyShareCanvas(){
    const x=pad+timeWidth+i*colWidth;
    const top=rowTops[start],bottom=rowTops[end-1]+prepared[end-1].height;
    const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
-   // Continuous hatching and soft central text, no hard white label box.
-   ctx.save();ctx.fillStyle='#fbf2f6';ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
-   ctx.beginPath();ctx.rect(x+5,top+4,colWidth-10,spanHeight-8);ctx.clip();ctx.beginPath();
-   for(let offset=-spanHeight;offset<colWidth+spanHeight;offset+=23){
-    ctx.moveTo(x+offset,top+spanHeight);ctx.lineTo(x+offset+spanHeight,top);
-   }
-   ctx.strokeStyle='#e7ccd8';ctx.lineWidth=2;ctx.stroke();ctx.restore();
-   ctx.fillStyle='#c789a4';ctx.fillRect(x+4,top+4,5,spanHeight-8);
-   ctx.strokeStyle='#c789a4';ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
+   boxCell(x,top,colWidth,spanHeight,'#fbf2f6',false);
    const cx=x+colWidth/2,cy=top+spanHeight/2;
-   const wash=ctx.createRadialGradient(cx,cy,8,cx,cy,Math.min(colWidth*.73,spanHeight*.67));
-   wash.addColorStop(0,'rgba(251,242,246,.98)');wash.addColorStop(.62,'rgba(251,242,246,.91)');wash.addColorStop(1,'rgba(251,242,246,0)');
-   ctx.fillStyle=wash;ctx.fillRect(x+6,top+5,colWidth-12,spanHeight-10);
    const duration=label.match(/^(\d+(?:\.\d+)?)시간 연차$/);
    ctx.fillStyle='#8b4763';ctx.textAlign='center';
    if(duration&&spanHeight>=140){
@@ -4879,18 +4918,8 @@ function renderDailyShareCanvas(){
     /출장/.test(type)?['#f1ecfb','#d8ccef','#9278c4','#6e54a3']:
     /교육/.test(type)?['#fff5e6','#edd7b2','#c29148','#986a30']:
     ['#edf4fb','#cbdced','#7297bd','#426b93'];
-   ctx.save();ctx.fillStyle=tone[0];ctx.fillRect(x+4,top+3,colWidth-8,spanHeight-6);
-   ctx.beginPath();ctx.rect(x+5,top+4,colWidth-10,spanHeight-8);ctx.clip();ctx.beginPath();
-   for(let offset=-spanHeight;offset<colWidth+spanHeight;offset+=25){
-    ctx.moveTo(x+offset,top+spanHeight);ctx.lineTo(x+offset+spanHeight,top);
-   }
-   ctx.strokeStyle=tone[1];ctx.lineWidth=2;ctx.stroke();ctx.restore();
-   ctx.fillStyle=tone[2];ctx.fillRect(x+4,top+4,5,spanHeight-8);
-   ctx.strokeStyle=tone[2];ctx.lineWidth=2;ctx.strokeRect(x+4,top+3,colWidth-8,spanHeight-6);
+   boxCell(x,top,colWidth,spanHeight,tone[0],false);
    const cx=x+colWidth/2,cy=top+spanHeight/2;
-   const wash=ctx.createRadialGradient(cx,cy,7,cx,cy,Math.min(colWidth*.72,spanHeight*.7));
-   wash.addColorStop(0,tone[0]);wash.addColorStop(.6,tone[0]);wash.addColorStop(1,'rgba(255,255,255,0)');
-   ctx.fillStyle=wash;ctx.fillRect(x+7,top+5,colWidth-14,spanHeight-10);
    const titleSize=Math.min(31,Math.max(20,Math.floor(colWidth*.105))),lineHeight=titleSize+5;
    ctx.textAlign='center';ctx.fillStyle=tone[3];
    ctx.font='850 '+titleSize+'px '+fontFamily;
@@ -4997,7 +5026,7 @@ privatePlanner=window.PrivatePlanner.mount({
 });
 
 window.goodjobMiniBridge={
- arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen):[]},
+ arrivalInbox(){return cloud.active?alerts.items.filter(x=>x.source==='arrival'&&!x.seen&&alertInScope(x)):[]},
  async ackArrivals(keys){if(!cloud.active)throw Error('로그인 후 이용하세요');await alertAck(keys.filter(x=>x.startsWith('arrival:')))},
  async arrivals(){if(!cloud.active)return [];const {data,error}=await cloud.client.rpc('schedule_arrival_action',{p_action:'list'});if(error)throw error;return Array.isArray(data?.items)?data.items:[]},
  // Dedicated read-only RPC: only today's client display names at the signed-in staff member's center.
