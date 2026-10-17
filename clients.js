@@ -96,7 +96,7 @@ function applyLifecycle(payload){
  const before=eventsFor([{kind:'iap',payload:old}],true),after=eventsFor([{kind:'iap',payload}],true);
  const snapshot=p=>JSON.stringify({state:p.clientStatus||'active',date:p.statusDate||'',rules:p.eventRules||{},events:eventsFor([{kind:'iap',payload:p}],true)});
  if(next!=='active'&&!reason&&!editing)throw Error('상태 변경 사유를 입력하세요.');
- if(editing&&snapshot(old)!==snapshot(payload)){
+ if((editing||next!=='active')&&snapshot(old)!==snapshot(payload)){
   if((next!==(old.clientStatus||'active')||((next!=='active'||old.statusDate)&&date!==old.statusDate)||JSON.stringify(old.eventRules||{})!==JSON.stringify(payload.eventRules))&&!reason)throw Error('상태·일정 변경 사유를 입력하세요.');
   const removed=after.filter(e=>excluded(payload,e)).length,changes=[];for(const key of new Set([...before,...after].map(e=>e.key))){const a=before.find(e=>e.key===key),b=after.find(e=>e.key===key),was=a?excluded(old,a):false,now=b?excluded(payload,b):false;if(!a||!b||a.date!==b.date||a.detail!==b.detail||was!==now)changes.push({key,kind:(b||a).kind,from:a?.date||'',to:b?.date||'',action:!b?'일정 제거':now?'제외':was?'복구':a?'일정 변경':'일정 추가'})}
   payload.changeHistory=[...(Array.isArray(old.changeHistory)?old.changeHistory:[]),{at:new Date().toISOString(),by:identity?.id||'',from:old.clientStatus||'active',to:next,effectiveDate:date,reason:reason||'일정 날짜·내용 변경',summary:'전체 '+after.length+'건 중 제외 '+removed+'건',previousEffectiveDate:old.statusDate||'',changes}];
