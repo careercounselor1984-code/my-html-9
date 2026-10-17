@@ -1,1 +1,87 @@
 .period-views{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 14px;padding:4px;background:#edf2f7;border:1px solid #dce5ef;border-radius:11px;width:max-content;max-width:100%}.period-views button{border:0;background:transparent;border-radius:8px;min-width:67px;color:#586e84;padding:9px 15px;font-size:13px}.period-views button[aria-pressed=true]{background:#fff;color:#1e5b96;box-shadow:0 1px 6px #34557520;font-weight:750}.period-range{font-size:13px;font-weight:700;color:#3b6085;margin:13px 0 0;line-height:1.6}.period-weekday-text{font-size:13px;color:#245a8e;font-weight:700;white-space:nowrap}.period-scroll{overflow:auto}.period-grid{display:grid;grid-template-columns:repeat(7,minmax(112px,1fr));gap:5px;min-width:850px}.period-weekday{text-align:center;background:#edf3fa;padding:9px;border-radius:6px;font-size:12px;font-weight:700;color:#607993}.period-cell{border:1px solid #dce5ef;border-radius:9px;min-width:0;background:#fff;min-height:145px;overflow:hidden}.period-cell.outside{background:#f5f7fa;color:#95a3b3}.period-cell.is-today{border:2px solid #6297ca}.period-day{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;text-align:left;background:transparent;border:0;border-radius:0;border-bottom:1px solid #edf1f6;padding:9px 7px;font-size:11px;font-weight:750;white-space:nowrap}.period-day span{font-size:9px;background:#e4f0ff;color:#28659d;padding:2px 4px;border-radius:5px}.period-cell.weekend .period-day{color:#a65568}.period-items{padding:5px;max-height:285px;overflow:auto;overflow-wrap:anywhere}.period-week .period-cell{min-height:290px}.period-week .period-items{max-height:480px}.period-empty{color:#91a1b1;font-size:11px;padding:10px 3px;text-align:center}.period-event{display:flex;flex-direction:column;gap:4px;align-items:stretch;margin:3px 0 6px;padding:7px;border:1px solid #dee7f2;border-radius:7px;background:#f7faff;width:100%;text-align:left}.period-event strong{font-size:12px}.period-event small{font-size:10px;color:#70859a;font-weight:400;overflow-wrap:anywhere}.period-event .badge{font-size:9px;padding:3px 5px;text-align:left;width:max-content;max-width:100%}.period-add{display:block;width:100%;font-size:10px;margin-top:6px;padding:6px;border:1px dashed #bed1e4;border-radius:6px;color:#5c7fa2;background:#f8fbff}.period-items .planner-task{display:block;font-size:11px;padding:6px 3px}.period-items .planner-task label{font-size:11px!important;align-items:flex-start;gap:5px}.period-items .planner-task input{width:15px;height:15px}.period-items .planner-task button{font-size:9px;padding:3px 6px;margin:5px 3px 0 0}.period-items .planner-task.done{background:#f5f7fa}.planner-date-choice{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}.planner-date-choice input{max-width:150px}.tasks-page .planner-add input[type=date]{display:block!important}.tasks-page.period-wide main,.tasks-page.period-wide .top{max-width:1320px}.tasks-page .planner-count-range{display:block;margin-top:4px}@media(max-width:700px){.period-views{width:100%}.period-views button{flex:1;min-width:0;padding:9px 11px}.period-scroll{padding-bottom:8px}.period-grid{min-width:850px}.planner-date-choice{width:100%;flex-wrap:wrap}.planner-date-choice input{max-width:160px}.period-range{font-size:12px}.period-event{padding:6px}.tasks-page .private-planner{padding:13px}}
+
+
+/* Mobile workspace: keep records above the fold and calendar within viewport. */
+.mobile-only,.period-count{display:none}.mobile-settings>summary{display:none}.mobile-settings>.task-notify-tools{display:flex}
+@media screen and (max-width:700px){
+ body.clients-page,body.tasks-page{overflow-wrap:anywhere}
+ .clients-page .top,.tasks-page .top{padding:16px 12px 8px;margin:0;display:block}
+ .clients-page .top .eyebrow,.tasks-page .top .eyebrow,.clients-page .top p,.tasks-page .top p,.clients-page .top .actions,.tasks-page .top .back{display:none}
+ .clients-page h1,.tasks-page h1{font-size:20px;line-height:1.4;letter-spacing:-.04em}
+ .clients-page h1 span,.tasks-page h1 span{font-size:10px;padding:3px 6px;margin-left:4px}
+ .clients-page main,.tasks-page main{padding:0 10px 24px;width:100%;min-width:0}
+ .clients-page button,.tasks-page button{min-height:40px}
+ .clients-page input,.tasks-page input,.clients-page select,.tasks-page select,.clients-page textarea,.tasks-page textarea{font-size:16px;max-width:100%}
+ #workspace>.section-head,#taskWorkspace>.section-head{margin:10px 2px 8px;gap:7px}
+ #workspace>.section-head p,#taskWorkspace>.section-head p{display:none}
+ #workspace>.section-head strong,#taskWorkspace>.section-head strong{font-size:12px;color:#637b93}
+ #workspace>.section-head .actions{gap:6px}#workspace>.section-head .actions button{font-size:12px;padding:7px 10px}
+ #workspace>.status:not(.error){min-height:0;font-size:10px;margin:5px 2px}
+ .clients-page .filter-panel{padding:10px;border-radius:12px}
+ .clients-page .period-views,.tasks-page .period-views{margin:0 0 8px;padding:3px;gap:2px}
+ .clients-page .period-views button,.tasks-page .period-views button{min-height:38px;padding:7px 4px;font-size:12px}
+ .clients-page .month-nav{gap:5px}
+ .clients-page .month-nav>button{padding:6px 9px;font-size:12px}
+ .clients-page .month-nav>label:not(.search){flex:1;min-width:0}
+ .clients-page .month-nav input[type=month],.clients-page .month-nav input[type=date]{width:100%;padding:7px 3px;min-height:40px;text-align:center}
+ .date-control-label{display:none}
+ .clients-page .month-nav .search{width:100%;min-width:0;margin:3px 0 0}
+ .clients-page .search input{padding:8px 10px;font-size:16px}
+ .clients-page .period-range,.tasks-page .period-range{font-size:11px;margin:7px 0;line-height:1.4}
+ .clients-page .filter-cards{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+ .clients-page .filter-card,.clients-page .filter-card:first-child{flex:1 1 auto;gap:5px;padding:6px 8px;min-height:36px;font-size:11px;white-space:nowrap;border-radius:8px}
+ .clients-page .filter-card b{font-size:13px}.clients-page .filter-card small{display:none}
+ .clients-page .result-panel{padding:12px;margin:10px 0;border-radius:12px}
+ .clients-page .result-title{margin-bottom:8px;align-items:center}.clients-page .result-title h2{font-size:14px}.clients-page .result-title span{white-space:nowrap;font-size:11px}
+ .clients-page .empty{padding:18px 3px;font-size:12px;line-height:1.6}
+ .clients-page .roster{padding:12px}.clients-page .roster summary{font-size:13px}
+ .tasks-page .mobile-settings{margin:0 0 8px;border:1px solid #dbe5ef;border-radius:8px;padding:8px 10px;font-size:12px;color:#56718b}
+ .tasks-page .mobile-settings>summary{display:list-item;cursor:pointer;min-height:24px;line-height:24px}
+ .tasks-page .mobile-settings:not([open])>.task-notify-tools{display:none}
+ .tasks-page .mobile-settings .task-notify-tools{margin:8px 0 0}
+ .tasks-page .navline.month-nav{display:grid;grid-template-columns:32px minmax(0,1fr) 24px 32px 54px;gap:4px;padding:8px;margin:8px 0;border-radius:10px}
+ .tasks-page .navline label{min-width:0;display:block}.tasks-page .navline input[type=date]{width:100%;min-width:0;padding:7px 2px;text-align:center}
+ .tasks-page .navline button{padding:6px 2px;font-size:12px}.tasks-page .period-weekday-text{font-size:11px}
+ .tasks-page .private-planner{padding:12px;border-radius:12px}
+ .tasks-page .planner-head{flex-wrap:nowrap;gap:6px;align-items:center}
+ .tasks-page .planner-head strong{font-size:14px}.tasks-page .planner-head small{font-size:10px;line-height:1.5;margin-top:3px}
+ .tasks-page .planner-tools{width:auto;flex-wrap:nowrap;flex:none;gap:4px}
+ .tasks-page .planner-tools button{padding:6px 8px;font-size:11px}
+ .tasks-page .mobile-only{display:inline-block}
+ .tasks-page .compose-collapsed #plannerAdd{display:none}
+ .tasks-page .planner-add{margin:10px 0;gap:8px;display:grid;grid-template-columns:minmax(0,1fr) auto}
+ .tasks-page .planner-add .task-choice-label,.tasks-page .planner-date-choice{grid-column:1/-1;width:100%;font-size:12px}
+ .tasks-page .planner-add input[type=text]{width:100%;min-width:0;padding:9px}
+ .tasks-page .planner-add button{padding:8px 12px}
+ .tasks-page .task-filter-bar{gap:4px;margin:10px 0 6px}
+ .tasks-page .task-filter-bar button{padding:6px 8px;min-height:36px;font-size:11px}
+ .tasks-page .task-filter-bar:not(.filters-expanded) button:is([data-task-filter=overdue],[data-task-filter=today],[data-task-filter=soon],[data-task-filter=noDue]):not([aria-pressed=true]){display:none}
+ .tasks-page .task-filter-more{border:0;background:transparent;color:#54708a;min-height:32px;padding:2px 0;font-size:11px;margin-bottom:5px}
+ .tasks-page .task-search{width:100%;font-size:16px;margin-bottom:8px;padding:8px}
+ .tasks-page .planner-status{font-size:10px;margin-top:6px;min-height:0}
+ .tasks-page .planner-task{padding:10px 2px;gap:6px}.tasks-page .task-content .task-text{font-size:14px}.tasks-page .planner-task label input{width:20px;height:20px}
+ .tasks-page .planner-task>button{min-height:36px;font-size:11px;padding:6px 9px}
+ .tasks-page .task-urgency{padding:8px;font-size:11px;line-height:1.5}
+ /* Week becomes a vertical agenda, with no horizontal scrolling or tall empty columns. */
+ .clients-page .period-scroll,.tasks-page .period-scroll{overflow:visible;padding:0;min-width:0}
+ .clients-page .period-grid,.tasks-page .period-grid{min-width:0;width:100%}
+ .clients-page .period-week,.tasks-page .period-week{display:flex;flex-direction:column;gap:7px}
+ .period-week>.period-weekday{display:none}
+ .clients-page .period-week .period-cell,.tasks-page .period-week .period-cell{min-height:0}
+ .period-week .period-day{font-size:12px;padding:8px 10px;min-height:40px}
+ .period-week .period-items{max-height:none;padding:5px 9px;overflow:visible}
+ .period-week .period-empty{text-align:left;padding:4px;font-size:11px}
+ .period-week .period-add{margin-top:4px;font-size:11px;min-height:36px}
+ .tasks-page .period-week .planner-task{display:flex}.tasks-page .period-week .task-content{min-width:65%}.tasks-page .period-week .task-content .task-text{font-size:14px}
+ /* Month stays seven columns; tap a date to open the complete daily records. */
+ .clients-page .period-month,.tasks-page .period-month{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+ .period-month>.period-weekday{padding:6px 0;font-size:11px}
+ .clients-page .period-month .period-cell,.tasks-page .period-month .period-cell{min-height:66px;position:relative}
+ .period-month .period-items{display:none}
+ .period-month .period-day{font-size:0;display:block;min-height:64px;padding:7px 0 26px;text-align:center;border:0;height:100%}
+ .period-month .period-day::before{content:attr(data-day-number);font-size:13px}
+ .period-month .period-day span{display:none}
+ .period-month .period-count{display:block;position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:10px;color:#2163a4;pointer-events:none}
+ .period-month .is-today .period-day::before{color:#2163a4;font-weight:800}
+ .clients-page dialog,.tasks-page dialog{width:calc(100% - 16px);max-height:90dvh}.clients-page .editor,.tasks-page .editor{padding:14px}
+}
