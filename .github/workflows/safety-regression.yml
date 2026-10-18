@@ -30,6 +30,11 @@ jobs:
           node tests/work-periods.test.cjs
           node tests/task-model.test.cjs
           node tests/task-dispatch.test.cjs
+          node tests/client-lifecycle.test.cjs
+          node tests/session-lifecycle.test.cjs
+          node tests/task-reminder-session.test.cjs
+          node tests/full-runtime-browser-smoke.cjs
+          node tests/private-screens-browser-smoke.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
         shell: bash
