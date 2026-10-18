@@ -1420,6 +1420,7 @@ function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
 }
 function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
 function cloudQueue(){if(!cloud.active)return;
+ cloud.mutationEpoch=(cloud.mutationEpoch||0)+1;
  // If an earlier pending draft was deliberately deferred, archive it before replacing the draft key.
  if(cloud.unresolvedDraft){
   try{const previous=localStorage.getItem(cloudDraftKey());if(previous){
@@ -1535,9 +1536,9 @@ async function cloudCommit(){
 }
 async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
- const valid=cloudSessionGuard(),seq=cloud.reloadSeq=(cloud.reloadSeq||0)+1;
+ const valid=cloudSessionGuard(),mutation=cloud.mutationEpoch,seq=cloud.reloadSeq=(cloud.reloadSeq||0)+1;
  try{
- const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(!valid()||seq!==cloud.reloadSeq)return;if(error)throw error;
+ const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(!valid()||seq!==cloud.reloadSeq||mutation!==cloud.mutationEpoch||cloud.busy||cloud.needsSave)return;if(error)throw error;
  cloud.identity={...cloud.identity,...data.identity};
  // Personal data is full. Other employees' consultation names come from server already masked.
  model.events=Array.isArray(data.events)?data.events:[];
@@ -1590,7 +1591,7 @@ async function cloudReload(){
  render();
  $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
  if(!cloud.needsSave)cloudStatus(draftBackupFailed?'미전송 초안 백업 실패 · 원본 보관 중':draftUnresolved?'미전송 초안 복원을 보류했습니다. 다음 수정 전 기존 초안이 별도 보관됩니다.':'동기화 완료 ✓',draftBackupFailed||draftUnresolved);
- }catch(err){if(!valid()||seq!==cloud.reloadSeq)return;if(/인증된 직원|첫 로그인 비밀번호|JWT|로그인이 필요/.test(String(err.message||'')))cloudClearSession('직원 인증을 다시 확인해주세요.');else cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
+ }catch(err){if(!valid()||seq!==cloud.reloadSeq||mutation!==cloud.mutationEpoch||cloud.busy||cloud.needsSave)return;if(/인증된 직원|첫 로그인 비밀번호|JWT|로그인이 필요/.test(String(err.message||'')))cloudClearSession('직원 인증을 다시 확인해주세요.');else cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
 }
 function cloudApplyIdentity(info){
  cloud.identity=info;cloud.active=true;
