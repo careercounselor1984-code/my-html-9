@@ -1352,6 +1352,25 @@ const cloudAuthStorage={
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
 const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,recovering:false,initialPasswordChange:false};
+function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
+function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
+ cloud.sessionEpoch=(cloud.sessionEpoch||0)+1;cloud.reloadSeq=(cloud.reloadSeq||0)+1;
+ clearTimeout(cloud.timer);cloud.timer=null;cloud.active=false;cloud.identity=null;cloud.busy=false;cloud.needsSave=false;cloud.base=null;cloud.eventVersions=new Map();
+ journalDirectPending=null;journalDirectBusy=false;journalBookingPending=null;
+ arrivalRealtimeStop();directorPreviewExit();executiveClose(true);
+ sharedState.open=false;sharedState.posts=[];sharedState.staff=[];sharedState.loading=false;
+ handoff.items=[];directorAbs.items=[];sharedTeam.presence=[];executiveState.loading=false;phonePush.enabled=false;calendarState.feedUrl='';calendarState.ready=false;
+ alerts.items=[];alerts.staffId=null;alerts.shown.clear();alerts.busy=false;
+ energySchoolState.visits=[];energySchoolState.loading=false;energySchoolState.busy=false;
+ workReportState.latest=null;workReportState.busy=false;
+ model.events=[];model.participants=[];model.offs=[];model.notices=[];
+ document.body.classList.remove('cloud-ready','shared-board-mode','mobile-quick-open');
+ $('sharedBoard').classList.add('hide');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');$('cloudUser').textContent='';
+ for(const id of ['workReportContent','workReportConsultSheet','energySchoolList','presenceList','peopleList','handoffList','directorAbsentList']){const el=$(id);if(el)el.replaceChildren();}
+ document.querySelectorAll('dialog[open]').forEach(el=>{try{el.close()}catch{}});
+ alertDraw();render();cloudStatus(message);
+}
+
 function cloudOpenInitialPasswordDialog(){
  cloud.initialPasswordChange=true;
  const dlg=$('cloudPasswordDialog');
@@ -1428,6 +1447,7 @@ function cloudQueue(){if(!cloud.active)return;
  clearTimeout(cloud.timer);if(backedUp)cloud.timer=setTimeout(()=>cloudCommit(),700)}
 
 async function cloudSyncEvents(rows,base,staff){
+ const valid=cloudSessionGuard();
  const current=cloudMap(rows.map(cloudClean));
  const changed=rows.filter(v=>current.get(v.id)!==base.get(v.id));
  const deleted=[...base.keys()].filter(k=>!current.has(k));
@@ -1439,6 +1459,7 @@ async function cloudSyncEvents(rows,base,staff){
  deleted.forEach(id=>actions.push({op:'delete',id,expectedVersion:cloud.eventVersions.get(id)}));
  if(!actions.length)return 0;
  const {data,error}=await cloud.client.rpc('schedule_apply_event_changes',{p_actions:actions});
+ if(!valid())return 0;
  if(error)throw Error('일정 서버 저장 실패: '+error.message);
  if(!data?.ok||!Array.isArray(data.changes))throw Error('일정 서버에서 저장 확인 응답을 받지 못했습니다');
  for(const v of data.changes){
@@ -1467,6 +1488,7 @@ async function cloudSyncList(kind,rows,base,table){
 }
 async function cloudCommit(){
  if(!cloud.active||cloud.busy||!cloud.needsSave||cloud.queueBlocked)return;
+ const valid=cloudSessionGuard();
  cloud.busy=true;cloud.needsSave=false;
  try{
  const staff=cloud.identity.id;
@@ -1478,13 +1500,17 @@ async function cloudCommit(){
   notices:JSON.parse(JSON.stringify(model.notices.filter(n=>!n.readonly).map(cloudClean)))
  };
  const changedEventCount=await cloudSyncEvents(snapshot.events,cloud.base.events,staff);
+ if(!valid())return;
  cloud.base.events=cloudMap(snapshot.events);
  await cloudSyncList('참여자',snapshot.people,cloud.base.people,'schedule_participants');
+ if(!valid())return;
  cloud.base.people=cloudMap(snapshot.people);
  if(['manager','director'].includes(cloud.identity.role)){
   await cloudSyncList('휴무',snapshot.offs,cloud.base.offs,'schedule_closures');
+ if(!valid())return;
   cloud.base.offs=cloudMap(snapshot.offs);
   await cloudSyncList('공통 행사',snapshot.notices,cloud.base.notices,'schedule_notices');
+ if(!valid())return;
   cloud.base.notices=cloudMap(snapshot.notices);
  }
  cloud.base={events:cloudMap(snapshot.events),people:cloudMap(snapshot.people),
@@ -1495,6 +1521,7 @@ async function cloudCommit(){
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
  }catch(err){
+ if(!valid())return;
  if(String(err.message||'').includes('일정 버전 충돌')){
   // Preserve the draft on this device. Repeating the same stale patch cannot succeed safely.
   cloud.needsSave=!!cloud.draftBackupFailed;
@@ -1504,12 +1531,13 @@ async function cloudCommit(){
   cloud.needsSave=true;cloudStatus((cloud.draftBackupFailed?'기기 백업 실패 · 새로고침 금지 / ':'')+'저장 실패 · 재시도 필요: '+err.message,true);
  }
 }
- finally{cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}
+ finally{if(valid()){cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}}
 }
 async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
+ const valid=cloudSessionGuard(),seq=cloud.reloadSeq=(cloud.reloadSeq||0)+1;
  try{
- const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(error)throw error;
+ const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(!valid()||seq!==cloud.reloadSeq)return;if(error)throw error;
  cloud.identity={...cloud.identity,...data.identity};
  // Personal data is full. Other employees' consultation names come from server already masked.
  model.events=Array.isArray(data.events)?data.events:[];
@@ -1562,7 +1590,7 @@ async function cloudReload(){
  render();
  $('summary').textContent=$('summary').textContent.replace('기기별 로컬 저장 (PC와 휴대폰 자동 동기화 전)','PC·모바일 공통 서버 연동 중');
  if(!cloud.needsSave)cloudStatus(draftBackupFailed?'미전송 초안 백업 실패 · 원본 보관 중':draftUnresolved?'미전송 초안 복원을 보류했습니다. 다음 수정 전 기존 초안이 별도 보관됩니다.':'동기화 완료 ✓',draftBackupFailed||draftUnresolved);
- }catch(err){cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
+ }catch(err){if(!valid()||seq!==cloud.reloadSeq)return;if(/인증된 직원|첫 로그인 비밀번호|JWT|로그인이 필요/.test(String(err.message||'')))cloudClearSession('직원 인증을 다시 확인해주세요.');else cloudStatus('일정 불러오기 실패: '+err.message,true);throw err}
 }
 function cloudApplyIdentity(info){
  cloud.identity=info;cloud.active=true;
@@ -1583,11 +1611,14 @@ function cloudApplyIdentity(info){
 
 }
 async function cloudStartSession(){
+ const epoch=cloud.sessionEpoch=(cloud.sessionEpoch||0)+1;
  try{
  cloudStatus('계정 확인 중…');
  const {data:{session}}=await cloud.client.auth.getSession();
- if(!session){directorPreviewExit();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');cloudStatus('회사 이메일로 로그인해 주세요');return;}
+ if(epoch!==cloud.sessionEpoch)return;
+ if(!session){cloudClearSession('회사 이메일로 로그인해 주세요');return;}
  const {data,error}=await cloud.client.rpc('schedule_claim_identity');
+ if(epoch!==cloud.sessionEpoch)return;
  if(error)throw error;
  if(data?.mustChangePassword){
   cloud.identity=data;cloud.active=false;
@@ -1600,7 +1631,7 @@ async function cloudStartSession(){
  }
  cloud.initialPasswordChange=false;
  cloudApplyIdentity(data);
- await cloudReload();
+ await cloudReload();if(epoch!==cloud.sessionEpoch||!cloud.active)return;
  if(directorHomeAllowed()){
   const accepted=['personalDay','personalWeek','personalMonth','teamLeave','teamDay'];
   let previous='personalWeek';
@@ -1611,7 +1642,7 @@ async function cloudStartSession(){
   directorPreviewUI();
   changeView(previous);
  }
- await alertPoll(true);
+ await alertPoll(true);if(epoch!==cloud.sessionEpoch||!cloud.active)return;
  arrivalRealtimeStart();
  pushRefresh().catch(()=>{});
  directorAbsFetch().catch(()=>{});
@@ -1637,7 +1668,7 @@ async function cloudStartSession(){
  journalBookingAnnounce();
  journalBookingMaybeOpen();
  await journalDirectProcess();
- }catch(err){executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;document.body.classList.remove('cloud-ready');$('cloudGate').classList.remove('hide');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';cloudStatus('로그인 확인 실패',true)}
+ }catch(err){if(epoch!==cloud.sessionEpoch)return;cloudClearSession('로그인 확인 실패');$('cloudAuthMessage').textContent=err.message||'계정을 확인할 수 없어요';}
 }
 
 const sharedTeam={directory:[],messages:[],presence:[]};
@@ -1647,9 +1678,11 @@ async function loadStaffDirectory(){
  sharedTeam.directory=Array.isArray(data)?data:[];
 }
 async function refreshPresence(){
+ const valid=cloudSessionGuard();
  $('presenceFeedback').textContent='근무현황을 조회하는 중…';
  const date=dateKey(new Date());
  const {data,error}=await cloud.client.rpc('schedule_today_presence',{p_date:date});
+ if(!valid())return;
  if(error){$('presenceFeedback').textContent='조회 오류: '+error.message;return}
  sharedTeam.presence=Array.isArray(data)?data:[];
  const me=sharedTeam.presence.find(x=>x.center===cloud.identity.center&&x.name===cloud.identity.name);
@@ -2007,12 +2040,16 @@ async function journalDirectProcess(){
    message:'일정관리 로그인 후 자동 예약됩니다.'});
   return;
  }
+ const expected=String(task.payload.expectedName||'').replace(/\s/g,'');
+ if(expected&&expected!==String(cloud.identity?.name||'').replace(/\s/g,'')){journalDirectReply(task.source,task.origin,{requestId:task.payload.requestId,status:'error',message:'통합본과 일정표에 같은 직원 계정으로 로그인해주세요.'});journalDirectPending=null;return;}
+ const valid=cloudSessionGuard();
  journalDirectBusy=true;
  const p=task.payload;
  try{
   const {data,error}=await cloud.client.rpc('schedule_book_from_journal',{
    _request_id:p.requestId,_date:p.date,_time:p.time,_type:p.consultType,_title:p.name
   });
+  if(!valid())return;
   if(error)throw error;
   if(!data?.ok)throw new Error('예약을 저장할 수 없습니다.');
   journalDirectReply(task.source,task.origin,{requestId:p.requestId,status:'saved',booking:data});
@@ -2022,7 +2059,7 @@ async function journalDirectProcess(){
   const message=String(error?.message||'서버에 저장하지 못했습니다.').slice(0,240);
   journalDirectReply(task.source,task.origin,{requestId:p.requestId,status:'error',message});
   if(journalDirectPending===task)journalDirectPending=null;
- }finally{journalDirectBusy=false}
+ }finally{if(valid())journalDirectBusy=false}
 }
 window.addEventListener('message',async event=>{
  if(event.source!==window.parent||!event.data||event.data.type!=='goodjob:schedule-create:v2')return;
@@ -2054,6 +2091,7 @@ window.addEventListener('message',async event=>{
  if(journalDirectBusy){reply('error','다른 예약을 처리하는 중입니다. 잠시 후 다시 시도해 주세요.');return}
  journalDirectPending={payload:{requestId,date:p.date,time:p.time,name:p.name.trim(),consultType:p.consultType},
   source:event.source,origin:event.origin};
+ journalDirectPending.payload.expectedName=typeof p.expectedName==='string'?p.expectedName.slice(0,100):'';
  await journalDirectProcess();
 });
 
@@ -2465,6 +2503,7 @@ function executiveRender(){
  $('executiveStatus').textContent='조회 월 '+executiveState.month+' · '+(executiveState.center==='전체'?'4개 지사 전체':executiveState.center)+' · 조회 전용';
 }
 async function executiveLoad(){
+ const valid=cloudSessionGuard();
  if(!executiveAllowed()||executiveState.loading)return;
  executiveState.loading=true;
  $('executiveRefresh').disabled=true;
@@ -2478,12 +2517,13 @@ async function executiveLoad(){
  try{
   const period=executiveMonthRange(executiveState.month);
   const {data,error}=await cloud.client.rpc('schedule_executive_overview',{p_start:period.start,p_end:period.end});
+  if(!valid())return;
   if(error)throw error;
   if(!data||!Array.isArray(data.staff)||!Array.isArray(data.events))throw new Error('총괄 현황 응답이 올바르지 않습니다.');
   executiveState.data=data;
   executiveRender();
- }catch(err){$('executiveStatus').textContent='총괄 현황을 불러오지 못했어요: '+String(err?.message||'서버 응답 오류');}
- finally{executiveState.loading=false;$('executiveRefresh').disabled=false;$('executiveSheetPrevMonth').disabled=false;$('executiveSheetNextMonth').disabled=false;$('executiveSheetPrevDay').disabled=false;$('executiveSheetNextDay').disabled=false;$('executiveSheetDay').disabled=false;$('executiveSheetToday').disabled=executiveSheetState.day===dateKey(new Date())}
+ }catch(err){if(!valid())return;$('executiveStatus').textContent='총괄 현황을 불러오지 못했어요: '+String(err?.message||'서버 응답 오류');}
+ finally{if(valid()){executiveState.loading=false;$('executiveRefresh').disabled=false;$('executiveSheetPrevMonth').disabled=false;$('executiveSheetNextMonth').disabled=false;$('executiveSheetPrevDay').disabled=false;$('executiveSheetNextDay').disabled=false;$('executiveSheetDay').disabled=false;$('executiveSheetToday').disabled=executiveSheetState.day===dateKey(new Date())}}
 }
 async function executiveOpen(){
  if(!executiveAllowed()){alert('총괄 현황 조회 권한이 없어요.');return}
@@ -2763,11 +2803,12 @@ function sharedRender(){
  $('sharedPosts').innerHTML=arr.length?arr.map(sharedCard).join(''):'<div class="shared-empty-list">해당 조건의 공유 일정이 없어요. 새 요청을 등록해 보세요.</div>';
 }
 async function sharedRefresh(){
+ const valid=cloudSessionGuard();
  if(!cloud.active||sharedState.loading)return;
  sharedState.loading=true;$('sharedRefresh').disabled=true;sharedStatus('공유 일정을 불러오는 중…');
- try{const data=await sharedRpc('list');sharedState.posts=data.posts||[];sharedState.staff=data.staff||[];sharedRender();sharedStatus('서버 조회 완료 · 공유 일정 '+sharedState.posts.length+'건')}
- catch(e){sharedStatus('조회 실패: '+String(e.message||e))}
- finally{sharedState.loading=false;$('sharedRefresh').disabled=false}
+ try{const data=await sharedRpc('list');if(!valid())return;sharedState.posts=data.posts||[];sharedState.staff=data.staff||[];sharedRender();sharedStatus('서버 조회 완료 · 공유 일정 '+sharedState.posts.length+'건')}
+ catch(e){if(!valid())return;sharedStatus('조회 실패: '+String(e.message||e))}
+ finally{if(valid()){sharedState.loading=false;$('sharedRefresh').disabled=false}}
 }
 async function sharedOpen(){
  if(!cloud.active){alert('로그인 후 이용하세요.');return}
@@ -2825,9 +2866,11 @@ function handoffBusyAt(item){
  return model.events.some(e=>e.owner===cloud.identity.name&&e.center===cloud.identity.center&&e.date===item.date&&(e.allDay||minute(e.time||'00:00')<end&&minute(e.end||addMinutes(e.time||'00:00',30))>begin));
 }
 async function handoffRefresh(){
+ const valid=cloudSessionGuard();
  if(!cloud.active)return;
  try{
   const {data,error}=await cloud.client.rpc('schedule_handoff_action',{p_action:'list',p_payload:{}});
+  if(!valid())return;
   if(error)throw error;
   handoff.items=Array.isArray(data?.rows)?data.rows:[];
   const count=handoff.items.filter(x=>x.canAccept).length;
@@ -2838,7 +2881,7 @@ async function handoffRefresh(){
    const action=x.status==='pending'&&x.mine?'<button type="button" data-handoff-cancel="'+escapeHtml(x.id)+'">요청 취소</button>':x.canAccept?'<button type="button" class="primary" data-handoff-accept="'+escapeHtml(x.id)+'"'+(busy?' disabled title="본인 일정이 있습니다"':'')+'>'+(busy?'내 일정 중복':'✓ 내가 상담 맡기')+'</button>':'';
    return '<div class="handoff-item"><div><strong>'+escapeHtml(x.date+' '+x.time+' · '+x.consultType)+'</strong><small>'+escapeHtml(x.requester+' 요청 · '+state+(x.acceptedBy?' · '+x.acceptedBy+' 인계':''))+'</small>'+(x.note?'<small>'+escapeHtml(x.note)+'</small>':'')+'</div>'+action+'</div>';
   }).join(''):'<p>소속 센터의 인계 요청이 없습니다.</p>';
- }catch(e){$('handoffList').textContent='인계 명단 조회 실패: '+String(e.message||e)}
+ }catch(e){if(!valid())return;$('handoffList').textContent='인계 명단 조회 실패: '+String(e.message||e)}
 }
 function handoffOpen(){
  const e=model.events.find(x=>x.id===editing);
@@ -3141,13 +3184,15 @@ async function calendarRestore(){
 /* Director absences are not consultation entries. This roster is visible to logged-in employees. */
 const directorAbs={items:[],busy:false};
 async function directorAbsFetch(){
+ const valid=cloudSessionGuard();
  if(!cloud.active)return;
  try{
   const {data,error}=await cloud.client.rpc('schedule_director_absence_action',{p_action:'list',p_payload:{}});
+  if(!valid())return;
   if(error)throw error;
   directorAbs.items=Array.isArray(data?.items)?data.items:[];
   directorAbsRender();
- }catch(err){console.warn('부장 부재 현황 조회 지연',err?.message||err)}
+ }catch(err){if(!valid())return;console.warn('부장 부재 현황 조회 지연',err?.message||err)}
 }
 function directorAbsRender(){
  const today=dateKey(new Date()),next=directorAbs.items.filter(x=>x.end>=today);
@@ -3229,16 +3274,18 @@ function directorScheduleSheet(data,day){
  }).join('');
 }
 async function directorSheetLoad(){
+ const valid=cloudSessionGuard();
  const node=$('workReportConsultSheet'),btn=$('workReportConsultPrint');
  if(cloud.identity?.role!=='director'&&!directorPreviewState.active){node.innerHTML='';btn.classList.add('hide');return}
  node.textContent='지사별 상담일정표를 불러오는 중…';
  try{
   const day=dateKey(new Date());
   const {data,error}=await cloud.client.rpc('schedule_executive_overview',{p_start:day,p_end:day});
+  if(!valid())return;
   if(error)throw error;
   node.innerHTML=directorScheduleSheet(data,day);
   btn.classList.remove('hide');
- }catch(err){node.textContent='상담일정 조회 실패: '+String(err?.message||err);btn.classList.add('hide')}
+ }catch(err){if(!valid())return;node.textContent='상담일정 조회 실패: '+String(err?.message||err);btn.classList.add('hide')}
 }
 function directorSheetPrint(){
  const report=$('workReportContent')?.innerHTML||'',sheet=$('workReportConsultSheet')?.innerHTML||'';
@@ -3270,6 +3317,7 @@ function workReportRender(data){
   branchHtml+'<p style="font-size:11px;color:#64748b">지사별 표와 직원별 상세는 같은 날·동일 유형을 하나로 묶은 요약입니다. 위 카드의 건수는 실제 등록된 일정 수를 표시합니다. 요약에 보이는 첫~마지막 시간은 연속 근무를 의미하지 않을 수 있습니다.</p><div style="margin-top:14px"><strong>직원별 등록 내역(날짜·종류별 합산)</strong>'+(entries.length?detail:'<p style="color:#64748b">이 기간에는 등록된 연차·외부일정이 없습니다.</p>')+'</div>';
 }
 async function workReportLoad(period){
+ const valid=cloudSessionGuard();
  if(workReportState.busy||!cloud.active)return;
  workReportState.period=period||workReportState.period;workReportState.busy=true;
  $('workReportContent').textContent='직원 일정 보고를 불러오는 중…';
@@ -3280,12 +3328,13 @@ async function workReportLoad(period){
  });
  try{
   const {data,error}=await cloud.client.rpc('schedule_work_report',{p_period:workReportState.period});
+  if(!valid())return;
   if(error)throw error;
   workReportState.latest=data;workReportRender(data);
-  await directorSheetLoad();
+  await directorSheetLoad();if(!valid())return;
   $('workReportStatus').textContent='이 보고는 직원이 좋은일자리 일정표에 등록한 최신 내용입니다. 부장은 전체 지사, 팀장은 본인 지사만 표시됩니다.';
- }catch(e){$('workReportContent').textContent='보고 조회 실패: '+String(e?.message||e)}
- finally{workReportState.busy=false}
+ }catch(e){if(!valid())return;$('workReportContent').textContent='보고 조회 실패: '+String(e?.message||e)}
+ finally{if(valid()){workReportState.busy=false}}
 }
 async function workReportOpen(period='day'){
  if(!cloud.active||!(['manager','director'].includes(cloud.identity?.role)||cloud.identity?.isAdmin)){alert('관리자에게 제공하는 기능입니다.');return}
@@ -3332,16 +3381,18 @@ function energySchoolRender(){
  }).join(''):'<p>현재 등록된 에너지고 출장상담 예정은 없습니다.</p>';
 }
 async function energySchoolRefresh(withAlerts=false){
+ const valid=cloudSessionGuard();
  if(!energySchoolAllowed()||energySchoolState.loading)return;
  energySchoolState.loading=true;
  try{
    const {data,error}=await cloud.client.rpc('schedule_energy_access_feed');
-   if(error)throw error;
+   if(!valid())return;
+  if(error)throw error;
    energySchoolState.visits=Array.isArray(data?.visits)?data.visits:[];
    energySchoolRender();
    if(withAlerts)await alertPoll(false);
- }catch(err){$('energySchoolStatus').textContent='조회 지연: '+String(err?.message||err)}
- finally{energySchoolState.loading=false}
+ }catch(err){if(!valid())return;$('energySchoolStatus').textContent='조회 지연: '+String(err?.message||err)}
+ finally{if(valid()){energySchoolState.loading=false}}
 }
 async function energySchoolOpen(){
  if(!energySchoolAllowed())return;
@@ -3586,7 +3637,7 @@ function arrivalRealtimeStart(){
 async function alertPoll(pop=true){
  if(!cloud.active||!cloud.identity?.id||alerts.busy)return;
  if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
- const staffId=cloud.identity.id;
+ const staffId=cloud.identity.id,valid=cloudSessionGuard();
  alerts.busy=true;
  try{
   const {data,error}=await cloud.client.rpc('schedule_alert_feed');
@@ -3605,6 +3656,7 @@ async function alertPoll(pop=true){
     try{
       const {data:school,error:schoolError}=await cloud.client.rpc('schedule_energy_access_feed');
       if(schoolError)throw schoolError;
+      if(!valid())return;
       energy=Array.isArray(school?.items)?school.items:[];
       energySchoolState.visits=Array.isArray(school?.visits)?school.visits:[];
       energySchoolRender();
@@ -3614,7 +3666,7 @@ async function alertPoll(pop=true){
   try{const {data:arrivalData,error:arrivalError}=await cloud.client.rpc('schedule_arrival_feed');
    if(arrivalError)throw arrivalError;arrivals=Array.isArray(arrivalData?.items)?arrivalData.items:[];
   }catch(err){console.warn('내담자 도착 알림 조회 지연',err?.message||err)}
-  if(!cloud.active||cloud.identity?.id!==staffId)return;
+  if(!valid()||cloud.identity?.id!==staffId)return;
   alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board].filter(alertInScope);
   alertDraw();
   const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key)&&!energyPopupPreviouslyShown(x));
@@ -3623,7 +3675,7 @@ async function alertPoll(pop=true){
    fresh.forEach(x=>alerts.shown.add(x.key));$('alertDialog').showModal();
   }
  }catch(e){console.warn('업무 알림 조회 지연',e?.message||'')}
- finally{alerts.busy=false}
+ finally{if(valid())alerts.busy=false}
 }
 async function alertAck(keys){
  if(!keys.length)return;
@@ -3938,10 +3990,11 @@ async function cloudBoot(){
   }catch(err){$('cloudPasswordFeedback').textContent='비밀번호 설정 실패: '+err.message;}
   finally{button.disabled=false;}
  });
- $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();executiveClose(true);sharedState.open=false;sharedState.posts=[];sharedState.staff=[];document.body.classList.remove('shared-board-mode');$('sharedBoard').classList.add('hide');cloud.active=false;cloud.identity=null;alerts.items=[];alerts.staffId=null;alerts.shown.clear();alertDraw();cloud.base=null;cloud.eventVersions=new Map();model.events=[];model.participants=[];model.offs=[];model.notices=[];document.body.classList.remove('cloud-ready');$('cloudArea').classList.add('hide');$('cloudGate').classList.remove('hide');cloudStatus('로그아웃됨');};
+ $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();cloudClearSession('로그아웃됨');};
  $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
- $('cloudRefresh').onclick=()=>cloudReload();
+ $('cloudRefresh').onclick=()=>cloudReload().catch(()=>{});
  cloud.client.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT'){cloudClearSession();return;}
   if(event==='PASSWORD_RECOVERY')setTimeout(cloudOpenRecoveryDialog,100);
   if(session&&!cloud.active)setTimeout(cloudStartSession,100);
  });
