@@ -1,0 +1,46 @@
+-- Must run in BEGIN/ROLLBACK. All identities and records below are synthetic.
+do $$
+declare
+ users uuid[]:=array[gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid()];
+ staff uuid[]:=array[gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),gen_random_uuid()];
+ p1 uuid:=gen_random_uuid();p2 uuid:=gen_random_uuid();todo uuid:=gen_random_uuid(); duplicate uuid:=gen_random_uuid();
+ eid text:='handoff-test-'||gen_random_uuid()::text;pastid text:='handoff-past-'||gen_random_uuid()::text; conflict text:='handoff-conflict-'||gen_random_uuid()::text;
+ plan jsonb;body jsonb;preview jsonb;result jsonb;request uuid:=gen_random_uuid();i int;failed boolean;v1 text;v2 text;ve text;old1 jsonb:='{"name":"가상내담자가","regNo":"HANDOFF-TEST-A","iapDate":"2026-01-01","dates":["2026-02-01"],"trainings":[{"name":"가상훈련"}],"memo":"인계해야 하는 내담자 참고 메모"}';
+begin
+ for i in 1..6 loop
+  insert into auth.users(id,email,aud,role) values(users[i],'handoff-test-'||users[i]::text||'@example.invalid','authenticated','authenticated');
+  insert into public.schedule_staff(id,auth_user_id,display_name,email,center,role,is_active,is_schedule_admin,must_change_password,managed_in_schedule) values(staff[i],users[i],'가상인계직원'||i,'handoff-test-'||users[i]::text||'@example.invalid',case when i=5 then '동구지사' else '북부센터' end,case when i in(1,5) then 'manager' else 'counselor' end,i<>2,false,false,true);
+ end loop;
+ insert into public.schedule_private_items(id,user_id,kind,item_date,payload) values(p1,users[2],'iap',current_date,old1),(p2,users[2],'iap',current_date,'{"name":"가상내담자나","regNo":"HANDOFF-TEST-B"}'),(todo,users[2],'todo',current_date,'{"text":"인계하면 안 되는 개인 할 일","entryType":"memo"}');
+ insert into public.schedule_events(id,staff_id,created_by_staff_id,event_date,payload) values(eid,staff[2],staff[2],current_date+30,'{"kind":"consult","type":"초기","title":"가상내담자가","time":"09:00","end":"09:30","memo":"해당 예약 메모"}'),(pastid,staff[2],staff[2],current_date-30,'{"kind":"consult","type":"초기","title":"가상내담자가","time":"09:00","end":"09:30"}');
+ select updated_at::text into v1 from public.schedule_private_items where id=p1;select updated_at::text into v2 from public.schedule_private_items where id=p2;select updated_at::text into ve from public.schedule_events where id=eid;
+ plan:=jsonb_build_array(jsonb_build_object('clientId',p1,'targetId',staff[3],'version',v1,'events',jsonb_build_array(jsonb_build_object('id',eid,'version',ve))),jsonb_build_object('clientId',p2,'targetId',staff[4],'version',v2,'events','[]'::jsonb));body:=jsonb_build_object('sourceId',staff[2],'assignments',plan,'reason','가상 자료 인계 검증');
+ perform set_config('request.jwt.claim.sub',users[6]::text,true);failed:=false;begin perform public.schedule_client_handoff('meta');exception when insufficient_privilege then failed:=true;end;if not failed then raise exception 'Ordinary staff obtained admin access';end if;
+ perform set_config('request.jwt.claim.sub',users[5]::text,true);failed:=false;begin perform public.schedule_client_handoff('list',body);exception when insufficient_privilege then failed:=true;end;if not failed then raise exception 'Cross-center manager accessed source';end if;
+ perform set_config('request.jwt.claim.sub',users[1]::text,true);
+ if has_function_privilege('anon','public.schedule_client_handoff(text,jsonb)','execute') or has_table_privilege('authenticated','private.schedule_client_handoff_batches','select') then raise exception 'Anonymous or raw snapshot access granted';end if;
+ execute 'set local role authenticated';preview:=public.schedule_client_handoff('preview',body);execute 'reset role';
+ if preview->>'clients'<>'2' or preview->>'events'<>'1' or (select count(*) from private.schedule_client_handoff_batches where source_id=staff[2])<>0 or (select user_id from public.schedule_private_items where id=p1)<>users[2] then raise exception 'Preview wrote data';end if;
+ -- A stale row version is rejected before changes.
+ failed:=false;begin perform public.schedule_client_handoff('preview',jsonb_set(body,'{assignments,0,version}',to_jsonb((now()-interval '1 day')::text)));exception when others then failed:=true;end;if not failed then raise exception 'Stale preview accepted';end if;
+ insert into public.schedule_private_items(id,user_id,kind,item_date,payload) values(duplicate,users[3],'iap',current_date,'{"name":"중복검증","regNo":"HANDOFF-TEST-A"}');
+ failed:=false;begin perform public.schedule_client_handoff('preview',body);exception when others then failed:=true;end;if not failed then raise exception 'Duplicate registration accepted';end if;delete from public.schedule_private_items where id=duplicate;
+ insert into public.schedule_events(id,staff_id,event_date,payload) values(conflict,staff[3],current_date+30,'{"kind":"consult","type":"초기","title":"겹침검증","time":"09:00","end":"09:30"}');
+ failed:=false;begin perform public.schedule_client_handoff('commit',body||jsonb_build_object('requestId',request,'previewHash',preview->>'previewHash'));exception when others then failed:=true;end;if not failed or (select user_id from public.schedule_private_items where id=p1)<>users[2] or (select user_id from public.schedule_private_items where id=p2)<>users[2] then raise exception 'Overlap did not preserve all source records';end if;delete from public.schedule_events where id=conflict;
+ execute 'set local role authenticated';result:=public.schedule_client_handoff('commit',body||jsonb_build_object('requestId',request,'previewHash',preview->>'previewHash'));execute 'reset role';
+ if result->>'clients'<>'2' or result->>'events'<>'1' or (select user_id from public.schedule_private_items where id=p1)<>users[3] or (select user_id from public.schedule_private_items where id=p2)<>users[4] then raise exception 'Split transfer failed';end if;
+ if (select payload from public.schedule_private_items where id=p1)<>old1 or (select user_id from public.schedule_private_items where id=todo)<>users[2] or (select staff_id from public.schedule_events where id=pastid)<>staff[2] or (select created_by_staff_id from public.schedule_events where id=eid)<>staff[2] then raise exception 'Payload/history/todo/past reservation was altered';end if;
+ if (select staff_id from public.schedule_events where id=eid)<>staff[3] or (select is_active from public.schedule_staff where id=staff[2]) then raise exception 'Appointment not moved or retired account activated';end if;
+ result:=public.schedule_client_handoff('commit',body||jsonb_build_object('requestId',request,'previewHash',preview->>'previewHash'));if result->>'alreadyApplied'<>'true' or (select count(*) from private.schedule_client_handoff_batches where source_id=staff[2])<>1 then raise exception 'Idempotency failed';end if;
+ perform set_config('request.jwt.claim.sub',users[3]::text,true);execute 'set local role authenticated';if not exists(select 1 from public.schedule_private_items where id=p1) or exists(select 1 from public.schedule_private_items where id=p2) then raise exception 'New owner RLS incorrect';end if;execute 'reset role';
+ perform set_config('request.jwt.claim.sub',users[2]::text,true);execute 'set local role authenticated';if exists(select 1 from public.schedule_private_items where id in(p1,p2,todo)) then raise exception 'Inactive source can still read';end if;execute 'reset role';
+ perform set_config('request.jwt.claim.sub',users[1]::text,true);result:=public.schedule_client_handoff('rollback',jsonb_build_object('sourceId',staff[2],'requestId',request));
+ if (select user_id from public.schedule_private_items where id=p1)<>users[2] or (select staff_id from public.schedule_events where id=eid)<>staff[2] or exists(select 1 from public.schedule_participants where staff_id=staff[3]) then raise exception 'Unchanged transfer did not roll back';end if;
+ -- A new transfer followed by an edit must not be silently rolled back.
+ select updated_at::text into v1 from public.schedule_private_items where id=p1;select updated_at::text into v2 from public.schedule_private_items where id=p2;select updated_at::text into ve from public.schedule_events where id=eid;
+ body:=jsonb_set(jsonb_set(jsonb_set(body,'{assignments,0,version}',to_jsonb(v1)),'{assignments,1,version}',to_jsonb(v2)),'{assignments,0,events,0,version}',to_jsonb(ve));preview:=public.schedule_client_handoff('preview',body);request:=gen_random_uuid();perform public.schedule_client_handoff('commit',body||jsonb_build_object('requestId',request,'previewHash',preview->>'previewHash'));
+ update public.schedule_private_items set payload=payload||'{"memo":"새 담당자의 수정"}' where id=p2;
+ failed:=false;begin perform public.schedule_client_handoff('rollback',jsonb_build_object('sourceId',staff[2],'requestId',request));exception when others then failed:=true;end;
+ if not failed or (select user_id from public.schedule_private_items where id=p1)<>users[3] or (select payload->>'memo' from public.schedule_private_items where id=p2)<>'새 담당자의 수정' then raise exception 'Edited destination lost data during rollback';end if;
+ raise notice 'PASS: admin scope, preview, split assignment, duplicates, stale versions, collision/atomicity, idempotency, owner RLS, inactive access, history preservation and safe rollback';
+end $$;

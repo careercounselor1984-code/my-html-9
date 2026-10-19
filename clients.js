@@ -102,7 +102,7 @@ async function authenticate(){
  try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
   const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;if(token!==epoch)return;if(!staff?.id||staff.mustChangePassword){clearPrivate();gate('상담일정표에서 직원 인증과 비밀번호 변경을 완료해 주세요.');return}
   if(userId!==session.user.id){rows=[];loaded=false;$('timeline').innerHTML='';$('roster').innerHTML=''}
-  userId=session.user.id;identity=staff;$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
+  userId=session.user.id;identity=staff;$('handoffAdminLink').hidden=!(staff.isAdmin||['director','manager'].includes(staff.role));$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
  }catch(error){if(token!==epoch)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
 }
 async function load(){
