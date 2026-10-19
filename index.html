@@ -1347,9 +1347,9 @@ const CLOUD_URL='https://hnhccnyitrlzqprnredi.supabase.co';
 const CLOUD_KEY='sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds';
 const CLOUD_AUTH_STORAGE_KEY='sb-hnhccnyitrlzqprnredi-auth-token';
 const CLOUD_REMEMBER_PREF='goodjob_schedule_remember_v1';
-function cloudRemember(){try{return localStorage.getItem(CLOUD_REMEMBER_PREF)==='1';}catch{return false;}}
+function cloudRemember(){try{return localStorage.getItem(CLOUD_REMEMBER_PREF)!=='0';}catch{return false;}}
 const cloudAuthStorage={
- getItem(key){try{return (cloudRemember()?localStorage:sessionStorage).getItem(key);}catch{return null;}},
+ getItem(key){try{if(!cloudRemember())return sessionStorage.getItem(key);const pending=sessionStorage.getItem(key);if(pending!==null){localStorage.setItem(key,pending);if(localStorage.getItem(key)===pending)sessionStorage.removeItem(key);return pending}return localStorage.getItem(key);}catch{try{return sessionStorage.getItem(key)}catch{return null}}},
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };

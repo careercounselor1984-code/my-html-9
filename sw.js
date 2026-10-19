@@ -1,4 +1,4 @@
-const CACHE='goodjob-schedule-v49-security-20261019';
+const CACHE='goodjob-schedule-v50-autologin-20261019';
 const ASSETS=['./secure-backup.js','./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('goodjob-schedule-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
