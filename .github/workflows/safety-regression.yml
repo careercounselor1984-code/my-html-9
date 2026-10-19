@@ -26,6 +26,7 @@ jobs:
           node tests/daily-layout-alert-scope.test.cjs
           node tests/visitor-output.test.cjs
           node tests/private-planner.test.cjs
+          node tests/client-import.test.cjs
           node tests/clients.test.cjs
           node tests/work-menus.test.cjs
           node tests/work-periods.test.cjs
@@ -36,6 +37,12 @@ jobs:
           node tests/task-reminder-session.test.cjs
           node tests/full-runtime-browser-smoke.cjs
           node tests/private-screens-browser-smoke.cjs
+
+      - name: Verify client import with actual DOM
+        run: |
+          npm install --prefix /tmp/client-import-test jsdom@30.1.2 --no-audit --no-fund
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/client-xlsx.test.cjs
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/client-import-dom.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
         shell: bash

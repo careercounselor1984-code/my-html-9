@@ -27,9 +27,62 @@ if(typeof module!=='undefined'){module.exports=root.ClientTimeline;return}
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
+function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
+function clearImport(){for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;importReadSeq++;importRecords=[];importPlan=[];importSheets=[];importReviewEpoch=-1;$('clientImportText').value='';$('clientImportFile').value='';$('clientImportPreview').innerHTML='';$('clientImportSheet').innerHTML='';$('clientImportSheetWrap').hidden=true;$('importIncludeEnded').checked=false;$('clientImportSelection').textContent='';$('commitClientImport').disabled=true;importMessage('');if($('clientImportDialog').open)$('clientImportDialog').close()}
+function importSelection(){const n=importPlan.filter(p=>p.selected&&['new','update'].includes(p.action)).length;$('clientImportSelection').textContent=n+'명 선택';$('commitClientImport').textContent='선택한 '+n+'명 반영';$('commitClientImport').disabled=!n||busy||loading||!loaded;}
+function paintImport(){
+ if(!identity||!userId)return;importPlan=root.ClientImport.plan(importRecords,rows,identity,{includeEnded:$('importIncludeEnded').checked});importReviewEpoch=epoch;
+ const count=action=>importPlan.filter(p=>p.action===action).length,states={new:'신규',update:'변경 확인',same:'기존과 동일',blocked:'확인·제외'};
+ const summary='<div class="import-summary"><b>총 '+importPlan.length+'명</b><b>신규 '+count('new')+'명</b><b>변경 '+count('update')+'명</b><b>동일 '+count('same')+'명</b><b>확인·제외 '+count('blocked')+'명</b></div>';
+ const display=v=>escape(Array.isArray(v)?v.filter(Boolean).join(', '):v||'없음');
+ $('clientImportPreview').innerHTML=summary+'<table class="import-table"><thead><tr><th>선택</th><th>내담자 / IAP 번호</th><th>구분</th><th>IAP 수립일</th><th>기간만료일</th><th>반영 내용 · 확인사항</th></tr></thead><tbody>'+importPlan.map(p=>'<tr class="import-'+p.action+'"><td><input type="checkbox" data-import-index="'+p.index+'" aria-label="'+escape(p.payload.name||p.source.name)+' 반영" '+(p.selected?'checked':'')+' '+(!['new','update'].includes(p.action)?'disabled':'')+'></td><td><strong>'+escape(p.payload.name||p.source.name)+'</strong><small>'+escape(p.source.regNo)+'</small></td><td>'+states[p.action]+'<small>'+escape((p.source.type||'?')+'유형 · '+(p.source.sourceStatus||'참여 중'))+'</small></td><td>'+display(p.payload.iapDate)+'<small>지정일 '+(p.payload.dates||[]).filter(Boolean).length+'개</small></td><td>'+display(p.payload.serviceEnd)+'</td><td>'+p.errors.map(e=>'<div>'+escape(e)+'</div>').join('')+p.warnings.map(e=>'<small>'+escape(e)+'</small>').join('')+(p.changes.length?'<details><summary>'+(p.row?'변경':'가져올')+' 항목 '+p.changes.length+'개</summary>'+p.changes.map(c=>'<div>'+escape(c.label)+': '+(p.row?display(c.from)+' → ':'')+display(c.to)+'</div>').join('')+'</details>':'')+'</td></tr>').join('')+'</tbody></table>';
+ importMessage('미리보기를 확인하세요. 신규 진행자는 기본 선택되며, 기존 정보의 변경은 행을 선택한 경우에만 반영합니다.');importSelection();
+}
+async function previewImport(){
+ if(busy||loading||!loaded||!userId){importMessage('로그인 및 자료 불러오기를 먼저 완료해 주세요.',true);return}
+ const token=epoch,seq=++importReadSeq,file=$('clientImportFile').files?.[0],text=$('clientImportText').value;importRecords=[];importSheets=[];importReviewEpoch=-1;importPlan=[];$('clientImportPreview').innerHTML='';importSelection();importMessage('내용 확인 중…');
+ try{let nextRecords=[],nextSheets=[],chosen=0;
+  if(file){if(file.size>8*1024*1024)throw Error('8MB 이하 파일을 선택해 주세요.');if(/\.xlsx$/i.test(file.name)){nextSheets=await root.ClientXlsx.readXlsx(await file.arrayBuffer());if(seq!==importReadSeq||token!==epoch)return;for(let i=0;i<nextSheets.length;i++){try{root.ClientImport.parseRows(nextSheets[i].rows);chosen=i;break}catch{}}nextRecords=root.ClientImport.parseRows(nextSheets[chosen].rows);}
+   else if(/\.(csv|tsv|txt)$/i.test(file.name)){const bytes=await file.arrayBuffer();if(seq!==importReadSeq||token!==epoch)return;let content=new TextDecoder('utf-8',{fatal:false}).decode(bytes);if(content.includes('\uFFFD'))content=new TextDecoder('euc-kr').decode(bytes);nextRecords=root.ClientImport.parseRows(root.ClientImport.parseText(content));}
+   else throw Error('.xlsx, CSV, TSV 파일을 선택하거나 엑셀 내용을 붙여넣어 주세요.');
+  }else nextRecords=root.ClientImport.parseRows(root.ClientImport.parseText(text));
+  if(seq!==importReadSeq||token!==epoch)return;if(!nextRecords.length)throw Error('가져올 내담자가 없습니다.');importRecords=nextRecords;importSheets=nextSheets;$('clientImportSheet').innerHTML=nextSheets.map((s,i)=>'<option value="'+i+'">'+escape(s.name)+'</option>').join('');$('clientImportSheet').value=String(chosen);$('clientImportSheetWrap').hidden=nextSheets.length<2;paintImport();
+ }catch(error){if(seq!==importReadSeq||token!==epoch)return;importRecords=[];importPlan=[];importMessage(error.message,true);importSelection();}
+}
+async function commitImport(){
+ const selected=importPlan.filter(p=>p.selected&&['new','update'].includes(p.action));if(!selected.length||busy||loading||!loaded||!userId||importReviewEpoch!==epoch)return;
+ const token=epoch,uid=userId,reviewSeq=importReadSeq;
+ await load();if(token!==epoch||uid!==userId||reviewSeq!==importReadSeq)return;
+ if(!loaded){importMessage('최신 목록을 확인하지 못했습니다. 다시 시도해 주세요.',true);return}
+ const changed=selected.some(entry=>{const found=rows.filter(r=>String(r.payload?.regNo||'').replace(/\s/g,'').toLowerCase()===String(entry.source.regNo).toLowerCase());return entry.row?found.length!==1||found[0].id!==entry.row.id||found[0].updated_at!==entry.row.updated_at:found.length>0});
+ if(changed){paintImport();importMessage('다른 창에서 목록이 변경됐습니다. 최신 미리보기에서 반영할 항목을 다시 선택해 주세요. 확인 필요 항목은 기존 자료를 유지했습니다.',true);return}
+ busy=true;loadSeq++;setButtons(true);for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=true;importSelection();let saved=0,failed=[];
+ try{
+  for(const entry of selected){
+   if(token!==epoch||uid!==userId)break;const p={...entry.payload};if(entry.row&&entry.changes.length){p.changeHistory=[...(p.changeHistory||[]),{at:new Date().toISOString(),by:identity.id,from:entry.row.payload.clientStatus||'active',to:p.clientStatus,effectiveDate:p.statusDate||entry.itemDate,reason:'수급자 목록 가져오기',summary:entry.changes.map(c=>c.label).join(', '),changes:[]}];}
+   if(new TextEncoder().encode(JSON.stringify(p)).length>=19500){failed.push(entry.source.name+': 저장 용량 초과');continue}
+   const record={kind:'iap',item_date:entry.itemDate,payload:p};importMessage((saved+failed.length+1)+' / '+selected.length+'명 반영 중…');
+   try{let q=client.from('schedule_private_items');if(entry.row)q=q.update({...record,updated_at:new Date().toISOString()}).eq('id',entry.row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',entry.row.updated_at);else{const id=await root.ClientImport.stableId(uid,entry.source.regNo);if(token!==epoch)break;q=q.insert({...record,id,user_id:uid})}const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(token!==epoch)break;if(error)throw error;if(!data?.length)throw Error('다른 기기 수정 · 새로 확인 필요');rows=rows.filter(r=>r.id!==entry.row?.id&&r.id!==data[0].id);rows.push(data[0]);saved++;}
+   catch(error){if(token!==epoch)break;failed.push(entry.source.name+': '+(error.code==='23505'?'이미 반영된 자료입니다. 새로 확인하세요.':error.message));}
+  }
+ }finally{
+  if(token===epoch){busy=false;setButtons(false);for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;await load();if(token!==epoch)return;paintImport();if(saved)$('rosterTitle').parentElement.open=true;importMessage(saved+'명 반영 완료'+(failed.length?' · '+failed.length+'명 확인 필요: '+failed.join(' / '):' · 기존 지정일·훈련·메모를 유지했습니다.'),!!failed.length);message('엑셀 가져오기: '+saved+'명 반영'+(failed.length?' · '+failed.length+'명 확인 필요':''),!!failed.length);}
+ }
+}
+function initImport(){
+ $('openClientImport').onclick=()=>{if(busy||loading||!loaded||!userId){message('자료를 불러온 뒤 다시 시도하세요.',true);return}clearImport();$('clientImportDialog').showModal();$('clientImportText').focus()};
+ $('closeClientImport').onclick=$('cancelClientImport').onclick=()=>{if(!busy)clearImport()};$('clientImportDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();else clearImport()});
+ $('previewClientImport').onclick=previewImport;$('commitClientImport').onclick=commitImport;
+ const invalidate=()=>{importReadSeq++;importRecords=[];importPlan=[];importSheets=[];$('clientImportSheetWrap').hidden=true;$('clientImportPreview').innerHTML='';importSelection();importMessage('내용이 변경됐습니다. 미리보기를 다시 확인해 주세요.')};
+ $('clientImportText').oninput=()=>{$('clientImportFile').value='';invalidate()};$('clientImportFile').onchange=()=>{$('clientImportText').value='';invalidate();if($('clientImportFile').files?.length)previewImport()};
+ $('clientImportSheet').onchange=()=>{try{importRecords=root.ClientImport.parseRows(importSheets[Number($('clientImportSheet').value)].rows);paintImport()}catch(e){importPlan=[];$('clientImportPreview').innerHTML='';importSelection();importMessage(e.message,true)}};
+ $('importIncludeEnded').onchange=()=>{if(importRecords.length)paintImport()};$('clientImportPreview').onchange=e=>{const cb=e.target.closest('[data-import-index]');if(!cb||busy)return;const p=importPlan[Number(cb.dataset.importIndex)];if(p&&['new','update'].includes(p.action))p.selected=cb.checked;importSelection()};
+}
+
 function message(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
 function gate(text){$('gate').hidden=false;$('workspace').hidden=true;$('gate').querySelector('h2').textContent='직원 로그인 필요';$('gateMessage').textContent=text}
-function clearPrivate(){epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
+function clearPrivate(){clearImport();epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
 async function authenticate(){
  const token=++epoch;
  try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
@@ -103,6 +156,7 @@ function applyLifecycle(payload){
  }
 }
 async function boot(){
+ initImport();
  $('clientStatus').onchange=()=>renderLifecycle(true);$('statusDate').onchange=()=>renderLifecycle(true);$('lifecycleSection').addEventListener('toggle',()=>{if($('lifecycleSection').open)renderLifecycle()});$('restoreEvents').onclick=()=>{$('clientStatus').value='active';renderLifecycle(true);$('changeReason').focus()};$('clientForm').addEventListener('change',e=>{if(!e.target.closest('#lifecycleSection'))renderLifecycle()});
  $('month').value=keyDate(new Date()).slice(0,7);$('cycleFields').innerHTML=Array.from({length:6},(_,i)=>'<label>'+(i+1)+'회차'+(i===0?' · 수립일':' 지정일')+'<input type="date" id="cycle'+i+'"></label>').join('');
  for(let i=0;i<6;i++)$('cycle'+i).onchange=cycleSummary;
@@ -122,7 +176,7 @@ async function boot(){
  const remember=()=>{try{return localStorage.getItem('goodjob_schedule_remember_v1')!=='0'}catch{return true}},storage={getItem:key=>{try{return (remember()?localStorage:sessionStorage).getItem(key)}catch{return null}},setItem:(key,value)=>{try{(remember()?localStorage:sessionStorage).setItem(key,value)}catch{}},removeItem:key=>{try{localStorage.removeItem(key);sessionStorage.removeItem(key)}catch{}}};
  client=root.supabase.createClient('https://hnhccnyitrlzqprnredi.supabase.co','sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'sb-hnhccnyitrlzqprnredi-auth-token',storage}});
  client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){clearPrivate();gate('로그아웃되었습니다. 상담일정표에서 다시 로그인해 주세요.')}else if(event==='SIGNED_IN')setTimeout(()=>authenticate(),0)});
- document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||busy||$('clientDialog').open)return;const {data}=await client.auth.getSession();if(data?.session?.user.id!==userId){clearPrivate();authenticate()}else load()});
+ document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||busy||$('clientDialog').open||$('clientImportDialog').open)return;const {data}=await client.auth.getSession();if(data?.session?.user.id!==userId){clearPrivate();authenticate()}else load()});
  await authenticate();
 }
 boot().catch(error=>{clearPrivate();gate('화면을 준비하지 못했습니다: '+error.message)});

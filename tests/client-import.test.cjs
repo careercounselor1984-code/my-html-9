@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');require('../private-planner.js');const I=require('../client-import.js');
+const header=['수급자 (생년월일)','IAP 번호','사업유형','진행상태','IAP 수립일','취업서비스기간시작일','취업서비스기간종료일','담당자','위탁기관','종료일'];
+const row=['테스트가 ( ****** )','IAP-A','Ⅰ 유형\n선발형(청년)','진행','2026-01-31','2026-01-15','2027-01-14','상담사A','좋은일자리 북부센터',''];
+const who={name:'상담사A',center:'북부센터'},parse=r=>I.parseRows([header,...r]),plan=(records,old=[],opts={})=>I.plan(records,old,who,opts);
+const text=header.join('\t')+'\r\n'+row.map(v=>v.includes('\n')?'"'+v+'"':v).join('\t');const records=I.parseRows(I.parseText(text));assert.equal(records[0].type,'1');assert.equal(records[0].name,'테스트가');assert(!JSON.stringify(records).includes('******'));
+const p=plan(records)[0];assert.equal(p.action,'new');assert(p.selected);assert.deepEqual(p.payload.dates,['2026-01-31','2026-02-28','2026-03-31','2026-04-30','2026-05-31','2026-06-30']);
+assert.equal(I.dateValue('2024.2.29'),'2024-02-29');assert.equal(I.dateValue('2026-02-30'),null);assert.equal(I.dateValue(46023),'2026-01-01');assert.throws(()=>I.parseText('"unclosed'),/따옴표/);assert.throws(()=>I.parseRows([['아무 내용']]),/제목행/);
+let copy=[...row];copy[2]='Ⅱ 유형\n청년';assert.equal(plan(parse([copy]))[0].payload.dates.length,0);
+copy=[...row];copy[4]='';copy[6]='';let pp=plan(parse([copy]))[0];assert.equal(pp.action,'new');assert.equal(pp.payload.dates.length,0);assert.equal(pp.warnings.length,2);
+copy=[...row];copy[7]='다른 직원';assert.equal(plan(parse([copy]))[0].action,'blocked');copy=[...row];copy[8]='좋은일자리 서부센터';assert.equal(plan(parse([copy]))[0].action,'blocked');
+copy=[...row];copy[3]='취업';copy[9]='2026-03-01';assert.equal(plan(parse([copy]))[0].action,'blocked');assert.equal(plan(parse([copy]),[],{includeEnded:true})[0].payload.statusDate,'2026-03-01');
+assert(plan(parse([row,row])).every(p=>p.action==='blocked'));copy=[...row];copy[1]='iap-a';assert(plan(parse([row,copy])).every(p=>p.action==='blocked'));
+const old={id:'saved',kind:'iap',updated_at:'2026-01-01',item_date:'2026-01-31',payload:{...p.payload,name:'기존 이름',dates:['2026-01-31','2026-03-03'],trainings:[{id:'training',name:'유지 훈련'}],memo:'보존 메모',eventRules:{'due:2':{excluded:true}},changeHistory:[{reason:'기존 이력'}]}};
+pp=plan(records,[old])[0];assert.equal(pp.action,'update');assert.equal(pp.selected,false);assert.deepEqual(pp.payload.dates,old.payload.dates);assert.deepEqual(pp.payload.trainings,old.payload.trainings);assert.equal(pp.payload.memo,old.payload.memo);assert.deepEqual(pp.payload.eventRules,old.payload.eventRules);assert.deepEqual(pp.payload.changeHistory,old.payload.changeHistory);
+copy=[...row];copy[6]='';pp=plan(parse([copy]),[old])[0];assert.equal(pp.payload.serviceEnd,old.payload.serviceEnd,'blank does not erase a known expiration');
+copy=[...row];copy[4]='2026-02-01';assert.equal(plan(parse([copy]),[old])[0].action,'blocked');assert.equal(plan(records,[old,{...old,id:'duplicate'}])[0].action,'blocked');assert.equal(plan(records,[{...old,payload:{...old.payload,clientStatus:'ended'}}])[0].action,'blocked');
+(async()=>{const a=await I.stableId('ownerA','IAP-A');assert.equal(a,await I.stableId('ownerA',' iap-a '));assert.notEqual(a,await I.stableId('ownerB','IAP-A'));assert.match(a,/^[0-9a-f-]{36}$/);console.log('PASS: quoted spreadsheet paste, actual header aliases, Roman types, monthly cycles, missing/invalid dates, owner/center/status guards, duplicate IDs, retained manual data and retry-stable IDs.');})().catch(e=>{console.error(e);process.exit(1)});
