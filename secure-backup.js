@@ -1,0 +1,11 @@
+/* AES-GCM backups. Password is never persisted; legacy plaintext imports remain readable. */
+(()=>{'use strict';
+const iterations=310000;
+const encode=bytes=>{let text='';for(let i=0;i<bytes.length;i+=16384)text+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(text)};
+const decode=text=>Uint8Array.from(atob(text),x=>x.charCodeAt(0));
+async function key(password,salt,usage){const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},raw,{name:'AES-GCM',length:256},false,[usage])}
+function password(confirmNew){const value=prompt(confirmNew?'백업 암호를 12자 이상 입력하세요. 암호를 잊으면 복구할 수 없습니다.':'백업 암호를 입력하세요.');if(value===null)return null;if(value.length<12)throw Error('백업 암호는 12자 이상이어야 합니다.');if(confirmNew&&prompt('같은 백업 암호를 다시 입력하세요.')!==value)throw Error('백업 암호가 일치하지 않습니다.');return value}
+async function seal(data,pass){if(typeof pass!=='string'||pass.length<12)throw Error('백업 암호를 확인하세요.');const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const bytes=await crypto.subtle.encrypt({name:'AES-GCM',iv},await key(pass,salt,'encrypt'),new TextEncoder().encode(JSON.stringify(data)));return {format:'goodjob-encrypted-backup-v1',kdf:'PBKDF2-SHA256',iterations,salt:encode(salt),iv:encode(iv),ciphertext:encode(new Uint8Array(bytes))}}
+async function open(data,pass){if(data?.format!=='goodjob-encrypted-backup-v1')return data;if(data.iterations!==iterations||data.kdf!=='PBKDF2-SHA256'||typeof data.ciphertext!=='string'||data.ciphertext.length>32*1024*1024)throw Error('암호화 백업 형식을 확인하세요.');const salt=decode(data.salt),iv=decode(data.iv);if(salt.length!==16||iv.length!==12)throw Error('암호화 백업 형식을 확인하세요.');try{return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},await key(pass,salt,'decrypt'),decode(data.ciphertext))))}catch{throw Error('암호가 다르거나 백업 파일이 손상되었습니다.')}}
+window.GoodJobBackup={seal,open,async protect(data){const p=password(true);return p===null?null:seal(data,p)},async unlock(data){if(data?.format!=='goodjob-encrypted-backup-v1')return data;const p=password(false);if(p===null)throw Error('복원을 취소했습니다.');return open(data,p)}};
+})();

@@ -2,6 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<script src="./secure-backup.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
@@ -1345,7 +1347,7 @@ const CLOUD_URL='https://hnhccnyitrlzqprnredi.supabase.co';
 const CLOUD_KEY='sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds';
 const CLOUD_AUTH_STORAGE_KEY='sb-hnhccnyitrlzqprnredi-auth-token';
 const CLOUD_REMEMBER_PREF='goodjob_schedule_remember_v1';
-function cloudRemember(){try{return localStorage.getItem(CLOUD_REMEMBER_PREF)!=='0';}catch{return true;}}
+function cloudRemember(){try{return localStorage.getItem(CLOUD_REMEMBER_PREF)==='1';}catch{return false;}}
 const cloudAuthStorage={
  getItem(key){try{return (cloudRemember()?localStorage:sessionStorage).getItem(key);}catch{return null;}},
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
@@ -2069,14 +2071,10 @@ window.addEventListener('message',async event=>{
  const reply=(status,message)=>journalDirectReply(event.source,event.origin,{requestId,status,message});
  // file:// tests have opaque origins: never accept a write without explicit approval.
  if(event.origin==='null'){
-  let authorized=false;
-  try{authorized=sessionStorage.getItem('goodjob-local-journal-consent-v1')==='yes'}catch{}
-  if(!authorized){
-   let accepted=false;
-   try{accepted=confirm('로컬 HTML 상담일지에서 내 일정표에 예약을 직접 저장하도록 허용할까요?\n\n이 기기에서 처음 한 번만 승인하면 됩니다. 믿을 수 있는 상담일지 파일에서만 허용하세요.')}catch{}
-   if(!accepted){reply('error','로컬 파일 연결 승인이 필요합니다. 일정관리에서 허용한 후 다시 시도해 주세요.');return}
-   try{sessionStorage.setItem('goodjob-local-journal-consent-v1','yes')}catch{}
-  }
+  let accepted=false;
+  try{accepted=confirm('로컬 상담일지의 이번 예약을 허용할까요? 신뢰하는 파일인지 확인하세요.')}catch{}
+  if(!accepted){reply('error','로컬 파일 연결 승인이 필요합니다.');return}
+
  }
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)||
  !/^\d{4}-\d{2}-\d{2}$/.test(String(p.date||''))||
@@ -2101,7 +2099,7 @@ let journalBookingPending=null,journalBookingDisplayedKey='';
 function journalBookingAnnounce(){
  const status={type:'goodjob:schedule-ready:v1',loggedIn:!!cloud.active};
  for(const target of [window.parent!==window?window.parent:null,window.opener]){
-  try{target?.postMessage(status,'*')}catch{}
+  try{target?.postMessage(status,JOURNAL_TRUSTED_ORIGIN)}catch{}
  }
 }
 function journalBookingMaybeOpen(){
@@ -2129,6 +2127,7 @@ window.addEventListener('message',event=>{
  if(event.source!==window.parent&&event.source!==window.opener)return;
  const message=event.data;
  if(!message||message.type!=='goodjob:schedule-prefill:v1'||!message.payload)return;
+ if(event.origin!==JOURNAL_TRUSTED_ORIGIN)return;
  const p=message.payload;
  const date=String(p.date||''),time=String(p.time||''),name=String(p.name||'').trim(),typ=String(p.consultType||'초기');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).valueOf())||!/^([01]\d|2[0-3]):(00|30)$/.test(time)||name.length<2||name.length>70)return;
@@ -3057,6 +3056,8 @@ async function calendarApi(action,rest={}){
  return data;
 }
 function calendarRender(){
+ // External sharing is prohibited; internal schedule operations are unaffected.
+
  const status=calendarState.status?.providers||{};
  for(const [p,label] of [['google','Google'],['outlook','Outlook']]){
   const connection=status[p]||{},connect=calTxt('calendar'+label+'Connect'),disconnect=calTxt('calendar'+label+'Disconnect');
@@ -3087,7 +3088,8 @@ async function calendarStatus(){
  try{calendarState.status=await calendarApi('status');calendarState.ready=true;calendarRender();return true}
  catch(e){calendarNote('연동 상태 확인 실패: '+String(e?.message||e));return false}
 }
-async function calendarOpen(){
+async function calendarOpen(){alert('외부 캘린더 공유는 보안 정책으로 차단되어 있습니다. 일정은 상담사 일정표에서 확인하세요.');return;
+
  if(!cloud.active){alert('직원 로그인 후 설정할 수 있습니다.');return}
  calTxt('calendarLinkDialog').showModal();
  calendarNote('좋은일자리 일정표가 원본입니다. 연결은 선택 사항입니다.');
@@ -4629,8 +4631,8 @@ function dateRange(a,b){let total=0;for(let d=parseDate(a);dateKey(d)<=b;d=addDa
 function updateOffs(){$('offs').innerHTML='<strong>등록된 자체 휴무</strong>'+(model.offs.length?model.offs.slice().reverse().map(o=>`<div class="minirow"><span>${escapeHtml(o.start)} ~ ${escapeHtml(o.end)} / ${escapeHtml(o.center==='all'?'전체 센터':o.center)} / ${escapeHtml(o.title)}</span><button type="button" data-off="${escapeHtml(o.id)}">삭제</button></div>`).join(''):'<p class="modal-footnote">등록된 자체 휴무가 없어.</p>')}
 function updateStaff(){$('staffList').innerHTML=employees($('staffCenter').value).map(n=>`<span class="member">${escapeHtml(n)} <button data-staff="${escapeHtml(n)}" aria-label="${escapeHtml(n)} 제거">×</button></span>`).join('')}
 function nav(n){if(currentView==='personalWeek')focusDate=addDays(focusDate,n*7*weekCount);else if(currentView==='personalDay'||currentView==='teamDay')focusDate=addDays(focusDate,n);else focusDate=new Date(focusDate.getFullYear(),focusDate.getMonth()+n,1);render()}
-function exportData(){const b=new Blob([JSON.stringify({format:'standalone_schedule_v12',exportedAt:new Date().toISOString(),...model},null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='상담일정_v12_백업_'+dateKey(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
-async function importData(file){try{if(cloud.active){alert('서버 연동 중에는 JSON 백업으로 전체 일정을 교체할 수 없습니다. 다른 기기에서 저장한 일정이 삭제되는 것을 막기 위한 보호 조치입니다. 기존 백업 파일은 보관하고, 복원이 필요한 일정은 관리자에게 확인을 요청해 주세요.');return;}const content=JSON.parse(await file.text()),events=Array.isArray(content)?content:content.events;if(!Array.isArray(events)||!events.every(x=>x&&typeof x.date==='string'&&typeof x.title==='string'))throw Error('이 파일은 일정 백업 형식이 아니야.');if(!confirm('현재 등록된 일정을 백업 파일로 교체할까? 복원 전 기존 데이터 백업을 권장해.'))return;
+async function exportData(){try{const payload=await window.GoodJobBackup.protect({format:'standalone_schedule_v12',exportedAt:new Date().toISOString(),...model});if(!payload)return;const b=new Blob([JSON.stringify(payload)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='상담일정_암호화백업_'+dateKey(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}catch(error){alert(error.message)}}
+async function importData(file){try{if(cloud.active){alert('서버 연동 중에는 JSON 백업으로 전체 일정을 교체할 수 없습니다. 다른 기기에서 저장한 일정이 삭제되는 것을 막기 위한 보호 조치입니다. 기존 백업 파일은 보관하고, 복원이 필요한 일정은 관리자에게 확인을 요청해 주세요.');return;}const content=await window.GoodJobBackup.unlock(JSON.parse(await file.text())),events=Array.isArray(content)?content:content.events;if(!Array.isArray(events)||!events.every(x=>x&&typeof x.date==='string'&&typeof x.title==='string'))throw Error('이 파일은 일정 백업 형식이 아니야.');if(!confirm('현재 등록된 일정을 백업 파일로 교체할까? 복원 전 기존 데이터 백업을 권장해.'))return;
  model.events=events.map(x=>({...x,id:x.id||id(),center:normalizedCenter(x.center),type:normalType(x.type),allDay:!!x.allDay}));model.offs=Array.isArray(content.offs)?content.offs.map(x=>({...x,center:x.center==='all'?'all':normalizedCenter(x.center)})):[];
  model.participants=Array.isArray(content.participants)?content.participants.filter(p=>p&&p.name&&p.center&&p.owner).map(p=>({...p,id:p.id||id(),center:normalizedCenter(p.center)})):[];model.notices=Array.isArray(content.notices)?content.notices.filter(n=>n&&n.date&&n.title).map(n=>({...n,id:n.id||id(),center:n.center==='all'?'all':normalizedCenter(n.center)})):[];
  if(!Array.isArray(content.participants))for(const e of model.events.filter(e=>isConsultEvent(e)&&e.title&&e.owner)){

@@ -16,7 +16,7 @@ $('taskDay').onchange=refreshTaskView;
 const move=n=>{$('taskDay').value=window.WorkPeriods.shift($('taskDay').value,periodView,n);refreshTaskView()};$('taskPrev').onclick=()=>move(-1);$('taskNext').onclick=()=>move(1);$('taskToday').onclick=()=>{$('taskDay').value=dateKey(new Date());refreshTaskView()};
 refreshTaskView();
 if(!window.supabase?.createClient){gate('로그인 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.');return}
-const remember=()=>{try{return localStorage.getItem('goodjob_schedule_remember_v1')!=='0'}catch{return true}},storage={getItem:key=>{try{return (remember()?localStorage:sessionStorage).getItem(key)}catch{return null}},setItem:(key,value)=>{try{(remember()?localStorage:sessionStorage).setItem(key,value)}catch{}},removeItem:key=>{try{localStorage.removeItem(key);sessionStorage.removeItem(key)}catch{}}};
+const remember=()=>{try{return localStorage.getItem('goodjob_schedule_remember_v1')==='1'}catch{return false}},storage={getItem:key=>{try{return (remember()?localStorage:sessionStorage).getItem(key)}catch{return null}},setItem:(key,value)=>{try{(remember()?localStorage:sessionStorage).setItem(key,value)}catch{}},removeItem:key=>{try{localStorage.removeItem(key);sessionStorage.removeItem(key)}catch{}}};
 client=window.supabase.createClient('https://hnhccnyitrlzqprnredi.supabase.co','sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'sb-hnhccnyitrlzqprnredi-auth-token',storage}});
 reminders=window.TaskReminders({client:()=>client,uid:()=>sessionUserId});
 client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){clear();authChanged(event);gate('로그아웃되었습니다. 상담일정표에서 다시 로그인해 주세요.')}else if(event==='SIGNED_IN')setTimeout(()=>authenticate(),0)});

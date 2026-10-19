@@ -1,13 +1,13 @@
-const CACHE='goodjob-schedule-v48-client-file-drop-20261019';
-const ASSETS=['./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
+const CACHE='goodjob-schedule-v49-security-20261019';
+const ASSETS=['./secure-backup.js','./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('goodjob-schedule-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request,event.request.mode==='navigate'?{ignoreSearch:true}:undefined)));});
 self.addEventListener('push',event=>{
  let data={};
  try{data=event.data?.json()||{}}catch{data={}}
- const title=typeof data.title==='string'?data.title.slice(0,55):'좋은일자리 상담 일정';
- const body=typeof data.body==='string'?data.body.slice(0,150):'새 업무 일정 알림이 있습니다.';
+ const title='좋은일자리 업무 알림';
+ const body='로그인 후 새 알림을 확인하세요.';
  event.waitUntil(self.registration.showNotification(title,{
   body,icon:'./icon-192.png',badge:'./icon-192.png',tag:String(data.tag||'schedule').slice(0,80),
   data:{url:(typeof data.url==='string'&&data.url.startsWith(self.registration.scope))?data.url:'./index.html'}

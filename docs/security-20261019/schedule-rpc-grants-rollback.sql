@@ -1,0 +1,15 @@
+GRANT EXECUTE ON FUNCTION public.schedule_work_alert_ack(text[]) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_alert_ack(text[]) TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_work_notice_on_event() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_notice_on_event() TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_work_notice_on_event() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report(text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report(text) TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_work_alert_feed() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_alert_feed() TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report_ack(text[]) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report_ack(text[]) TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_director_absence_action(text,jsonb) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_director_absence_action(text,jsonb) TO anon;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report_alert_feed() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.schedule_work_report_alert_feed() TO anon;
