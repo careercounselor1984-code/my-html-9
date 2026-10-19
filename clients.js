@@ -27,9 +27,10 @@ if(typeof module!=='undefined'){module.exports=root.ClientTimeline;return}
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let importDroppedFile=null;
 let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
 function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
-function clearImport(){for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;importReadSeq++;importRecords=[];importPlan=[];importSheets=[];importReviewEpoch=-1;$('clientImportText').value='';$('clientImportFile').value='';$('clientImportPreview').innerHTML='';$('clientImportSheet').innerHTML='';$('clientImportSheetWrap').hidden=true;$('importIncludeEnded').checked=false;$('clientImportSelection').textContent='';$('commitClientImport').disabled=true;importMessage('');if($('clientImportDialog').open)$('clientImportDialog').close()}
+function clearImport(){importDroppedFile=null;$('clientImportDropZone').classList.remove('dragging');$('clientImportFileName').textContent='암호화된 파일은 엑셀에서 복사·붙여넣기를 이용하세요.';for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;importReadSeq++;importRecords=[];importPlan=[];importSheets=[];importReviewEpoch=-1;$('clientImportText').value='';$('clientImportFile').value='';$('clientImportPreview').innerHTML='';$('clientImportSheet').innerHTML='';$('clientImportSheetWrap').hidden=true;$('importIncludeEnded').checked=false;$('clientImportSelection').textContent='';$('commitClientImport').disabled=true;importMessage('');if($('clientImportDialog').open)$('clientImportDialog').close()}
 function importSelection(){const n=importPlan.filter(p=>p.selected&&['new','update'].includes(p.action)).length;$('clientImportSelection').textContent=n+'명 선택';$('commitClientImport').textContent='선택한 '+n+'명 반영';$('commitClientImport').disabled=!n||busy||loading||!loaded;}
 function paintImport(){
  if(!identity||!userId)return;importPlan=root.ClientImport.plan(importRecords,rows,identity,{includeEnded:$('importIncludeEnded').checked});importReviewEpoch=epoch;
@@ -41,7 +42,7 @@ function paintImport(){
 }
 async function previewImport(){
  if(busy||loading||!loaded||!userId){importMessage('로그인 및 자료 불러오기를 먼저 완료해 주세요.',true);return}
- const token=epoch,seq=++importReadSeq,file=$('clientImportFile').files?.[0],text=$('clientImportText').value;importRecords=[];importSheets=[];importReviewEpoch=-1;importPlan=[];$('clientImportPreview').innerHTML='';importSelection();importMessage('내용 확인 중…');
+ const token=epoch,seq=++importReadSeq,file=importDroppedFile||$('clientImportFile').files?.[0],text=$('clientImportText').value;importRecords=[];importSheets=[];importReviewEpoch=-1;importPlan=[];$('clientImportPreview').innerHTML='';importSelection();importMessage('내용 확인 중…');
  try{let nextRecords=[],nextSheets=[],chosen=0;
   if(file){if(file.size>8*1024*1024)throw Error('8MB 이하 파일을 선택해 주세요.');if(/\.xlsx$/i.test(file.name)){nextSheets=await root.ClientXlsx.readXlsx(await file.arrayBuffer());if(seq!==importReadSeq||token!==epoch)return;for(let i=0;i<nextSheets.length;i++){try{root.ClientImport.parseRows(nextSheets[i].rows);chosen=i;break}catch{}}nextRecords=root.ClientImport.parseRows(nextSheets[chosen].rows);}
    else if(/\.(csv|tsv|txt)$/i.test(file.name)){const bytes=await file.arrayBuffer();if(seq!==importReadSeq||token!==epoch)return;let content=new TextDecoder('utf-8',{fatal:false}).decode(bytes);if(content.includes('\uFFFD'))content=new TextDecoder('euc-kr').decode(bytes);nextRecords=root.ClientImport.parseRows(root.ClientImport.parseText(content));}
@@ -75,7 +76,20 @@ function initImport(){
  $('closeClientImport').onclick=$('cancelClientImport').onclick=()=>{if(!busy)clearImport()};$('clientImportDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();else clearImport()});
  $('previewClientImport').onclick=previewImport;$('commitClientImport').onclick=commitImport;
  const invalidate=()=>{importReadSeq++;importRecords=[];importPlan=[];importSheets=[];$('clientImportSheetWrap').hidden=true;$('clientImportPreview').innerHTML='';importSelection();importMessage('내용이 변경됐습니다. 미리보기를 다시 확인해 주세요.')};
- $('clientImportText').oninput=()=>{$('clientImportFile').value='';invalidate()};$('clientImportFile').onchange=()=>{$('clientImportText').value='';invalidate();if($('clientImportFile').files?.length)previewImport()};
+ $('clientImportText').oninput=()=>{importDroppedFile=null;$('clientImportFile').value='';$('clientImportFileName').textContent='붙여넣은 내용을 확인합니다.';invalidate()};
+ $('clientImportFile').onchange=()=>{importDroppedFile=null;$('clientImportText').value='';invalidate();const file=$('clientImportFile').files?.[0];$('clientImportFileName').textContent=file?file.name:'선택한 파일이 없습니다.';if(file)previewImport()};
+ const dropZone=$('clientImportDropZone'),hasFiles=e=>Array.from(e.dataTransfer?.types||[]).includes('Files')||e.dataTransfer?.files?.length;
+ dropZone.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect=busy?'none':'copy';if(!busy)dropZone.classList.add('dragging')});
+ dropZone.addEventListener('dragleave',e=>{if(!e.relatedTarget||!dropZone.contains(e.relatedTarget))dropZone.classList.remove('dragging')});
+ dropZone.addEventListener('drop',e=>{
+  if(!hasFiles(e))return;e.preventDefault();e.stopPropagation();dropZone.classList.remove('dragging');if(busy||loading||!loaded||!userId)return;
+  importDroppedFile=null;$('clientImportFile').value='';$('clientImportText').value='';invalidate();const files=Array.from(e.dataTransfer?.files||[]);
+  if(files.length!==1){$('clientImportFileName').textContent='선택한 파일이 없습니다.';importMessage('파일을 한 개씩 끌어놓아 주세요.',true);return}
+  const file=files[0];if(!/\.(xlsx|csv|tsv|txt)$/i.test(file.name)){$('clientImportFileName').textContent='지원하지 않는 파일입니다.';importMessage('.xlsx, CSV, TSV 파일을 끌어놓거나 엑셀 내용을 복사·붙여넣어 주세요.',true);return}
+  importDroppedFile=file;$('clientImportFileName').textContent=file.name;previewImport();
+ });
+ // Stop a dropped file from navigating away from the unsaved import review.
+ for(const type of ['dragover','drop'])document.addEventListener(type,e=>{if($('clientImportDialog').open&&hasFiles(e)){e.preventDefault();if(type==='drop'&&!dropZone.contains(e.target)){dropZone.classList.remove('dragging');importMessage('위의 파일 끌어놓기 영역에 놓아 주세요.',true)}}});
  $('clientImportSheet').onchange=()=>{try{importRecords=root.ClientImport.parseRows(importSheets[Number($('clientImportSheet').value)].rows);paintImport()}catch(e){importPlan=[];$('clientImportPreview').innerHTML='';importSelection();importMessage(e.message,true)}};
  $('importIncludeEnded').onchange=()=>{if(importRecords.length)paintImport()};$('clientImportPreview').onchange=e=>{const cb=e.target.closest('[data-import-index]');if(!cb||busy)return;const p=importPlan[Number(cb.dataset.importIndex)];if(p&&['new','update'].includes(p.action))p.selected=cb.checked;importSelection()};
 }
