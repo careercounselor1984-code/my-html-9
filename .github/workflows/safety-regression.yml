@@ -24,6 +24,7 @@ jobs:
           node tests/desktop-mini.test.cjs
           node tests/energy-alert-once.test.cjs
           node tests/daily-layout-alert-scope.test.cjs
+          node tests/visitor-output.test.cjs
           node tests/private-planner.test.cjs
           node tests/clients.test.cjs
           node tests/work-menus.test.cjs

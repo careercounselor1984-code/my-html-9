@@ -18,7 +18,7 @@ const context={
  parseDate:d=>new Date(d+'T00:00:00Z'),
  isFridayClosed:(d,t)=>new Date(d+'T00:00:00Z').getUTCDay()===5&&t>='12:00',
  isClosedDay:()=>false,holidays:()=>[],matchingAt:(e,t)=>e.time<=t&&t<e.end,
- isConsultEvent:e=>e.kind==='consult',isWorkEvent:e=>e.kind==='work',
+ isConsultEvent:e=>e.kind==='consult',isWorkEvent:e=>e.kind==='work',isVisitorPrintEvent:e=>e.kind==='consult',
  escapeHtml:v=>String(v),showName:e=>e.title,typeClass:()=> 'field',eventBlock:e=>'<b>'+e.title+'</b>',
  sharedNotices:()=>[],alert:()=>{},$:()=>state.target
 };

@@ -1,4 +1,4 @@
-const CACHE='goodjob-schedule-v45-session-audit-20261018';
+const CACHE='goodjob-schedule-v46-visitor-output-20261019';
 const ASSETS=['./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('goodjob-schedule-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

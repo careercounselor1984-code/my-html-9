@@ -1163,7 +1163,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
  </form>
  <p id="quickEntryPreview" class="quick-entry-preview" role="status">이름과 상담 구분을 입력하면 자동으로 구분해요.</p>
 </section>
-  <div class="toolline no-print"><button class="primary quick-open-button" id="quickEntryOpen" type="button" aria-controls="quickEntrySection" aria-haspopup="dialog">＋ 빠른 예약</button><button id="addConsult" type="button">＋ 상세 상담 등록 · 대신 예약</button><button id="addWork" type="button" class="work-add">＋ 내 근무·외부 일정</button><details class="mobile-worktools" open><summary>연장·휴일근무 / 출력 / 기타 기능</summary><div class="mobile-worktools-items"><button id="specialWorkBtn" type="button">＋ 연장·휴일근무</button><button id="quickLeave" type="button">연차 칸 선택 OFF</button><button id="dayoff" type="button">＋ 센터 자체 휴무 등록</button><button id="noteBtn" type="button">＋ 공통 비고·행사</button><button id="staff" type="button">직원 목록 관리</button><label class="day-print-date">인쇄할 날짜 <input id="printDayDate" type="date" aria-label="인쇄할 날짜 선택"></label><button id="print" type="button" class="push">인쇄 / PDF</button><button id="copyDailyImage" type="button" title="복사한 후 카카오톡에서 Ctrl+V">카톡 이미지 복사</button><button id="saveDailyImage" type="button" title="PNG 이미지 파일로 저장">PNG 저장</button><button id="export" type="button">백업</button><button id="import" type="button">복원</button><input type="file" accept=".json,application/json" id="file" hidden></div></details></div>
+  <div class="toolline no-print"><button class="primary quick-open-button" id="quickEntryOpen" type="button" aria-controls="quickEntrySection" aria-haspopup="dialog">＋ 빠른 예약</button><button id="addConsult" type="button">＋ 상세 상담 등록 · 대신 예약</button><button id="addWork" type="button" class="work-add">＋ 내 근무·외부 일정</button><details class="mobile-worktools" open><summary>연장·휴일근무 / 출력 / 기타 기능</summary><div class="mobile-worktools-items"><button id="specialWorkBtn" type="button">＋ 연장·휴일근무</button><button id="quickLeave" type="button">연차 칸 선택 OFF</button><button id="dayoff" type="button">＋ 센터 자체 휴무 등록</button><button id="noteBtn" type="button">＋ 공통 비고·행사</button><button id="staff" type="button">직원 목록 관리</button><label class="day-print-date">인쇄할 날짜 <input id="printDayDate" type="date" aria-label="인쇄할 날짜 선택"></label><button id="print" type="button" class="push">인쇄 / PDF</button><button id="copyDailyImage" type="button" title="내담자용 상담 일정표 · 직원 일정 제외 · 이름 마스킹">카톡 이미지 복사</button><button id="saveDailyImage" type="button" title="내담자용 상담 일정표 · 직원 일정 제외 · 이름 마스킹">PNG 저장</button><button id="export" type="button">백업</button><button id="import" type="button">복원</button><input type="file" accept=".json,application/json" id="file" hidden></div></details></div>
   <div class="mobile-banner no-print" role="note"><span class="mobile-banner-icon">📱</span><span>모바일에서도 일정 조회·등록이 가능해요. 저장 상태를 꼭 확인하세요.</span></div><p class="helper no-print" id="helpText">상담은 선택한 시간에 30분으로 자동 등록돼. 연차는 '연차 칸 선택'을 켠 후 칸을 클릭하거나 마우스로 드래그해 한 번에 지정할 수 있어. 금요일은 12:00까지만 근무하고 공휴일·대체공휴일·센터 휴무일은 등록할 수 없어.</p>
   <section class="sheet"><div class="sheet-head"><div><h2 class="sheet-title" id="reportTitle">일정표</h2><div class="sheet-meta" id="reportMeta"></div></div><span class="tipline no-print" id="modeTip"></span></div>
     <div id="sharedNotes" class="shared-notes" aria-label="센터 공통 행사 및 비고"></div>
@@ -4756,7 +4756,8 @@ $('staff').onclick=()=>{setOptions($('staffCenter'),CENTERS,currentCenter());upd
 $('staffAdd').onclick=()=>{const c=$('staffCenter').value,n=$('staffName').value.trim();if(!n)return;model.staff[c]=[...new Set([...(model.staff[c]||[]),n.slice(0,30)])];$('staffName').value='';save();updateStaff();refreshEmployees(currentOwner());render()};
 $('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return;const c=$('staffCenter').value,n=b.dataset.staff;if(!confirm(n+' 직원을 기본 목록에서 제외할까? 기존 일정은 유지돼.'))return;model.staff[c]=model.staff[c].filter(x=>x!==n);save();updateStaff();refreshEmployees(currentOwner());render()};
 
-/* Visitor print excludes staff records; staff-shared images retain them. */
+/* All visitor-facing print, PDF and image output uses the same event filter. */
+const isVisitorPrintEvent=e=>isConsultEvent(e)&&!WORK_TYPES.has(String(e.type||'').trim())&&!/^\d+(?:\.\d+)?시간\s*연차$/.test(String(e.type||'').trim());
 const isLeavePrintEvent=e=>isWorkEvent(e)&&['연차','반차','2시간 연차','반반차'].includes(e.type);
 const isContinuousWorkPrintEvent=e=>isWorkEvent(e)&&!isLeavePrintEvent(e);
 function buildDailyPrint(date,{audience='visitor'}={}){
@@ -4765,7 +4766,7 @@ function buildDailyPrint(date,{audience='visitor'}={}){
  const owners=allPeople?employees(currentCenter()):[currentOwner()];
  if(!owners.length){alert('인쇄할 상담사를 선택해 주세요.');return false}
  // Never expose leave or other internal employee schedules on the visitor-facing sheet.
- const events=allEventsFor(date).filter(e=>includeWork||isConsultEvent(e));
+ const events=allEventsFor(date).filter(e=>includeWork||isVisitorPrintEvent(e));
  const weekday=['일','월','화','수','목','금','토'][parseDate(date).getDay()];
  const number=owners.length;
  const cols=owners.map(n=>'<th>'+escapeHtml(n)+'</th>').join('');
@@ -4975,7 +4976,7 @@ function renderDailyShareCanvas(){
   }
  }
  // Match the leave treatment: one centered, hatched block for contiguous external/work slots.
- // Staff images show the work title; visitor print still excludes all work events.
+ // Internal work bands are supported only when an explicitly internal sheet is rendered.
  for(let i=0;i<count;i++){
   for(let start=0;start<prepared.length;){
    const row=prepared[start],key=row.workId[i];
@@ -5021,7 +5022,7 @@ async function shareDailyPrint(kind){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).getTime())){
   alert('이미지로 만들 날짜를 먼저 선택해 주세요.');return;
  }
- if(!buildDailyPrint(date,{audience:'staff'}))return;
+ if(!buildDailyPrint(date,{audience:'visitor'}))return;
  const button=$(kind==='copy'?'copyDailyImage':'saveDailyImage');
  button.disabled=true;
  try{
