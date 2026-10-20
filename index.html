@@ -4287,8 +4287,19 @@ function leaveDuration(e){if(e.allDay)return workSlots(e.date).length*30;return 
 function durationLabel(mins){const n=mins/60;return (Number.isInteger(n)?String(n):n.toFixed(1))+'시간'}
 function dayMetrics(list,date){const consultations=list.filter(e=>isConsultEvent(e)).length,leaveSet=new Set();for(const e of list.filter(e=>['연차','반차','2시간 연차','반반차'].includes(e.type))){for(const t of coveredSlots(e,date))leaveSet.add(t)}return {consultations,leaveMinutes:leaveSet.size*30}}
 function monthTotals(){let consultations=0,leaveMinutes=0;const y=focusDate.getFullYear(),m=focusDate.getMonth();for(let d=1;d<=new Date(y,m+1,0).getDate();d++){const date=dateKey(new Date(y,m,d)),stat=dayMetrics(employeeEventsFor(date),date);consultations+=stat.consultations;leaveMinutes+=stat.leaveMinutes}return {consultations,leaveMinutes}}
+// 시차는 휴가 시간이 아니라 조정된 출근시간을 표시한다.
+function shiftArrivalLabel(e){
+ if(e.type!=='시차')return '';
+ const title=String(e.title||'');
+ const match=title.match(/(?:^|[^0-9])([01]?\d|2[0-3]):([0-5]\d)(?!\d)/)||title.match(/(?:^|[^0-9])([01]?\d|2[0-3])\s*시(?!간)\s*(?:([0-5]?\d)\s*분)?/);
+ const time=match?match[1].padStart(2,'0')+':'+(match[2]||'00').padStart(2,'0'):!e.allDay&&/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time||'')?e.time:'';
+ return time?time+' 출근':'출근시간 미입력';
+}
+function teamGroupLabel(g){
+ return g.type==='시차'?g.type+' '+g.arrivals.join(' / '):g.type+(g.mins?' '+durationLabel(g.mins):'');
+}
 function teamLabels(events,date){return teamDayGroups(events,date).map(p=>{
- const segments=p.labels.map(g=>`${g.type}${g.mins?' '+durationLabel(g.mins):''}`).join(' · ');
+ const segments=p.labels.map(teamGroupLabel).join(' · ');
  return `<div class="team-person summarized" title="${escapeHtml(p.owner+' · '+segments)}"><b>${escapeHtml(p.owner)}</b><span>· ${escapeHtml(segments)}</span></div>`
 })}
 
@@ -4315,7 +4326,7 @@ function mobileMonthDetails(date,team){
  if(team){
   const groups=teamDayGroups(all,date);
   rows=groups.map(p=>{
-   const items=p.labels.map(e=>'<span class="mobile-month-tag">'+escapeHtml(e.type)+(e.mins?' · '+escapeHtml(durationLabel(e.mins)):'')+(e.title?' · '+escapeHtml(e.title):'')+'</span>').join('');
+   const items=p.labels.map(e=>'<span class="mobile-month-tag">'+(e.type==='시차'?escapeHtml(teamGroupLabel(e)):escapeHtml(e.type)+(e.mins?' · '+escapeHtml(durationLabel(e.mins)):'')+(e.title?' · '+escapeHtml(e.title):''))+'</span>').join('');
    return '<div class="mobile-month-person"><strong>'+escapeHtml(p.owner)+'</strong><div class="mobile-month-tags">'+items+'</div></div>';
   }).join('');
  }else{
@@ -4626,7 +4637,7 @@ function teamDayGroups(events,date){
  return [...owners.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([owner,types])=>({owner,labels:[...types.values()].map(g=>{
   const covered=new Set();for(const e of g.items)for(const t of coveredSlots(e,date))covered.add(t);
   const mins=covered.size*30;
-  return {type:g.type,trip:g.trip,mins,title:g.items.find(e=>e.title&&e.title!==e.type)?.title||''};
+  return {type:g.type,trip:g.trip,mins,title:g.items.find(e=>e.title&&e.title!==e.type)?.title||'',arrivals:g.type==='시차'?[...new Set(g.items.map(shiftArrivalLabel))]:[]};
  })}));
 }
 function showTeamDaySummary(date){
@@ -4634,7 +4645,7 @@ function showTeamDaySummary(date){
  $('teamSummaryDate').textContent=date+' · '+currentCenter()+' 연차·시차·외부교육';
  const groups=teamDayGroups(teamEventsFor(date),date),hol=holidays(date),notices=[];
  let markup=hol.length?`<div class="summary-holidays"><strong>휴무 안내</strong> ${hol.map(escapeHtml).join(' · ')}</div>`:'';markup+=notices.map(n=>`<div class="note-summary"><strong>📌 ${escapeHtml(n.type)}</strong> · ${escapeHtml(n.title)}${n.memo?' · '+escapeHtml(n.memo):''}</div>`).join('');
- markup+=groups.length?groups.map(g=>`<div class="summary-person-card"><div class="summary-person-name">${escapeHtml(g.owner)}</div><div class="summary-chips">${g.labels.map(x=>`<span class="summary-chip entry-${typeClass({type:x.type,trip:x.trip})}">${escapeHtml(x.type)}${x.mins?' · '+durationLabel(x.mins):''}${x.title?' ('+escapeHtml(x.title)+')':''}</span>`).join('')}</div></div>`).join(''):'<div class="empty">이 날짜에는 등록된 직원 연차·시차·외부교육 일정이 없어요.</div>';
+ markup+=groups.length?groups.map(g=>`<div class="summary-person-card"><div class="summary-person-name">${escapeHtml(g.owner)}</div><div class="summary-chips">${g.labels.map(x=>`<span class="summary-chip entry-${typeClass({type:x.type,trip:x.trip})}">${x.type==='시차'?escapeHtml(teamGroupLabel(x)):escapeHtml(x.type)+(x.mins?' · '+durationLabel(x.mins):'')+(x.title?' ('+escapeHtml(x.title)+')':'')}</span>`).join('')}</div></div>`).join(''):'<div class="empty">이 날짜에는 등록된 직원 연차·시차·외부교육 일정이 없어요.</div>';
  $('teamSummaryList').innerHTML=markup;
  $('teamSummaryDlg').showModal();
 }
