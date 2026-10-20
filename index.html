@@ -111,7 +111,7 @@ body[data-view="teamDay"] .timetable .slot:hover{background:inherit}
 /* v11 · Separate consultation appointments from personal working schedules. */
 .work-add{background:#f6f0fd;border-color:#d8c8ed;color:#6a439b}
 .work-add:hover{background:#ede3fa}
-.entry-mode-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}
+.entry-mode-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 10px}
 .entry-mode{border:1px solid #dae5f0;background:#f7f9fc;border-radius:12px;padding:12px 13px;display:flex;align-items:center;gap:10px;text-align:left;min-width:0;box-shadow:none}
 .entry-mode .entry-mode-icon{font-size:18px;line-height:1;flex-shrink:0}
 .entry-mode span:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -122,7 +122,7 @@ body[data-view="teamDay"] .timetable .slot:hover{background:inherit}
 .entry-mode[disabled]{opacity:.45;cursor:default}
 .entry-mode-help{background:#f5f8fc;border-radius:8px;padding:9px 11px;margin:0 0 13px;font-size:12px;color:#526c85;line-height:1.45}
 .fixed-time{padding:11px 13px;border:1px solid #d6e2ef;border-radius:9px;background:#f2f7fc;color:#34608a;font-size:13px;font-weight:650}
-@media(max-width:500px){.entry-mode-picker{gap:7px}.entry-mode{padding:10px 8px;gap:6px}.entry-mode strong{font-size:12px}.entry-mode small{font-size:10px}.entry-mode .entry-mode-icon{font-size:15px}}
+@media(max-width:500px){.entry-mode-picker{gap:7px;grid-template-columns:1fr 1fr}.entry-mode[data-entry-mode="shift"]{grid-column:1/-1}.entry-mode{padding:10px 8px;gap:6px}.entry-mode strong{font-size:12px}.entry-mode small{font-size:10px}.entry-mode .entry-mode-icon{font-size:15px}}
 
 /* v13: handheld agenda, thumb-friendly controls, improved accessibility */
 .mobile-banner{display:none;align-items:flex-start;gap:10px;background:#ecf4ff;border:1px solid #bcd5f5;border-radius:12px;padding:12px 14px;color:#244769;font-size:13px;line-height:1.5;margin:6px 0 13px}.mobile-banner-icon{font-size:18px;line-height:1.2}
@@ -1273,6 +1273,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
   <div class="entry-mode-picker" id="entryModePicker" role="group" aria-label="등록할 일정 종류">
     <button type="button" class="entry-mode is-active" data-entry-mode="consult"><span class="entry-mode-icon">👤</span><span><strong>내담자 상담</strong><small>초기·해석·IAP 등 / 30분 고정</small></span></button>
     <button type="button" class="entry-mode" data-entry-mode="work"><span class="entry-mode-icon">📅</span><span><strong>내 근무·외부 일정</strong><small>연차·교육·출장·외부홍보 등</small></span></button>
+    <button type="button" class="entry-mode" data-entry-mode="shift"><span class="entry-mode-icon">🕘</span><span><strong>시차근무</strong><small>출근시간 선택</small></span></button>
   </div>
   <p id="entryModeHelp" class="entry-mode-help">내담자 이름과 상담 종류만 입력하세요. 상담 시간은 자동으로 30분 등록돼요.</p>
   <div class="form-layout">
@@ -1288,6 +1289,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
     <label class="field full hide" id="personTagBox">동명이인 구분표시 (내부 확인용)<input id="personTag" maxlength="24" placeholder="예: A, 10월 신규 (생년월일·전화번호 입력 금지)"><span class="hint">동명이인을 새로 등록할 때만 사용하며, 출력물에는 나오지 않아.</span></label>
     <div class="field full hide" id="specialWorkBox"><label class="check-card"><input id="specialWork" type="checkbox"><span><span class="txt">연장·휴일근무 예외</span><span class="desc">정규 근무시간 외·주말·공휴일에 실제 근무하는 경우만 사용</span></span></label></div><div class="choice-row hide" id="workChoices"><label class="check-card"><input type="checkbox" id="allDay" name="allDay"><span><span class="txt">하루 전체</span><span class="desc">연차·교육 등을 종일 처리</span></span></label>
     <label class="check-card trip-check"><input type="checkbox" id="ftrip" name="trip"><span><span class="txt">출장으로 표시</span><span class="desc">보라색으로 구분</span></span></label></div>
+    <label class="field full hide" id="shiftArrivalBox">시차근무 출근시간<select id="shiftArrival" disabled><option value="">출근시간 선택</option><option value="07:30">07:30 출근</option><option value="08:00">08:00 출근</option><option value="08:30">08:30 출근</option><option value="09:00">09:00 출근</option><option value="09:30">09:30 출근</option><option value="10:00">10:00 출근</option><option value="10:30">10:30 출근</option></select><span class="hint">기본 09:00 출근에서 앞뒤 1시간 30분까지, 30분 단위로 선택해요. 선택한 출근시간이 일정표에 표시돼요.</span></label>
     <label class="field hide" id="durationBox">일정 길이<select id="duration"><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간 (4칸)</option><option value="180">3시간 (6칸)</option><option value="240">4시간 (8칸)</option><option value="480">8시간 (종일에 가까움)</option></select></label>
     <div id="fixedDuration" class="field"><span>상담 소요시간</span><div class="fixed-time">30분 자동 지정 · 시작 시간을 선택하면 완료</div></div>
     <div class="field full" id="personManageWrap"><div class="person-note">이전 상담자 추천은 <b>현재 센터·담당 상담사</b> 기준이야. 전체 명단을 펼치지 않고 입력한 이름만 검색해. 공용 PC라면 실명 저장과 백업 파일 취급에 유의해. <button type="button" id="personManage" style="float:right;padding:3px 8px;font-size:11px">기억된 이름 관리</button></div></div>
@@ -4448,7 +4450,7 @@ function changeEditorMode(mode,preserve=false){
  const selected=preserve&&items.some(t=>t[0]===prevType)?prevType:service?'초기':'연차';
  $('ftype').innerHTML=items.map(t=>`<option value="${escapeHtml(t[0])}">${escapeHtml(t[0])}</option>`).join('')+`<option value="${CUSTOM_TYPE}">＋ 직접입력</option>`;$('ftype').value=selected;$('ftype').dataset.lastType=selected;
  if(!preserve){$('customType').value='';$('customType').dataset.previous='';}updateCustomTypeField();
- document.querySelectorAll('[data-entry-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.entryMode===mode);b.disabled=!!editing&&b.dataset.entryMode!==mode;b.setAttribute('aria-pressed',String(b.dataset.entryMode===mode))});
+ document.querySelectorAll('[data-entry-mode]').forEach(b=>{b.classList.toggle('is-active',b.dataset.entryMode===mode);b.disabled=!!editing&&(b.dataset.entryMode==='shift'?'work':b.dataset.entryMode)!==mode;b.setAttribute('aria-pressed',String(b.dataset.entryMode===mode))});
  $('entryModeHelp').textContent=service?'‘홍길동 초기’처럼 함께 입력하거나, ‘홍길동’만 입력한 뒤 상담구분을 선택하세요. 시간은 30분으로 등록됩니다.':'상담 일정과 별도로 연차·교육·출장·외부홍보 등을 관리해요. 시간·종일 여부를 정할 수 있어요.';
  $('entryTitleLabel').textContent=service?'내담자 이름 또는 이름 + 상담구분':'일정명 (선택)';$('fperson').placeholder=service?'예: 홍길동 초기 / 홍길동':'예: 연차 / 교육기관 방문 / 외부 홍보';
  $('fperson').required=service;$('entryTypeLabel').textContent=service?'상담 구분 (선택사항)':'개인 일정 구분';$('typeHelp').textContent=service?'이름 뒤에 초기·해석·IAP 등을 입력하면 자동 인식 · 이름만 적으면 여기서 선택 (기본 초기)':'연차 · 반차 · 출장 · 외부교육 · 외부홍보 등';
@@ -4522,6 +4524,7 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  $('customType').value=eventId&&!standardType?e.type:'';
  $('ftype').dataset.lastType=f.elements.type.value;updateCustomTypeField();
  f.elements.title.value=e.title||(editorMode==='work'?f.elements.type.value:'');
+ const arrival=e.type==='시차'?shiftArrivalLabel(e).replace(' 출근',''):'';$('shiftArrival').value=[...$('shiftArrival').options].some(o=>o.value===arrival)?arrival:'';
  updateConsultInlinePreview();
  if(!eventId&&editorMode==='work'){$('allDay').checked=!special&&currentView==='personalMonth';f.elements.title.value=f.elements.type.value;$('ftrip').checked=false;$('duration').value='30'}if(!eventId&&special){$('ftype').value=isClosedDay(e.date,e.center)?'휴일근무':'연장근무';$('fperson').value=$('ftype').value;$('allDay').checked=false;$('duration').value='120';}
  setFormLayout();$('moveScheduleBtn').classList.toggle('hide',!eventId||editorMode!=='consult');$('handoffScheduleBtn').classList.toggle('hide',!cloud.active||!eventId||editorMode!=='consult'||e.owner!==cloud.identity.name);$('editTitle').textContent=eventId?(editorMode==='consult'?'내담자 상담 수정':'개인 일정 수정'):(editorMode==='consult'?'내담자 상담 등록':'내 근무·외부 일정 등록');$('remove').classList.toggle('hide',!eventId);$('dlg').showModal();
@@ -4532,7 +4535,21 @@ function setFormLayout(){const service=editorMode==='consult';if(service){$('all
  $('personManageWrap').classList.toggle('hide',!service);$('consultTripRow').classList.toggle('hide',!service);
  const northEnergy=service&&$('fcenter').value==='북부센터'&&(!cloud.active||cloud.identity?.center==='북부센터');
  $('energySchoolRow').classList.toggle('hide',!northEnergy);$('energySchool').disabled=!northEnergy;if(!northEnergy)$('energySchool').checked=false;$('personNew').classList.toggle('hide',!service||!hasSameName());$('personTagBox').classList.toggle('hide',!service||!newHomonym);if(!service)hidePersonSuggestions();
- $('specialWorkBox').classList.toggle('hide',service);$('specialWork').disabled=service;const extra=!service&&$('specialWork').checked;if(extra)$('allDay').checked=false;$('allDay').disabled=service||extra;$('workChoices').classList.toggle('hide',service);$('durationBox').classList.toggle('hide',service||$('allDay').checked);$('fixedDuration').classList.toggle('hide',!service);$('ftimeWrap').classList.toggle('hide',!service&&$('allDay').checked);$('ftime').disabled=!service&&$('allDay').checked;$('ftrip').disabled=service;$('consultTrip').disabled=!service;updateProxyHint();
+ $('specialWorkBox').classList.toggle('hide',service);$('specialWork').disabled=service;const extra=!service&&$('specialWork').checked;if(extra)$('allDay').checked=false;$('allDay').disabled=service||extra;$('workChoices').classList.toggle('hide',service);$('durationBox').classList.toggle('hide',service||$('allDay').checked);$('fixedDuration').classList.toggle('hide',!service);$('ftimeWrap').classList.toggle('hide',!service&&$('allDay').checked);$('ftime').disabled=!service&&$('allDay').checked;$('ftrip').disabled=service;$('consultTrip').disabled=!service;
+ const shift=!service&&$('ftype').value==='시차';
+ document.querySelectorAll('[data-entry-mode]').forEach(b=>{const active=b.dataset.entryMode===(shift?'shift':editorMode);b.classList.toggle('is-active',active);b.setAttribute('aria-pressed',String(active))});
+ $('shiftArrivalBox').classList.toggle('hide',!shift);$('shiftArrival').disabled=!shift;$('shiftArrival').required=shift;
+ $('fperson').closest('.person-field').classList.toggle('hide',shift);$('fperson').disabled=shift;
+ $('ftype').closest('.field').classList.toggle('hide',shift);
+ $('editTitle').textContent=shift?(editing?'시차근무 수정':'시차근무 등록'):editing?(service?'내담자 상담 수정':'개인 일정 수정'):(service?'내담자 상담 등록':'내 근무·외부 일정 등록');
+ if(shift){
+  $('allDay').checked=true;$('specialWork').checked=false;$('ftrip').checked=false;
+  for(const id of ['ftimeWrap','durationBox','workChoices','specialWorkBox'])$(id).classList.add('hide');
+  $('ftime').disabled=true;$('specialWork').disabled=true;
+  $('entryModeHelp').textContent='시차근무는 출근시간을 선택하면 등록돼요. 일정명이나 일정 길이는 입력하지 않아도 돼요.';
+  $('editTitle').textContent=editing?'시차근무 수정':'시차근무 등록';
+ }
+ updateProxyHint();
 } 
 function withinSameDay(date,t,mins,special=false){if(special){const start=minute(t),end=start+mins;return start>=6*60&&end<=24*60&&end>start;}if(isClosedDay(date,$('fcenter').value))return false;const end=minute(t)+mins;if(end>18*60)return false;const breakConflict=minute(t)<13*60&&end>12*60;return !breakConflict&&!isFridayClosed(date,t)&&(parseDate(date).getDay()!==5||end<=12*60)}
 async function saveEntry(ev){
@@ -4548,6 +4565,11 @@ async function saveEntry(ev){
  }
  const f=$('editor'),data=Object.fromEntries(new FormData(f).entries());if(cloud.active){data.center=cloud.identity.center;if(editorMode!=='consult'||editing)data.owner=cloud.identity.name}const service=editorMode==='consult',specialWork=!service&&$('specialWork').checked,allDay=service||specialWork?false:$('allDay').checked,time=allDay?'09:00':data.time;
  const type=(data.type===CUSTOM_TYPE?$('customType').value:data.type||'').trim();
+ if(!service&&type==='시차'){
+  const arrival=$('shiftArrival').value;
+  if(!['07:30','08:00','08:30','09:00','09:30','10:00','10:30'].includes(arrival)){alert('시차근무 출근시간을 선택해 줘.');$('shiftArrival').focus();return false}
+  data.title='시차 '+arrival+' 출근';
+ }
  if(!type){alert('직접 입력할 '+(service?'상담':'개인 일정')+' 구분을 적어 줘.');$('customType').focus();return false}
  const end=allDay?'18:00':addMinutes(time,service?30:Number($('duration').value));const dest={id:editing||id(),center:normalizedCenter(data.center),owner:data.owner,date:data.date,kind:editorMode,type,title:String(data.title||'').trim()||(service?'':type),time,end,allDay,specialWork,trip:(service&&($('consultTrip').checked||$('energySchool').checked))||(!service&&$('ftrip').checked)||(!service&&type==='출장'),energySchool:!!(service&&normalizedCenter(data.center)==='북부센터'&&(!cloud.active||cloud.identity?.center==='북부센터')&&$('energySchool').checked),memo:data.memo||'',quick:false};
  if(editing){const previous=model.events.find(x=>x.id===editing);if(previous?.bookedBy)dest.bookedBy=previous.bookedBy;for(const key of ['handoffFrom','handoffAt','handoffId'])if(previous?.[key])dest[key]=previous[key];}
@@ -4709,6 +4731,8 @@ $('ftype').onchange=()=>{const type=$('ftype').value,previous=$('ftype').dataset
  if(editorMode==='consult')updateConsultInlinePreview();
  if(type===CUSTOM_TYPE){$('customType').focus()}
  if(editorMode==='work'){
+ if(previous==='시차'&&type!=='시차'){$('allDay').checked=currentView==='personalMonth';$('entryModeHelp').textContent='상담 일정과 별도로 연차·교육·출장·외부홍보 등을 관리해요. 시간·종일 여부를 정할 수 있어요.';}
+ if(type==='시차'&&previous!=='시차')$('shiftArrival').value='';
  if(type==='2시간 연차'){$('duration').value='120';$('allDay').checked=false}if(['연장근무','휴일근무'].includes(type)){$('specialWork').checked=true;$('allDay').checked=false}
  if(type==='출장')$('ftrip').checked=true;else if(previous==='출장')$('ftrip').checked=false;
  if(['연차','반차','외부교육','내부교육'].includes(type)&&currentView==='personalMonth')$('allDay').checked=true;
@@ -4722,7 +4746,9 @@ $('customType').addEventListener('input',()=>{
  if(!title||title===$('customType').dataset.previous)$('fperson').value=$('customType').value;
  $('customType').dataset.previous=$('customType').value;
 });
-$('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;changeEditorMode(b.dataset.entryMode);if(editorMode==='consult')$('fperson').focus()});
+$('entryModePicker').addEventListener('click',e=>{const b=e.target.closest('[data-entry-mode]');if(!b||b.disabled)return;if(b.dataset.entryMode==='shift'){
+ changeEditorMode('work');$('ftype').value='시차';$('ftype').dataset.lastType='시차';$('shiftArrival').value='';$('fperson').value='시차';setFormLayout();$('shiftArrival').focus();
+ }else{changeEditorMode(b.dataset.entryMode);if(editorMode==='consult')$('fperson').focus()}});
 $('allDay').onchange=setFormLayout;$('specialWork').onchange=setFormLayout;
 function moveScheduleOpen(){
  if(!editing||editorMode!=='consult')return;
