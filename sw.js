@@ -1,4 +1,4 @@
-const CACHE='goodjob-schedule-v51-client-handoff-20261019';
+const CACHE='goodjob-schedule-v52-energy-flags-reminder-20261020';
 const ASSETS=['./handoff.html','./handoff.js','./handoff.css','./secure-backup.js','./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('goodjob-schedule-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -6,8 +6,10 @@ self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(e
 self.addEventListener('push',event=>{
  let data={};
  try{data=event.data?.json()||{}}catch{data={}}
- const title='좋은일자리 업무 알림';
- const body='로그인 후 새 알림을 확인하세요.';
+ let energy=false;
+ try{const target=new URL(data.url,self.registration.scope);energy=target.href.startsWith(self.registration.scope)&&target.searchParams.get('energySchool')==='1'}catch{}
+ const title=energy?'에너지고 · 학교 등록 확인':'좋은일자리 업무 알림';
+ const body=energy?'학교 출입 신청을 확인하세요. 로그인 후 등록 대상 상담사를 볼 수 있습니다.':'로그인 후 새 알림을 확인하세요.';
  event.waitUntil(self.registration.showNotification(title,{
   body,icon:'./icon-192.png',badge:'./icon-192.png',tag:String(data.tag||'schedule').slice(0,80),
   data:{url:(typeof data.url==='string'&&data.url.startsWith(self.registration.scope))?data.url:'./index.html'}

@@ -3435,14 +3435,25 @@ function alertInScope(item){
 }
 function alertUnread(){return alerts.items.filter(x=>!x.seen&&alertInScope(x))}
 
-/* 에너지고 출입 신청 알림: 방문 전 영업일에 1회만 팝업.
-   상담 일정 변경으로 signature가 달라지면 재알림, 미완료 현황은 계속 표시. */
+/* 학교 등록 미완료: 오전 9시를 기준으로 하루 한 번 팝업.
+   전 근무일에 봤어도 방문 당일 다시 안내하며, 명단 변경도 재알림. */
 const ENERGY_POPUP_LOG_KEY='goodjob_energy_popup_once_per_visit_v1';
+function energyPopupCycle(){
+ // KST 09:00 is UTC midnight: Date's UTC day gives a stable morning window.
+ return new Date().toISOString().slice(0,10);
+}
+function alertPopupKey(item){
+ return item.source==='energy'?item.key+'|'+energyPopupCycle():item.key;
+}
 function energyPopupPreviouslyShown(item){
  if(item?.source!=='energy'||!cloud.identity?.id)return false;
  try{
   const stored=JSON.parse(localStorage.getItem(ENERGY_POPUP_LOG_KEY)||'{}');
-  return Number(stored[cloud.identity.id+'|'+item.key])>0;
+  const key=cloud.identity.id+'|'+alertPopupKey(item);
+  if(Number(stored[key])>0)return true;
+  // Honour an old-format popup only within the current morning window.
+  const old=Number(stored[cloud.identity.id+'|'+item.key]);
+  return old>=Date.parse(energyPopupCycle()+'T00:00:00Z');
  }catch{return false}
 }
 function rememberEnergyPopup(items){
@@ -3454,7 +3465,7 @@ function rememberEnergyPopup(items){
   for(const [key,value] of Object.entries(stored)){
    if(!Number.isFinite(Number(value))||Number(value)<cutoff)delete stored[key];
   }
-  for(const item of energy)stored[cloud.identity.id+'|'+item.key]=Date.now();
+  for(const item of energy)stored[cloud.identity.id+'|'+alertPopupKey(item)]=Date.now();
   localStorage.setItem(ENERGY_POPUP_LOG_KEY,JSON.stringify(stored));
  }catch(error){console.warn('에너지고 팝업 중복 방지 기록 지연',error?.message||error)}
 }
@@ -3673,10 +3684,10 @@ async function alertPoll(pop=true){
   if(!valid()||cloud.identity?.id!==staffId)return;
   alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board].filter(alertInScope);
   alertDraw();
-  const fresh=alertUnread().filter(x=>!alerts.shown.has(x.key)&&!energyPopupPreviouslyShown(x));
+  const fresh=alertUnread().filter(x=>!alerts.shown.has(alertPopupKey(x))&&!energyPopupPreviouslyShown(x));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
    rememberEnergyPopup(fresh);
-   fresh.forEach(x=>alerts.shown.add(x.key));$('alertDialog').showModal();
+   fresh.forEach(x=>alerts.shown.add(alertPopupKey(x)));$('alertDialog').showModal();
   }
  }catch(e){console.warn('업무 알림 조회 지연',e?.message||'')}
  finally{if(valid())alerts.busy=false}
@@ -4793,7 +4804,7 @@ function buildDailyPrint(date,{audience='visitor'}={}){
    if(closed)cellContent='<span class="day-print-closed">비근무</span>';
    else if(first.length){
     // Leave itself is drawn as one continuous band by the staff-image renderer.
-    cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
+    cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.energySchool&&isConsultEvent(e)?' (에너지고 출장상담)':e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
    }else if(matching.some(e=>!isLeavePrintEvent(e)))cellContent='<span class="day-print-ongoing">계속</span>';
    const leaveMeta=leave?' data-leave-id="'+escapeHtml(String(leaveEvent.id||leaveEvent.owner+'|'+leaveEvent.time+'|'+leaveEvent.type))+'" data-leave-type="'+escapeHtml(leaveEvent.type)+'"':'';
    const workMeta=workEvent?' data-work-id="'+escapeHtml(String(workEvent.id||workEvent.owner+'|'+workEvent.time+'|'+workEvent.end+'|'+workEvent.type+'|'+workEvent.title))+'" data-work-title="'+escapeHtml(showName(workEvent,true))+'" data-work-type="'+escapeHtml(workEvent.type)+'"':'';

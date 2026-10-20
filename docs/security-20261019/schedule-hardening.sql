@@ -19,7 +19,9 @@ begin
                'title',case when coalesce(e.payload->>'kind','consult')='work' then '업무 일정' else public.schedule_mask_name(e.payload->>'title') end,
                'kind',case when e.payload->>'kind'='work' then 'work' else 'consult' end,
                'type',case when e.payload->>'type' in ('초기','해석','IAP','컨설팅','재진단','훈련등록','카드발급','신청','일경험','연계','연차','반차','2시간 연차','반반차','출장','외부교육','내부교육','외부홍보','외근','연장근무','휴일근무','시차','회의','기타') then e.payload->>'type' else '기타' end,
-               'time',e.payload->>'time','end',e.payload->>'end','allDay',e.payload->'allDay'))
+               'time',e.payload->>'time','end',e.payload->>'end','allDay',e.payload->'allDay',
+               'trip',coalesce(e.payload->>'kind','consult')='consult' and e.payload->>'trip'='true',
+               'energySchool',s.center='북부센터' and coalesce(e.payload->>'kind','consult')='consult' and e.payload->>'energySchool'='true'))
         end) || jsonb_build_object('id',e.id,'center',s.center,'owner',s.display_name,'date',e.event_date::text,
           'readonly',e.staff_id<>me.id,'_serverVersion',case when e.staff_id=me.id then e.updated_at::text else null end) order by e.event_date,e.id)
       from public.schedule_events e join public.schedule_staff s on s.id=e.staff_id
