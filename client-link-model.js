@@ -12,7 +12,7 @@
    if(key.endsWith('Date')||['serviceEnd','jobCertExpire'].includes(key)){if(value&&!validDate(value))throw Error('날짜를 확인해 주세요.');}
    if(source==='automatic'&&!value)continue;
    const old=out.values[key];if(source==='automatic'&&old&&old!==value){out.conflicts[key]={current:old,detected:value,at};continue;}
-   out.values[key]=value;if(source==='automatic'&&old===value&&out.sources[key]?.source==='manual')out.sources[key]={...out.sources[key],verifiedAt:at};else out.sources[key]={source,at};delete out.conflicts[key];
+   out.values[key]=value;if(old===value&&out.sources[key]){if(source==='automatic')out.sources[key]={...out.sources[key],verifiedAt:at};}else out.sources[key]={source,at};delete out.conflicts[key];
   }
   out.connection=source;return out;
  }
