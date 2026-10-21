@@ -1295,8 +1295,20 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
     <div class="field full" id="personManageWrap"><div class="person-note">이전 상담자 추천은 <b>현재 센터·담당 상담사</b> 기준이야. 전체 명단을 펼치지 않고 입력한 이름만 검색해. 공용 PC라면 실명 저장과 백업 파일 취급에 유의해. <button type="button" id="personManage" style="float:right;padding:3px 8px;font-size:11px">기억된 이름 관리</button></div></div>
     <label class="field full"><span id="memoLabel">상담 메모 (선택)</span><textarea name="memo" maxlength="600" placeholder="필요한 내용만 입력 (선택)"></textarea></label>
   </div>
-  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="moveScheduleBtn" class="hide">시간 변경</button><button type="button" id="handoffScheduleBtn" class="hide">인계 요청</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
+  <div class="actions"><button type="button" class="danger left hide" id="remove">일정 삭제</button><button type="button" id="moveScheduleBtn" class="hide">시간 변경</button><button type="button" id="handoffScheduleBtn" class="hide">인계 요청</button><button type="button" id="consultKakaoBtn" class="hide" style="background:#fee500;color:#191919;border-color:#e6ce00" aria-haspopup="dialog" aria-controls="consultKakaoDlg">💬 카톡</button><button type="button" id="cancel">취소</button><button type="submit" id="saveEntryBtn" class="primary">저장</button></div>
 </form></dialog>
+<dialog id="consultKakaoDlg" aria-labelledby="consultKakaoTitle" style="width:min(460px,calc(100vw - 24px));padding:0;max-height:90dvh;overflow:auto">
+ <section style="padding:18px">
+  <div class="modal-head"><h2 id="consultKakaoTitle" style="font-size:18px">💬 상담 안내 카톡</h2><button type="button" id="consultKakaoClose" aria-label="닫기">✕</button></div>
+  <p id="consultKakaoSummary" style="font-size:13px;line-height:1.6"></p>
+  <label class="field">상담장소 (선택)<input id="consultKakaoPlace" maxlength="150" placeholder="센터 주소 또는 출장 상담장소"></label>
+  <label class="field" style="margin-top:8px">연락처 (선택)<input id="consultKakaoPhone" maxlength="60" placeholder="안내문에 넣을 문의 연락처"></label>
+  <label class="field" style="margin-top:10px">보낼 내용 · 직접 수정 가능<textarea id="consultKakaoText" rows="13" style="width:100%;box-sizing:border-box;resize:vertical;line-height:1.65;font-size:14px"></textarea></label>
+  <p style="font-size:12px;color:#65717d">현재 입력한 일정 기준입니다. 일정 변경은 상담창의 저장 버튼으로 반영해 주세요.</p>
+  <p id="consultKakaoStatus" role="status" style="font-size:13px;min-height:20px"></p>
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button type="button" id="consultKakaoReset">기본문구 다시 만들기</button><button type="button" id="consultKakaoCopy" style="background:#fee500;color:#191919;border-color:#e6ce00">문구 복사</button></div>
+ </section>
+</dialog>
 <dialog id="moveScheduleDlg" aria-labelledby="moveScheduleTitle">
  <div class="modal" style="width:min(520px,calc(100vw - 25px));max-height:90dvh;overflow:auto">
   <div class="modal-head"><div><h2 id="moveScheduleTitle">상담 일정 변경</h2><span class="modal-sub">기존 상담은 그대로 유지하고 날짜·시간만 이동합니다.</span></div><button type="button" id="moveScheduleClose" aria-label="닫기">×</button></div>
@@ -4531,7 +4543,7 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  // A new consultation starts with the cursor in the participant-name field.
  if(!eventId&&editorMode==='consult')$('fperson').focus();
 }
-function setFormLayout(){const service=editorMode==='consult';if(service){$('allDay').checked=false;$('duration').value='30';$('ftrip').checked=false}
+function setFormLayout(){const service=editorMode==='consult';$('consultKakaoBtn').classList.toggle('hide',!service);if(service){$('allDay').checked=false;$('duration').value='30';$('ftrip').checked=false}
  $('personManageWrap').classList.toggle('hide',!service);$('consultTripRow').classList.toggle('hide',!service);
  const northEnergy=service&&$('fcenter').value==='북부센터'&&(!cloud.active||cloud.identity?.center==='북부센터');
  $('energySchoolRow').classList.toggle('hide',!northEnergy);$('energySchool').disabled=!northEnergy;if(!northEnergy)$('energySchool').checked=false;$('personNew').classList.toggle('hide',!service||!hasSameName());$('personTagBox').classList.toggle('hide',!service||!newHomonym);if(!service)hidePersonSuggestions();
@@ -4551,6 +4563,64 @@ function setFormLayout(){const service=editorMode==='consult';if(service){$('all
  }
  updateProxyHint();
 } 
+// Appointment wording follows the journal's p29 customized Kakao message templates.
+// Read only the current appointment fields; internal memos and participant tags stay internal.
+function consultKakaoMessage(data){
+ const labels={'초기':'초기상담','해석':'심리검사 해석상담','IAP':'취업활동계획(IAP) 수립 상담','재진단':'필수상담(재진단)','신청':'신청상담','훈련등록':'직업훈련 등록 상담','카드발급':'국민내일배움카드 발급 상담'};
+ const details={
+  '초기':'현재 취업·근로·훈련 상태와 학력·경력·자격, 희망직무와 구직 시 어려운 점을 확인하고 앞으로의 취업지원 방향을 함께 정리합니다.\n보유한 이력서·자기소개서·자격증·경력자료가 있으면 준비해 주세요.',
+  '해석':'직업심리검사 결과를 함께 살펴보고 흥미·강점과 희망직무, 앞으로의 취업 준비 방향을 정리합니다. 요청드린 검사가 있다면 상담 전까지 완료해 주세요.',
+  'IAP':'희망직무와 취업목표를 바탕으로 구직활동 및 취업지원 계획을 함께 수립합니다. 희망하는 취업조건과 앞으로의 활동 계획을 생각해 와 주세요.',
+  '재진단':'최근 구직활동과 취업·근로·훈련·소득 변동, 구직 시 어려운 점을 확인하고 향후 취업지원 방향을 함께 조정하는 필수상담입니다.',
+  '신청':'방문 전 고용24 회원가입·본인인증과 구직신청을 완료해 주세요.\n고용24 로그인 → 채용정보 → 구직(이력서) 관리 → 구직신청\nhttps://www.work24.go.kr\n신분증을 지참해 주시고, 추가로 안내받은 서류가 있다면 함께 준비해 주세요.',
+  '컨설팅':'이력서·자기소개서 또는 지원하려는 채용공고 등 상담받고 싶은 자료가 있으면 준비해 주세요. 입사지원과 면접 준비를 함께 점검합니다.',
+  '훈련등록':'희망하는 훈련과정의 과정명·훈련기관·훈련기간을 확인할 수 있는 자료를 준비해 주세요. 취업목표와 연계한 훈련계획을 함께 확인합니다.',
+  '카드발급':'희망직무와 훈련계획을 함께 확인합니다. 관심 있는 훈련과정이나 카드 발급 관련 안내받은 자료가 있으면 준비해 주세요.',
+  '일경험':'관심 있는 일경험 직무와 참여 가능한 기간을 생각해 와 주세요. 안내받은 참여 관련 자료가 있으면 함께 준비해 주세요.',
+  '연계':'연계가 필요한 서비스와 현재 상황을 함께 확인합니다. 별도로 요청드린 자료가 있다면 준비해 주세요.'
+ };
+ const d=parseDate(data.date),date=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`;
+ const type=labels[data.type]||data.type;
+ return [`안녕하세요, ${data.name}님.`, `좋은일자리 ${data.center}${data.owner?' '+data.owner+' 상담사입니다.':'입니다.'}`, '', `📌 국민취업지원제도 ${type} 일정 안내`, '', `📅 일시: ${date} ${data.time}`, ...(data.place?['📍 상담장소: '+data.place]:[]), '⏰ 예정 소요시간: 30분', '', details[data.type]||'상담 전까지 요청드린 구직활동이나 과제가 있다면 진행상황과 관련 자료를 준비해 주세요.', '', '상담 전 취업·근로·훈련·소득 등 변동사항이 있으면 알려주세요.', '일정 확인 후 답장 부탁드리며, 일정 변경이나 지각이 예상되면 미리 연락해 주세요.', ...(data.phone?['','☎ 문의: '+data.phone]:[])].join('\n');
+}
+let consultKakaoDraft=null;
+function rebuildConsultKakao(){
+ if(!consultKakaoDraft)return;
+ $('consultKakaoText').value=consultKakaoMessage({...consultKakaoDraft,place:$('consultKakaoPlace').value.trim(),phone:$('consultKakaoPhone').value.trim()});
+ $('consultKakaoStatus').textContent='';
+}
+function openConsultKakao(){
+ if(editorMode!=='consult')return;
+ const f=$('editor'),choice=resolveConsultationInput($('fperson').value,$('ftype').value,$('fperson').dataset.manualType==='1');
+ const type=choice.type===CUSTOM_TYPE?$('customType').value.trim():choice.type;
+ if(!choice.name||!type||!f.elements.date.value||!f.elements.time.value){alert('내담자 이름·상담 구분·날짜·시간을 먼저 입력해 주세요.');return;}
+ const trip=$('consultTrip').checked||$('energySchool').checked;
+ consultKakaoDraft={name:choice.name,type,date:f.elements.date.value,time:f.elements.time.value,center:$('fcenter').value,owner:$('fowner').value};
+ $('consultKakaoPlace').value=$('energySchool').checked?'에너지고':trip?'':'좋은일자리 '+consultKakaoDraft.center;
+ $('consultKakaoPhone').value='';
+ $('consultKakaoSummary').textContent=`${choice.name} · ${type} · ${consultKakaoDraft.date} ${consultKakaoDraft.time}`;
+ rebuildConsultKakao();$('consultKakaoDlg').showModal();
+}
+$('consultKakaoBtn').onclick=openConsultKakao;
+$('consultKakaoClose').onclick=()=>$('consultKakaoDlg').close();
+$('consultKakaoReset').onclick=()=>{if(confirm('직접 수정한 내용을 기본문구로 바꿀까요?'))rebuildConsultKakao()};
+// Place/contact changes update only their lines, preserving hand-edited wording.
+for(const [field,prefix] of [['consultKakaoPlace','📍 상담장소: '],['consultKakaoPhone','☎ 문의: ']]){
+ $(field).oninput=()=>{
+  const area=$('consultKakaoText'),lines=area.value.split('\n').filter(line=>!line.startsWith(prefix)),value=$(field).value.trim();
+  if(value){if(field==='consultKakaoPlace'){const at=lines.findIndex(line=>line.startsWith('📅 일시: '));lines.splice(at>=0?at+1:lines.length,0,prefix+value)}else lines.push(prefix+value)}
+  area.value=lines.join('\n');$('consultKakaoStatus').textContent='';
+ };
+}
+$('consultKakaoCopy').onclick=async()=>{
+ const area=$('consultKakaoText'),text=area.value;
+ if(!text.trim()){$('consultKakaoStatus').textContent='복사할 내용을 입력해 주세요.';return;}
+ try{await navigator.clipboard.writeText(text);$('consultKakaoStatus').textContent='복사했습니다. 내담자 카톡 대화창에 붙여넣어 주세요.'}
+ catch{area.focus();area.select();let copied=false;try{copied=document.execCommand('copy')}catch{}$('consultKakaoStatus').textContent=copied?'복사했습니다. 내담자 카톡 대화창에 붙여넣어 주세요.':'내용을 선택했습니다. Ctrl+C 또는 길게 눌러 복사해 주세요.';}
+};
+$('consultKakaoDlg').addEventListener('close',()=>{consultKakaoDraft=null;$('consultKakaoText').value='';$('consultKakaoPlace').value='';$('consultKakaoPhone').value='';$('consultKakaoSummary').textContent='';$('consultKakaoStatus').textContent='';});
+$('dlg').addEventListener('close',()=>{if($('consultKakaoDlg').open)$('consultKakaoDlg').close();});
+
 function withinSameDay(date,t,mins,special=false){if(special){const start=minute(t),end=start+mins;return start>=6*60&&end<=24*60&&end>start;}if(isClosedDay(date,$('fcenter').value))return false;const end=minute(t)+mins;if(end>18*60)return false;const breakConflict=minute(t)<13*60&&end>12*60;return !breakConflict&&!isFridayClosed(date,t)&&(parseDate(date).getDay()!==5||end<=12*60)}
 async function saveEntry(ev){
  if(editorMode==='consult'){

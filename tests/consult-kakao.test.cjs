@@ -1,0 +1,22 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync('index.html','utf8');
+const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:false,dataset:{},textContent:'',open:false,listeners:{},addEventListener(k,fn){this.listeners[k]=fn},showModal(){this.open=true},close(){this.open=false;this.listeners.close?.()},focus(){},select(){this.selected=true}});return nodes.get(id)};
+let copied='',fallback=false;
+const context={$:get,parseDate:s=>new Date(s+'T00:00:00'),editorMode:'consult',CUSTOM_TYPE:'custom',confirm:()=>true,alert:m=>{throw Error(m)},navigator:{clipboard:{writeText:async s=>{copied=s}}},document:{execCommand:()=>{fallback=true;return true}},resolveConsultationInput:(name,type,manual)=>({name:name.replace(/ 初期$| 초기$/,''),type:!manual&&name.endsWith(' 초기')?'초기':type})};
+const start=html.indexOf('function consultKakaoMessage('),end=html.indexOf('function withinSameDay(',start);
+vm.createContext(context);vm.runInContext(html.slice(start,end),context);
+get('editor').elements={date:{value:'2026-10-21'},time:{value:'14:30'},memo:{value:'외부에 보내면 안 되는 내부메모'}};
+get('fperson').value='홍길동 초기';get('ftype').value='IAP';get('fcenter').value='북부센터';get('fowner').value='조원희';
+(async()=>{
+ get('consultKakaoBtn').onclick();let text=get('consultKakaoText').value;
+ assert(text.includes('홍길동님'));assert(!text.includes('홍길동 초기님'));assert(text.includes('초기상담 일정'));assert(text.includes('2026년 10월 21일(수) 14:30'));assert(text.includes('북부센터 조원희 상담사'));assert(!text.includes('내부메모'));assert(text.includes('\n'));assert(!text.includes('\\n'));
+ get('consultKakaoText').value+='\n추가 준비물';get('consultKakaoPlace').value='학교 상담실';get('consultKakaoPlace').oninput();assert(get('consultKakaoText').value.includes('추가 준비물'));assert(get('consultKakaoText').value.includes('📍 상담장소: 학교 상담실'));assert(!get('consultKakaoText').value.includes('📍 상담장소: 좋은일자리'));
+ await get('consultKakaoCopy').onclick();assert.equal(copied,get('consultKakaoText').value);
+ context.navigator.clipboard.writeText=async()=>{throw Error('denied')};await get('consultKakaoCopy').onclick();assert(fallback);assert(get('consultKakaoStatus').textContent.includes('복사했습니다'));
+ get('consultKakaoClose').onclick();assert.equal(get('consultKakaoText').value,'');
+ get('fperson').value='김민지';get('ftype').value='IAP';get('editor').elements.time.value='15:00';get('consultTrip').checked=true;get('consultKakaoBtn').onclick();text=get('consultKakaoText').value;assert(text.includes('김민지님'));assert(text.includes('계획(IAP)'));assert(text.includes('15:00'));assert(!text.includes('홍길동'));assert(!text.includes('📍 상담장소'));assert.equal(get('consultKakaoPhone').value,'');
+ get('dlg').listeners.close();assert(!get('consultKakaoDlg').open);assert.equal(get('consultKakaoText').value,'');
+ context.editorMode='work';get('consultKakaoBtn').onclick();assert(!get('consultKakaoDlg').open);
+ console.log('PASS: current appointment, type, date, editable copy, clipboard fallback, trip location and popup cleanup');
+})().catch(e=>{console.error(e);process.exitCode=1});

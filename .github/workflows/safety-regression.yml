@@ -21,6 +21,7 @@ jobs:
       - name: Check safety regression
         run: |
           node tests/schedule-safety.test.cjs
+          node tests/consult-kakao.test.cjs
           node tests/desktop-mini.test.cjs
           node tests/energy-alert-once.test.cjs
           node tests/daily-layout-alert-scope.test.cjs
