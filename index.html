@@ -4567,21 +4567,11 @@ function setFormLayout(){const service=editorMode==='consult';$('consultKakaoBtn
 // Read only the current appointment fields; internal memos and participant tags stay internal.
 function consultKakaoMessage(data){
  const labels={'초기':'초기상담','해석':'심리검사 해석상담','IAP':'취업활동계획(IAP) 수립 상담','재진단':'필수상담(재진단)','신청':'신청상담','훈련등록':'직업훈련 등록 상담','카드발급':'국민내일배움카드 발급 상담'};
- const details={
-  '초기':'현재 취업·근로·훈련 상태와 학력·경력·자격, 희망직무와 구직 시 어려운 점을 확인하고 앞으로의 취업지원 방향을 함께 정리합니다.\n보유한 이력서·자기소개서·자격증·경력자료가 있으면 준비해 주세요.',
-  '해석':'직업심리검사 결과를 함께 살펴보고 흥미·강점과 희망직무, 앞으로의 취업 준비 방향을 정리합니다. 요청드린 검사가 있다면 상담 전까지 완료해 주세요.',
-  'IAP':'희망직무와 취업목표를 바탕으로 구직활동 및 취업지원 계획을 함께 수립합니다. 희망하는 취업조건과 앞으로의 활동 계획을 생각해 와 주세요.',
-  '재진단':'최근 구직활동과 취업·근로·훈련·소득 변동, 구직 시 어려운 점을 확인하고 향후 취업지원 방향을 함께 조정하는 필수상담입니다.',
-  '신청':'방문 전 고용24 회원가입·본인인증과 구직신청을 완료해 주세요.\n고용24 로그인 → 채용정보 → 구직(이력서) 관리 → 구직신청\nhttps://www.work24.go.kr\n신분증을 지참해 주시고, 추가로 안내받은 서류가 있다면 함께 준비해 주세요.',
-  '컨설팅':'이력서·자기소개서 또는 지원하려는 채용공고 등 상담받고 싶은 자료가 있으면 준비해 주세요. 입사지원과 면접 준비를 함께 점검합니다.',
-  '훈련등록':'희망하는 훈련과정의 과정명·훈련기관·훈련기간을 확인할 수 있는 자료를 준비해 주세요. 취업목표와 연계한 훈련계획을 함께 확인합니다.',
-  '카드발급':'희망직무와 훈련계획을 함께 확인합니다. 관심 있는 훈련과정이나 카드 발급 관련 안내받은 자료가 있으면 준비해 주세요.',
-  '일경험':'관심 있는 일경험 직무와 참여 가능한 기간을 생각해 와 주세요. 안내받은 참여 관련 자료가 있으면 함께 준비해 주세요.',
-  '연계':'연계가 필요한 서비스와 현재 상황을 함께 확인합니다. 별도로 요청드린 자료가 있다면 준비해 주세요.'
- };
- const d=parseDate(data.date),date=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`;
+ const d=parseDate(data.date),date=`${d.getMonth()+1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`;
+ const [hour,min]=data.time.split(':').map(Number),time=`${hour<12?'오전':'오후'} ${hour%12||12}:${String(min).padStart(2,'0')}`;
  const type=labels[data.type]||data.type;
- return [`안녕하세요, ${data.name}님.`, `좋은일자리 ${data.center}${data.owner?' '+data.owner+' 상담사입니다.':'입니다.'}`, '', `📌 국민취업지원제도 ${type} 일정 안내`, '', `📅 일시: ${date} ${data.time}`, ...(data.place?['📍 상담장소: '+data.place]:[]), '⏰ 예정 소요시간: 30분', '', details[data.type]||'상담 전까지 요청드린 구직활동이나 과제가 있다면 진행상황과 관련 자료를 준비해 주세요.', '', '상담 전 취업·근로·훈련·소득 등 변동사항이 있으면 알려주세요.', '일정 확인 후 답장 부탁드리며, 일정 변경이나 지각이 예상되면 미리 연락해 주세요.', ...(data.phone?['','☎ 문의: '+data.phone]:[])].join('\n');
+ const preparation=data.type==='신청'?'방문 전 고용24 회원가입·본인인증 및 구직신청을 완료해 주세요.\nhttps://www.work24.go.kr\n신분증과 별도로 안내받은 서류를 준비해 주세요.':'';
+ return [`안녕하세요, ${data.name}님.`, `좋은일자리 ${data.center}${data.owner?' 상담사 '+data.owner+'입니다.':'입니다.'}`, '', `📌 국민취업지원제도 ${type} 일정 안내`, '', `📅 일시: ${date} ${time}`, ...(data.place?['📍 상담장소: '+data.place]:[]), ...(data.type==='초기'?['⏰ 약 30분~1시간']:[]), ...(preparation?['',preparation]:[]), '', '변동사항이 있으면 알려주시고, 일정 변경이나 지각이 예상되면 미리 연락해 주세요.', ...(data.phone?['문의 전화 '+data.phone]:[])].join('\n');
 }
 let consultKakaoDraft=null;
 function rebuildConsultKakao(){
@@ -4596,8 +4586,8 @@ function openConsultKakao(){
  if(!choice.name||!type||!f.elements.date.value||!f.elements.time.value){alert('내담자 이름·상담 구분·날짜·시간을 먼저 입력해 주세요.');return;}
  const trip=$('consultTrip').checked||$('energySchool').checked;
  consultKakaoDraft={name:choice.name,type,date:f.elements.date.value,time:f.elements.time.value,center:$('fcenter').value,owner:$('fowner').value};
- $('consultKakaoPlace').value=$('energySchool').checked?'에너지고':trip?'':'좋은일자리 '+consultKakaoDraft.center;
- $('consultKakaoPhone').value='';
+ $('consultKakaoPlace').value=$('energySchool').checked?'에너지고':trip?'':['초기','신청'].includes(type)?(consultKakaoDraft.center==='북부센터'?'울산광역시 북구 송내4길 14,2층':'좋은일자리 '+consultKakaoDraft.center):'';
+ $('consultKakaoPhone').value=consultKakaoDraft.center==='북부센터'?'052-913-3500':'';
  $('consultKakaoSummary').textContent=`${choice.name} · ${type} · ${consultKakaoDraft.date} ${consultKakaoDraft.time}`;
  rebuildConsultKakao();$('consultKakaoDlg').showModal();
 }
@@ -4605,7 +4595,7 @@ $('consultKakaoBtn').onclick=openConsultKakao;
 $('consultKakaoClose').onclick=()=>$('consultKakaoDlg').close();
 $('consultKakaoReset').onclick=()=>{if(confirm('직접 수정한 내용을 기본문구로 바꿀까요?'))rebuildConsultKakao()};
 // Place/contact changes update only their lines, preserving hand-edited wording.
-for(const [field,prefix] of [['consultKakaoPlace','📍 상담장소: '],['consultKakaoPhone','☎ 문의: ']]){
+for(const [field,prefix] of [['consultKakaoPlace','📍 상담장소: '],['consultKakaoPhone','문의 전화 ']]){
  $(field).oninput=()=>{
   const area=$('consultKakaoText'),lines=area.value.split('\n').filter(line=>!line.startsWith(prefix)),value=$(field).value.trim();
   if(value){if(field==='consultKakaoPlace'){const at=lines.findIndex(line=>line.startsWith('📅 일시: '));lines.splice(at>=0?at+1:lines.length,0,prefix+value)}else lines.push(prefix+value)}
