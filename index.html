@@ -4807,7 +4807,7 @@ $('staff').onclick=()=>{setOptions($('staffCenter'),CENTERS,currentCenter());upd
 $('staffAdd').onclick=()=>{const c=$('staffCenter').value,n=$('staffName').value.trim();if(!n)return;model.staff[c]=[...new Set([...(model.staff[c]||[]),n.slice(0,30)])];$('staffName').value='';save();updateStaff();refreshEmployees(currentOwner());render()};
 $('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return;const c=$('staffCenter').value,n=b.dataset.staff;if(!confirm(n+' 직원을 기본 목록에서 제외할까? 기존 일정은 유지돼.'))return;model.staff[c]=model.staff[c].filter(x=>x!==n);save();updateStaff();refreshEmployees(currentOwner());render()};
 
-/* All visitor-facing print, PDF and image output uses the same event filter. */
+/* Visitor print/PDF excludes employee schedules; company report images include them. */
 const isVisitorPrintEvent=e=>isConsultEvent(e)&&!WORK_TYPES.has(String(e.type||'').trim())&&!/^\d+(?:\.\d+)?시간\s*연차$/.test(String(e.type||'').trim());
 const isLeavePrintEvent=e=>isWorkEvent(e)&&['연차','반차','2시간 연차','반반차'].includes(e.type);
 const isContinuousWorkPrintEvent=e=>isWorkEvent(e)&&!isLeavePrintEvent(e);
@@ -5073,7 +5073,8 @@ async function shareDailyPrint(kind){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).getTime())){
   alert('이미지로 만들 날짜를 먼저 선택해 주세요.');return;
  }
- if(!buildDailyPrint(date,{audience:'visitor'}))return;
+ // Company report images include leave, shifts and all internal work schedules.
+ if(!buildDailyPrint(date,{audience:'staff'}))return;
  const button=$(kind==='copy'?'copyDailyImage':'saveDailyImage');
  button.disabled=true;
  try{
