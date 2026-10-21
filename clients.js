@@ -111,7 +111,7 @@ async function load(){
 }
 async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
- try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
+ try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else{const no=record?.payload?.regNo;const id=no?await root.ClientImport.stableId(uid,no):crypto.randomUUID();if(token!==epoch)throw Error('로그인 직원이 변경되었습니다.');q=q.insert({...record,id,user_id:uid});}const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
 let linking=false;
 window.addEventListener('message',async e=>{
@@ -129,8 +129,9 @@ window.addEventListener('message',async e=>{
   const {data:found,error:findError}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').eq('payload->>regNo',regNo);if(findError)throw findError;
   if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(found?.length>1)throw Error('중복 등록번호가 있어 자동 반영을 중단했습니다.');
   const old=found?.[0],payload=root.ClientLinkSync.prepare(d.profile,old?.payload);
-  let query=client.from('schedule_private_items');query=old?query.update({payload,updated_at:new Date().toISOString()}).eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at):query.insert({kind:'iap',user_id:uid,item_date:payload.iapDate||payload.serviceEnd||payload.actualDueDate||keyDate(new Date()),payload});
-  const {data:saved,error}=await query.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(saved?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
+  const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);if(token!==epoch)throw Error('로그인 직원이 변경되었습니다.');
+  let query=client.from('schedule_private_items');query=old?query.update({payload,updated_at:new Date().toISOString()}).eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at):query.insert({id:insertId,kind:'iap',user_id:uid,item_date:payload.iapDate||payload.serviceEnd||payload.actualDueDate||keyDate(new Date()),payload});
+  const {data:saved,error}=await query.select('id,kind,item_date,payload,updated_at');if(error?.code==='23505'&&!old)throw Error('같은 내담자가 다른 창에서 먼저 등록되었습니다. 기존자료는 유지했습니다. 다시 반영해 주세요.');if(error)throw error;if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(saved?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
   rows=rows.filter(r=>r.id!==saved[0].id);rows.push(saved[0]);paint();answer(true,'저장 완료');
  }catch(error){answer(false,error.message||'일정표 저장 실패');}finally{linking=false;}
 });
@@ -159,7 +160,7 @@ function openEditor(row){
  for(const key of ['jobCertNo','jobCertExpire','actualDueDate'])$(key).value=row?.payload?.[key]||'';$('rediagnosisDate').value=row?.payload?.rediagnosisDate||'';$('clientStatus').value=row?.payload?.clientStatus||'active';$('statusDate').value=row?.payload?.statusDate||keyDate(new Date());$('changeReason').value='';$('lifecycleSection').open=false;$('remainingEvents').innerHTML='';renderLifecycle();$('clientDialog').showModal();
 }
 function readForm(){
- const name=$('personName').value.trim(),regNo=$('regNo').value.trim(),iapDate=$('iapDate').value,serviceEnd=$('serviceEnd').value,type=$('clientType').value,dates=Array.from({length:6},(_,i)=>$('cycle'+i).value);
+ const name=$('personName').value.trim(),regNo=root.ClientLinkModel?root.ClientLinkModel.reg($('regNo').value):$('regNo').value.trim(),iapDate=$('iapDate').value,serviceEnd=$('serviceEnd').value,type=$('clientType').value,dates=Array.from({length:6},(_,i)=>$('cycle'+i).value);
  if(!name)throw Error('내담자 이름을 입력하세요.');if([iapDate,serviceEnd,...dates].some(v=>v&&!validDate(v)))throw Error('날짜를 확인하세요.');
  if(regNo&&rows.some(r=>r.id!==editing?.id&&r.payload.regNo===regNo))throw Error('이미 등록한 IAP 번호입니다. 내담자 관리에서 수정하세요.');
  const trainings=[...$('trainingRows').querySelectorAll('.training-row')].map(box=>({id:box.dataset.trainingId,name:box.querySelector('.training-name').value.trim(),start:box.querySelector('.training-start').value,end:box.querySelector('.training-end').value})).filter(t=>t.name||t.start||t.end);

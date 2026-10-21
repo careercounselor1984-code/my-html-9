@@ -45,6 +45,7 @@ jobs:
           npm install --prefix /tmp/client-import-test jsdom@30.1.2 --no-audit --no-fund
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-xlsx.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-import-dom.test.cjs
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/client-link-dom.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
         shell: bash
