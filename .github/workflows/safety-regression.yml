@@ -29,6 +29,7 @@ jobs:
           node tests/private-planner.test.cjs
           node tests/client-import.test.cjs
           node tests/clients.test.cjs
+          node tests/client-link-sync.test.cjs
           node tests/work-menus.test.cjs
           node tests/work-periods.test.cjs
           node tests/task-model.test.cjs

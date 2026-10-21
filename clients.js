@@ -18,7 +18,7 @@ function eventsFor(rows,includeExcluded=false){
  for(const row of rows.filter(r=>r.kind==='iap')){const p=row.payload||{},name=String(p.name||'이름 미입력');const push=(date,kind,detail,key)=>{const event={rowId:row.id,name,regNo:String(p.regNo||''),date,kind,detail,key};if(validDate(date)&&(includeExcluded||!excluded(p,event)))events.push(event)};
   (Array.isArray(p.dates)?p.dates:[]).slice(0,6).forEach((date,i)=>push(date,'due',(i+1)+'회차'+(i===0?' · IAP 수립일':''),'due:'+(i+1)));
   for(const [i,t] of (Array.isArray(p.trainings)?p.trainings:[]).entries()){const key='training:'+(t.id||i);push(t.start,'trainingStart',String(t.name||'직업훈련'),key+':start');push(t.end,'trainingEnd',String(t.name||'직업훈련'),key+':end')}
-  push(p.serviceEnd,'serviceEnd','취업지원서비스 만료일','serviceEnd');push(p.rediagnosisDate,'rediagnosis','취업역량 재진단','rediagnosis');
+  push(p.actualDueDate,'due','확인된 실제 지정일','actualDueDate');push(p.serviceEnd,'serviceEnd','취업지원서비스 만료일','serviceEnd');push(p.rediagnosisDate,'rediagnosis','취업역량 재진단','rediagnosis');
  }
  return events.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name,'ko')||a.kind.localeCompare(b.kind));
 }
@@ -26,7 +26,7 @@ root.ClientTimeline={trainingFromState,savedClientIaps,eventsFor,excluded,states
 if(typeof module!=='undefined'){module.exports=root.ClientTimeline;return}
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let client=null,identity=null,sessionEmail='',userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
 let importDroppedFile=null;
 let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
 function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
@@ -102,7 +102,7 @@ async function authenticate(){
  try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
   const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;if(token!==epoch)return;if(!staff?.id||staff.mustChangePassword){clearPrivate();gate('상담일정표에서 직원 인증과 비밀번호 변경을 완료해 주세요.');return}
   if(userId!==session.user.id){rows=[];loaded=false;$('timeline').innerHTML='';$('roster').innerHTML=''}
-  userId=session.user.id;identity=staff;$('handoffAdminLink').hidden=!(staff.isAdmin||['director','manager'].includes(staff.role));$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
+  userId=session.user.id;sessionEmail=String(session.user.email||'').toLowerCase();identity=staff;$('handoffAdminLink').hidden=!(staff.isAdmin||['director','manager'].includes(staff.role));$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
  }catch(error){if(token!==epoch)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
 }
 async function load(){
@@ -113,6 +113,27 @@ async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
  try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
+let linking=false;
+window.addEventListener('message',async e=>{
+ const d=e.data;if(e.source!==window.parent||window.parent===window||e.origin!=='https://careercounselor1984-code.github.io'||d?.type!=='goodjob:client-link:v1'||typeof d.requestId!=='string'||d.requestId.length>100)return;
+ const answer=(ok,message)=>e.source.postMessage({type:'goodjob:client-link-result:v1',requestId:d.requestId,ok,message},e.origin);
+ if(linking){answer(false,'다른 저장을 처리 중입니다.');return}linking=true;
+ try{
+  for(let i=0;i<40&&!loaded;i++)await new Promise(r=>setTimeout(r,200));
+  if(!userId||!identity||!loaded||loading||busy)throw Error('일정표에서 직원 로그인 후 다시 시도해 주세요.');
+  const token=epoch,uid=userId,{data:sessionData,error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
+  const session=sessionData?.session;if(session?.user.id!==uid||String(session.user.email||'').toLowerCase()!==String(d.expectedEmail||'').toLowerCase())throw Error('통합본과 일정표의 로그인 직원이 다릅니다.');
+  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;
+  if(!staff?.id||staff.id!==identity.id||staff.center!==identity.center||staff.mustChangePassword||token!==epoch)throw Error('직원 권한이 변경되어 중단했습니다.');
+  const regNo=root.ClientLinkModel.reg(d.profile?.regNo);
+  const {data:found,error:findError}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').eq('payload->>regNo',regNo);if(findError)throw findError;
+  if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(found?.length>1)throw Error('중복 등록번호가 있어 자동 반영을 중단했습니다.');
+  const old=found?.[0],payload=root.ClientLinkSync.prepare(d.profile,old?.payload);
+  let query=client.from('schedule_private_items');query=old?query.update({payload,updated_at:new Date().toISOString()}).eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at):query.insert({kind:'iap',user_id:uid,item_date:payload.iapDate||payload.serviceEnd||payload.actualDueDate||keyDate(new Date()),payload});
+  const {data:saved,error}=await query.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(saved?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
+  rows=rows.filter(r=>r.id!==saved[0].id);rows.push(saved[0]);paint();answer(true,'저장 완료');
+ }catch(error){answer(false,error.message||'일정표 저장 실패');}finally{linking=false;}
+});
 function setButtons(disabled){$('saveClient').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled}
 function monthRange(){return root.WorkPeriods.range(focusDate,view)}
 function syncPeriodControls(){const monthView=view==='list'||view==='month';$('month').value=focusDate.slice(0,7);$('clientDay').value=focusDate;$('clientMonthWrap').hidden=!monthView;$('clientDayWrap').hidden=monthView;$('clientWeekday').hidden=monthView;$('clientWeekday').textContent='('+['일','월','화','수','목','금','토'][new Date(focusDate+'T12:00:00').getDay()]+')';$('clientRange').textContent=root.WorkPeriods.periodLabel(focusDate,view);$('thisMonth').textContent=monthView?'이번 달':view==='week'?'이번 주':'오늘';const unit=monthView?'달':view==='week'?'주':'날짜';$('prevMonth').setAttribute('aria-label','이전 '+unit);$('nextMonth').setAttribute('aria-label','다음 '+unit);document.querySelectorAll('[data-client-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clientView===view)));try{localStorage.setItem('goodjob_clients_view',view)}catch{}}
@@ -132,10 +153,10 @@ function cycleSummary(){$('dateSummary').textContent='· '+Array.from({length:6}
 function calculate(){const date=$('iapDate').value;if(!validDate(date)){$('formStatus').textContent='IAP 수립일을 먼저 입력하세요.';return}if($('clientType').value!=='1'){$('formStatus').textContent='Ⅱ유형은 지정일을 자동 계산하지 않습니다. 필요한 실제 날짜를 직접 입력하세요.';return}if(Array.from({length:6},(_,i)=>$('cycle'+i).value).some(Boolean)&&!confirm('입력한 지정일을 수립일 기준으로 다시 계산할까요?'))return;setCycles(Array.from({length:6},(_,i)=>root.PrivatePlanner.monthDate(date,i)));$('formStatus').textContent='표준 주기로 계산했습니다. 변경된 지정일은 실제 날짜로 수정하세요.'}
 function openEditor(row){
  if(!loaded||loading||busy){message('자료를 불러온 뒤 다시 시도하세요.',true);return}editing=row||null;$('clientForm').reset();$('trainingRows').innerHTML='';$('formStatus').textContent='';setButtons(false);$('editorTitle').textContent=row?'내담자 일정 수정':'내담자 일정 등록';$('deleteClient').hidden=!row;
- const saved=savedClientIaps(localStorage);$('savedIap').innerHTML='<option value="">직접 입력 / 저장된 등록번호 선택</option>'+saved.map((r,i)=>'<option value="'+i+'">'+escape(r.regNo)+' · '+escape(r.iapDate)+'</option>').join('');
+ const saved=savedClientIaps({getItem:key=>localStorage.getItem('gj_identity_v1:'+encodeURIComponent(sessionEmail)+':'+key)});$('savedIap').innerHTML='<option value="">직접 입력 / 저장된 등록번호 선택</option>'+saved.map((r,i)=>'<option value="'+i+'">'+escape(r.regNo)+' · '+escape(r.iapDate)+'</option>').join('');
  $('savedIap').onchange=()=>{const n=$('savedIap').value;if(n==='')return;const data=saved[Number(n)];if(!data)return;if((editing||$('personName').value||$('serviceEnd').value||$('trainingRows').children.length)&&!confirm('선택한 IAP의 수립일·만료일·훈련정보로 바꿀까요? 이름은 유지합니다.'))return;$('regNo').value=data.regNo;$('iapDate').value=data.iapDate;$('clientType').value=data.type;$('serviceEnd').value=data.serviceEnd;setCycles(data.type==='1'?Array.from({length:6},(_,i)=>root.PrivatePlanner.monthDate(data.iapDate,i)):[]);$('trainingRows').innerHTML='';data.trainings.forEach(addTraining)};
  if(row){const p=row.payload||{};$('personName').value=p.name||'';$('regNo').value=p.regNo||'';$('iapDate').value=validDate(p.iapDate)?p.iapDate:'';$('clientType').value=p.type||'1';$('serviceEnd').value=validDate(p.serviceEnd)?p.serviceEnd:'';$('memo').value=p.memo||'';setCycles(p.dates||[]);(Array.isArray(p.trainings)?p.trainings:[]).forEach(addTraining)}else setCycles([]);
- $('rediagnosisDate').value=row?.payload?.rediagnosisDate||'';$('clientStatus').value=row?.payload?.clientStatus||'active';$('statusDate').value=row?.payload?.statusDate||keyDate(new Date());$('changeReason').value='';$('lifecycleSection').open=false;$('remainingEvents').innerHTML='';renderLifecycle();$('clientDialog').showModal();
+ for(const key of ['jobCertNo','jobCertExpire','actualDueDate'])$(key).value=row?.payload?.[key]||'';$('rediagnosisDate').value=row?.payload?.rediagnosisDate||'';$('clientStatus').value=row?.payload?.clientStatus||'active';$('statusDate').value=row?.payload?.statusDate||keyDate(new Date());$('changeReason').value='';$('lifecycleSection').open=false;$('remainingEvents').innerHTML='';renderLifecycle();$('clientDialog').showModal();
 }
 function readForm(){
  const name=$('personName').value.trim(),regNo=$('regNo').value.trim(),iapDate=$('iapDate').value,serviceEnd=$('serviceEnd').value,type=$('clientType').value,dates=Array.from({length:6},(_,i)=>$('cycle'+i).value);
@@ -143,8 +164,8 @@ function readForm(){
  if(regNo&&rows.some(r=>r.id!==editing?.id&&r.payload.regNo===regNo))throw Error('이미 등록한 IAP 번호입니다. 내담자 관리에서 수정하세요.');
  const trainings=[...$('trainingRows').querySelectorAll('.training-row')].map(box=>({id:box.dataset.trainingId,name:box.querySelector('.training-name').value.trim(),start:box.querySelector('.training-start').value,end:box.querySelector('.training-end').value})).filter(t=>t.name||t.start||t.end);
  if(trainings.some(t=>!t.name||!validDate(t.start)||!validDate(t.end)||t.start>t.end))throw Error('훈련과정명과 시작·종료일을 확인하세요.');
- if(!dates.some(Boolean)&&!trainings.length&&!serviceEnd&&!$('rediagnosisDate').value)throw Error('지정일, 훈련일정, 기간만료 예정일 중 하나 이상 입력하세요.');
- const payload={...(editing?.payload||{}),name,regNo,iapDate,serviceEnd,rediagnosisDate:$('rediagnosisDate').value,type,dates,trainings,memo:$('memo').value.trim()};applyLifecycle(payload);if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500)throw Error('변경 이력과 메모의 저장 용량을 초과했습니다. 기존 기록은 유지됩니다. 관리자에게 이력 보관을 요청하세요.');return {kind:'iap',item_date:iapDate||serviceEnd||trainings[0]?.start||dates.find(Boolean)||payload.rediagnosisDate,payload};
+ if(!dates.some(Boolean)&&!trainings.length&&!serviceEnd&&!$('rediagnosisDate').value&&!$('actualDueDate').value&&!$('jobCertNo').value)throw Error('지정일, 훈련일정, 기간만료 예정일 중 하나 이상 입력하세요.');
+ const payload={...(editing?.payload||{}),jobCertNo:$('jobCertNo').value.trim(),jobCertExpire:$('jobCertExpire').value,actualDueDate:$('actualDueDate').value,name,regNo,iapDate,serviceEnd,rediagnosisDate:$('rediagnosisDate').value,type,dates,trainings,memo:$('memo').value.trim()};if(regNo&&root.ClientLinkModel){if(editing?.payload?.regNo&&editing.payload.regNo!==regNo)throw Error('기존 내담자의 등록번호는 다른 번호로 바꿀 수 없습니다. 새 내담자로 등록해 주세요.');payload.clientLink=root.ClientLinkModel.merge(editing?.payload?.clientLink,{regNo,values:{name,jobCertNo:payload.jobCertNo,jobCertExpire:payload.jobCertExpire,iapDate,serviceEnd,dueDate:payload.actualDueDate,type}},'manual');}applyLifecycle(payload);if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500)throw Error('변경 이력과 메모의 저장 용량을 초과했습니다. 기존 기록은 유지됩니다. 관리자에게 이력 보관을 요청하세요.');return {kind:'iap',item_date:iapDate||serviceEnd||trainings[0]?.start||dates.find(Boolean)||payload.rediagnosisDate,payload};
 }
 function draftPayload(){return {...(editing?.payload||{}),name:$('personName').value,dates:Array.from({length:6},(_,i)=>$('cycle'+i).value),serviceEnd:$('serviceEnd').value,rediagnosisDate:$('rediagnosisDate').value,trainings:[...$('trainingRows').querySelectorAll('.training-row')].map(box=>({id:box.dataset.trainingId,name:box.querySelector('.training-name').value,start:box.querySelector('.training-start').value,end:box.querySelector('.training-end').value}))}}
 function renderLifecycle(propose=false){
