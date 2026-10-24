@@ -30,7 +30,7 @@ assert.equal(energyPopupPreviouslyShown({source:'arrival',key:'arrival:1'}),fals
 cloud.identity.id='other-account';
 assert.equal(energyPopupPreviouslyShown(energy1),false,'other user reminder is independent');
 cloud.identity.id='north-team-leader';
-assert(html.includes("const fresh=alertUnread().filter(x=>!alerts.shown.has(alertPopupKey(x))&&!energyPopupPreviouslyShown(x));"),'popup candidates exclude repeated Energy reminders');
+assert(html.includes("const fresh=GoodJobNotificationPolicy.pending(alertUnread(),localStorage,cloud.identity?.name).filter(x=>!alerts.shown.has(alertPopupKey(x))&&!energyPopupPreviouslyShown(x));"),'popup candidates exclude repeated Energy reminders');
 assert(html.includes('rememberEnergyPopup(fresh);'),'saves popups immediately before showing');
 assert(html.includes("alerts.items=[...arrivals,...energy,"),'Energy reminders remain in unread list for confirmation');
 now=Date.parse('2026-10-19T23:59:00Z');
