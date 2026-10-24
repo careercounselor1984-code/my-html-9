@@ -1,0 +1,49 @@
+/* Screen presentation only. Existing report/print geometry is authoritative. */
+@media screen {
+ :root{--ink:#24354b;--muted:#66788b;--blue:#285b91;--pale:#f3f5f8;--border:#dce3ec}
+ body{background:#f3f5f8;letter-spacing:-.015em}
+ button,input,select,textarea{border-radius:7px;border-color:#d3dce7}
+ button{font-weight:600;transition:background .12s,border-color .12s}
+ button:hover{background:#f0f4f8;border-color:#a9bbcd}
+ .headbar{background:#fff;color:#203953;border-bottom:1px solid #dce3ec;padding-top:15px;padding-bottom:15px;box-shadow:none}
+ .brand h1{font-size:20px;font-weight:750;letter-spacing:-.04em}.brand p{color:#6a7d90}
+ .version{background:#eef3f8;color:#516a82;border-color:#dce5ed;border-radius:6px}
+ .wrap{max-width:1580px;padding:20px 24px 30px}
+ .panel,.sheet{box-shadow:0 2px 8px #1d355008;border:1px solid #dce3ec;border-radius:10px}
+ .panel{padding:14px 18px}.sheet{padding:20px}
+ .context{gap:18px}.context-note{color:#708092;font-size:12px;line-height:1.65}
+ .viewbar{gap:12px}.viewgroup{border:0;background:#eef2f6;border-radius:8px;padding:4px;gap:3px}
+ .viewgroup strong{font-weight:600;color:#748395}.viewtab{border-radius:6px;padding:10px 15px;color:#586d82}
+ .viewbar .viewtab:not(.active){color:#586d82!important;background:transparent!important;box-shadow:none!important}
+ .viewbar .viewtab.active{color:#fff!important;background:#2c5279!important;box-shadow:0 1px 3px #173b5d18}
+ .navline{padding:7px 0 12px;border-bottom:1px solid #e0e6ee;margin-bottom:14px;gap:8px}
+ .navline strong{font-size:19px;color:#243f5a;letter-spacing:-.04em}.navline button{background:#fff}
+ .toolline{gap:8px;margin-bottom:14px}.toolline>button{min-height:38px;font-size:12px}
+ .toolline .primary{background:#285b91;border-color:#285b91}.work-add{background:#fff!important;color:#36536e!important;border-color:#cbd8e4!important}
+ .mobile-worktools{display:block!important;border:0;background:transparent;margin-left:auto;max-width:100%}
+ .mobile-worktools>summary{display:block!important;font-size:12px;color:#64788c;padding:9px 12px;border:1px solid #d3dce7;border-radius:7px;background:#fff;cursor:pointer}
+ .mobile-worktools:not([open])>.mobile-worktools-items{display:none!important}
+ .mobile-worktools-items{padding:10px 0;gap:7px;display:flex;flex-wrap:wrap;align-items:center}
+ .mobile-worktools-items button{font-size:12px;background:#fff}
+ .helper{font-size:12px;color:#6b7d8e;line-height:1.7}.sheet-head{align-items:center;margin-bottom:14px}.sheet-title{font-size:19px;color:#273f56;font-weight:750}.sheet-meta{margin-top:5px;color:#7a8998}
+ .legend{gap:16px;border-bottom:1px solid #e8edf3;padding:0 0 13px;margin-bottom:0;color:#697d90}.legend i{border-radius:2px;width:8px;height:8px}
+ .timetable thead th{background:#f0f4f8;color:#405b74;font-weight:650;padding:12px 5px;border-color:#dce4ed}
+ .timetable th,.timetable td{border-color:#e4eaf1}.timetable .time{background:#f7f9fb;color:#7b8a99;font-weight:500}
+ .timetable .slot{height:36px}.timetable .slot:hover{background:#f1f6fc}.timetable .blocked{background:repeating-linear-gradient(135deg,#f5f5f7,#f5f5f7 7px,#eeeef2 7px,#eeeef2 14px);color:#94929d}
+ .entry{border-radius:4px;border-left-width:3px;background:#edf4fb;padding:6px 7px;margin:3px 0;font-size:12px;line-height:1.5;box-shadow:none}.entry strong{font-size:12px;font-weight:650}.entry small{font-size:10px;color:#718294}
+ .entry-iap{background:#edf6f1;border-color:#5e9c7b}.entry-service{background:#edf4fb;border-color:#6794bd}
+ .entry-leave{background:#f1eef8;border-color:#8c7ab2;color:#63527e}.entry-trip{background:#edf0f9;border-color:#7988b8}.entry-training,.entry-field{background:#faf3e6;border-color:#ba9c63}.entry-note{background:#faeeee;border-color:#b98383}
+ .timetable .leave-selected{box-shadow:inset 0 0 0 2px #a89ac5}.quick-active{background:#eee9f6!important;color:#675282!important;border-color:#a797c4!important}
+ .monthgrid{gap:0;border-left:1px solid #dfe6ee;border-top:1px solid #dfe6ee;border-radius:8px;overflow:hidden;min-width:800px}
+ .monthgrid .monthhead{background:#f3f6f9;border-radius:0;color:#5b7187;border-right:1px solid #dfe6ee;border-bottom:1px solid #dfe6ee;padding:12px 5px}
+ .monthday{border:0;border-right:1px solid #dfe6ee;border-bottom:1px solid #dfe6ee;border-radius:0;padding:10px;min-height:140px;background:#fff}
+ .monthday:hover{background:#f8fafc}.monthday.dim{background:#f6f8fa;opacity:1}.monthday.holiday{background:#fbf7f7}.monthday .dayno{font-size:14px;color:#334d65;font-weight:650}.monthday .dayno.red{color:#ab6f72}
+ .daytop{margin-bottom:9px}.monthday .tag{background:#f2eaea;color:#a5797b;font-size:10px;border-radius:3px}.empty-hint{font-size:11px;color:#a4afba}
+ .team-person.summarized{display:flex;flex-wrap:wrap;gap:3px 7px;align-items:baseline;background:#f5f3f9;border:0;border-left:2px solid #a899bf;border-radius:3px;padding:6px 8px;margin:5px 0;line-height:1.5}
+ .team-person.summarized b{font-size:12px;color:#4e4763;font-weight:650}.team-person.summarized span{font-size:11px;color:#7d758a;overflow-wrap:anywhere}
+ body[data-view=teamLeave] .sheet-title{font-size:20px}body[data-view=teamLeave] .monthday{min-height:110px}
+ .metric-leave,.executive-sheet-leave-detail{background:#f0edf7;color:#6d5b88}.summary{padding-top:12px;color:#7b8b9c;font-size:12px}
+ .cloud-menu-popover,.alert-content{background:#fff}.alert-head{background:#f7f9fc;border-bottom:1px solid #e4eaf1}.alert-item{border:1px solid #e1e7ef;border-radius:8px;background:#fff;box-shadow:none}.alert-item strong{font-size:14px}.alert-note{line-height:1.8;font-size:12px;color:#718294}
+ .mobile-month-cell{border-radius:7px;border-color:#e0e7ef}.mobile-month-cell.is-selected{background:#edf3fa;border-color:#557da5}.mobile-month-detail{border-radius:9px;box-shadow:none;border-color:#dce4ed}
+ @media(max-width:760px){.wrap{padding:10px 10px 85px}.headbar{padding:13px 14px}.brand h1{font-size:17px}.panel{padding:12px}.sheet{padding:12px}.viewbar{gap:6px}.viewtab{padding:9px 11px}.navline strong{font-size:17px}.mobile-worktools{margin-left:0;width:100%}.mobile-worktools>summary{width:100%}.toolline>button{min-height:40px}.sheet-title{font-size:17px}.context{gap:10px}.context-note{min-width:0}.team-person.summarized{padding:5px 6px}}
+}

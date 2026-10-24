@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('fs'),policy=require('../notification-policy.js');
+const map=new Map(),storage={getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v)};
+const rows=[{key:'work:a',source:'work'},{key:'report:a',source:'report'},{key:'board:a',source:'board'},{key:'shared:a',source:'shared',kind:'promotion'},{key:'shared:b',source:'shared',kind:'cover'},{key:'arrival:a',source:'arrival'},{key:'board:b',source:'board',important:true}];
+assert.deepEqual(policy.pending(rows,storage,'홍길동',1000).map(x=>x.key),['shared:b','arrival:a','board:b']);
+policy.remember(policy.pending(rows,storage,'홍길동',1000),storage,'홍길동',1000);
+assert.equal(policy.pending(rows,storage,'홍 길동',2000).length,0,'refresh and journal/calendar share normalized account history');
+assert.equal(policy.pending(rows,storage,'다른직원',2000).length,3,'accounts independent');
+const arrival={key:'arrival:b',source:'arrival'};policy.snooze(storage,'홍길동',Date.now()+1800000);assert.equal(policy.pending([arrival],storage,'홍길동').length,0,'real-time arrival respects persisted snooze');
+assert(rows.every(x=>x.seen===undefined),'popup never marks items read');
+console.log('PASS: important-only popup, routine inbox, refresh/cross-app dedup, account isolation, realtime snooze, explicit read state');
