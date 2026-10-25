@@ -1,7 +1,7 @@
 'use strict';
 // Inspect local initial-screen rendering without waiting for third-party CDN requests.
 const fs=require('node:fs'),path=require('node:path');
-const target='/tmp/goodjob-offline-smoke';fs.mkdirSync(target,{recursive:true});
+const target=process.argv[2]||'/tmp/goodjob-offline-smoke';fs.mkdirSync(target,{recursive:true});
 for(const entry of fs.readdirSync('.',{withFileTypes:true})){
  if(!entry.isFile())continue;
  const source=entry.name,output=path.join(target,source);

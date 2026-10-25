@@ -50,20 +50,4 @@ jobs:
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-deadlines-dom.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
-        shell: bash
-        run: |
-          set -euo pipefail
-          node tests/prepare-offline-smoke.cjs
-          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
-          test -n "$CHROME" || { echo "Chrome not found on GitHub runner"; exit 1; }
-          timeout 45s "$CHROME" --headless=new --no-proxy-server --host-resolver-rules="MAP * 127.0.0.1, EXCLUDE localhost" --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file:///tmp/goodjob-offline-smoke/index.html" > /tmp/goodjob-screen.html 2>/tmp/goodjob-chrome.log
-          grep -Fq 'cloudGate' /tmp/goodjob-screen.html
-          timeout 45s "$CHROME" --headless=new --no-proxy-server --host-resolver-rules="MAP * 127.0.0.1, EXCLUDE localhost" --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file:///tmp/goodjob-offline-smoke/index.html?mini=1" > /tmp/goodjob-mini.html 2>/tmp/goodjob-mini-chrome.log
-          grep -Fq "desktopMiniRoot" /tmp/goodjob-mini.html
-          grep -Fq "cloudGate" /tmp/goodjob-mini.html
-          echo "Headless Chrome standard and mini screens loaded (unauthenticated); authenticated tests still required"
-
-          timeout 45s "$CHROME" --headless=new --no-proxy-server --host-resolver-rules="MAP * 127.0.0.1, EXCLUDE localhost" --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file:///tmp/goodjob-offline-smoke/clients.html" > /tmp/goodjob-clients.html 2>/tmp/goodjob-clients-chrome.log
-          grep -Fq 'id="cycle0"' /tmp/goodjob-clients.html
-          timeout 45s "$CHROME" --headless=new --no-proxy-server --host-resolver-rules="MAP * 127.0.0.1, EXCLUDE localhost" --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=2500 --dump-dom "file:///tmp/goodjob-offline-smoke/tasks.html" > /tmp/goodjob-tasks.html 2>/tmp/goodjob-tasks-chrome.log
-          grep -Fq 'id="plannerTodoText"' /tmp/goodjob-tasks.html
+        run: node tests/offline-browser-smoke.cjs
