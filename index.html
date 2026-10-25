@@ -1002,6 +1002,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
 </style>
 <link rel="stylesheet" href="./app-menu.css">
 <link rel="stylesheet" href="./schedule-theme.css?v=20261024-1"><script src="./notification-policy.js?v=20261024-1"></script>
+<link rel="stylesheet" href="./calendar-workspace.css?v=20261025-1">
 </head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
@@ -4318,7 +4319,7 @@ function teamGroupLabel(g){
 }
 function teamLabels(events,date){return teamDayGroups(events,date).map(p=>{
  const segments=p.labels.map(teamGroupLabel).join(' · ');
- return `<div class="team-person summarized" title="${escapeHtml(p.owner+' · '+segments)}"><b>${escapeHtml(p.owner)}</b><span>· ${escapeHtml(segments)}</span></div>`
+ return `<div class="team-person summarized" title="${escapeHtml(p.owner+' · '+segments)}"><b>${escapeHtml(p.owner)}</b><span class="team-person-types">${p.labels.map(g=>`<span class="sw-leave-tag sw-leave-${typeClass(g)}">${escapeHtml(teamGroupLabel(g))}</span>`).join(' · ')}</span></div>`
 })}
 
 /* Mobile-only month overview: calendar cells + selected date details.
@@ -4764,6 +4765,7 @@ $('calendar').onclick=e=>{
  const monthDay=e.target.closest('[data-mobile-month-date]');
  if(monthDay&&['personalMonth','teamLeave'].includes(currentView)){
   mobileMonthSelected=monthDay.dataset.mobileMonthDate;
+  focusDate=parseDate(mobileMonthSelected);
   render();
   return;
  }
@@ -5286,6 +5288,33 @@ window.goodjobMiniBridge={
  }
 };
 
+/* Calendar workspace: presentation-only access to the current authorized scope. */
+window.GoodJobCalendarWorkspace={
+ snapshot(month){
+  if(!cloud.active||!cloud.identity)return {authenticated:false};
+  const team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),start=monday(focusDate),dates=[];
+  if(currentView==='personalWeek'){for(let w=0;w<weekCount;w++)for(let i=0;i<5;i++)dates.push(dateKey(addDays(start,w*7+i)));}
+  else if(currentView==='personalDay'||currentView==='teamDay')dates.push(date);
+  else for(let day=1;day<=new Date(focusDate.getFullYear(),focusDate.getMonth()+1,0).getDate();day++)dates.push(dateKey(new Date(focusDate.getFullYear(),focusDate.getMonth(),day)));
+  const source=day=>currentView==='teamLeave'?teamEventsFor(day):team?allEventsFor(day):employeeEventsFor(day);
+  const period=dates.flatMap(source),groups=dates.flatMap(day=>teamDayGroups(source(day),day));
+  const isLeave=t=>['연차','반차','2시간 연차','반반차'].includes(t);
+  const leaveMinutes=dates.reduce((sum,day)=>{const occupied=new Set();for(const e of source(day).filter(e=>isWorkEvent(e)&&isLeave(e.type)))for(const time of coveredSlots(e,day))occupied.add(e.owner+'|'+time);return sum+occupied.size*30;},0);
+  const employeesShown=new Set(groups.map(g=>g.owner)).size;
+  const miniMonth=/^\d{4}-(0[1-9]|1[0-2])$/.test(month||'')?month:date.slice(0,7),[year,mon]=miniMonth.split('-').map(Number),dots={};
+  for(let day=1;day<=new Date(year,mon,0).getDate();day++){const key=miniMonth+'-'+pad(day),n=source(key).length;if(n)dots[key]=n;}
+  return {authenticated:true,view:currentView,date,today:dateKey(new Date()),center:currentCenter(),owner:currentOwner(),role:cloud.identity.role,team,dates,dots,month:miniMonth,closed:closedDayReasons(date),aux:sharedState.open||executiveState.open,
+   metrics:{consultations:period.filter(isConsultEvent).length,workGroups:groups.reduce((n,g)=>n+g.labels.length,0),leaveMinutes,employees:employeesShown},
+   entries:source(date).map(e=>({id:e.id,date:e.date,time:e.time||'',end:e.end||'',allDay:!!e.allDay,title:showName(e,false),owner:e.owner||'',type:e.type,category:typeClass(e),consult:isConsultEvent(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center})).sort((a,b)=>String(a.time).localeCompare(String(b.time))),
+   workGroups:teamDayGroups(source(date),date).map(g=>({owner:g.owner,labels:g.labels.map(x=>({type:x.type,text:teamGroupLabel(x),category:typeClass(x)}))}))};
+ },
+ navigate(date){if(!cloud.active||!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return;const next=parseDate(date);if(!next||Number.isNaN(+next)||dateKey(next)!==date)return;if(sharedState.open||executiveState.open)return;focusDate=next;mobileMonthSelected=date;render();},
+ edit(id){if(!cloud.active||!cloud.identity||['teamDay','teamLeave'].includes(currentView))return;const e=model.events.find(x=>x.id===id&&x.center===cloud.identity.center&&x.owner===cloud.identity.name&&!x.readonly);if(e)openEditor(e.date,e.time,e.id,e.owner);},
+ add(date,kind){if(!cloud.active||['teamDay','teamLeave'].includes(currentView))return;this.navigate(date);$(kind==='work'?'addWork':'quickEntryOpen').click();},
+ addDay(date){if(!cloud.active||currentView!=='personalMonth')return;this.navigate(date);openQuickDay(date);},
+ teamDetails(date){if(cloud.active&&currentView==='teamLeave')showTeamDaySummary(date);}
+};
+
 changeView(currentView);
 })();
 </script>
@@ -5294,4 +5323,5 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('앱 설치 준비 실패',e)));
 }
 </script>
+<script src="./calendar-workspace.js?v=20261025-1"></script>
 </body></html>
