@@ -1002,7 +1002,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
 </style>
 <link rel="stylesheet" href="./app-menu.css">
 <link rel="stylesheet" href="./schedule-theme.css?v=20261024-1"><script src="./notification-policy.js?v=20261024-1"></script>
-<link rel="stylesheet" href="./calendar-workspace.css?v=20261025-1">
+<link rel="stylesheet" href="./calendar-workspace.css?v=20261025-2">
 </head>
 <body>
 <header class="headbar"><div class="brand"><h1>좋은일자리 · 상담 일정관리</h1><p>PC·휴대폰 공통 일정 · 직원별 로그인</p></div><span class="version">v26.1 · 복귀 기능 개선</span></header>
@@ -5308,6 +5308,7 @@ window.GoodJobCalendarWorkspace={
    entries:source(date).map(e=>({id:e.id,date:e.date,time:e.time||'',end:e.end||'',allDay:!!e.allDay,title:showName(e,false),owner:e.owner||'',type:e.type,category:typeClass(e),consult:isConsultEvent(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center})).sort((a,b)=>String(a.time).localeCompare(String(b.time))),
    workGroups:teamDayGroups(source(date),date).map(g=>({owner:g.owner,labels:g.labels.map(x=>({type:x.type,text:teamGroupLabel(x),category:typeClass(x)}))}))};
  },
+ bandEntries(){if(!cloud.active||!cloud.identity||!['personalWeek','teamDay'].includes(currentView))return {events:[],slots:[]};const team=currentView==='teamDay',days=team?[dateKey(focusDate)]:this.snapshot().dates;return {slots:slots(),events:days.filter(day=>!isClosedDay(day)).flatMap(day=>(team?allEventsFor(day):employeeEventsFor(day)).map(e=>({id:e.id,date:e.date,owner:e.owner,type:e.type,title:showName(e,false),memo:e.memo||'',trip:!!e.trip,specialWork:!!e.specialWork,readonly:!!e.readonly,allDay:!!e.allDay,time:e.allDay?'09:00':e.time||'09:00',end:parseDate(day).getDay()===5&&minute(e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)))>720?'12:00':e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)),work:isWorkEvent(e),category:typeClass(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center}))) }},
  navigate(date){if(!cloud.active||!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return;const next=parseDate(date);if(!next||Number.isNaN(+next)||dateKey(next)!==date)return;if(sharedState.open||executiveState.open)return;focusDate=next;mobileMonthSelected=date;render();},
  edit(id){if(!cloud.active||!cloud.identity||['teamDay','teamLeave'].includes(currentView))return;const e=model.events.find(x=>x.id===id&&x.center===cloud.identity.center&&x.owner===cloud.identity.name&&!x.readonly);if(e)openEditor(e.date,e.time,e.id,e.owner);},
  add(date,kind){if(!cloud.active||['teamDay','teamLeave'].includes(currentView))return;this.navigate(date);$(kind==='work'?'addWork':'quickEntryOpen').click();},
@@ -5323,5 +5324,7 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('앱 설치 준비 실패',e)));
 }
 </script>
-<script src="./calendar-workspace.js?v=20261025-1"></script>
+<script src="./calendar-workspace.js?v=20261025-2"></script>
+<script src="./schedule-work-blocks.js?v=20261025-1"></script>
+<script src="./client-auto-background.js?v=20261025-1"></script>
 </body></html>

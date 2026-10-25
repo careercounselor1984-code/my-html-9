@@ -28,11 +28,12 @@ if(typeof module!=='undefined'){module.exports=root.ClientTimeline;return}
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const D=root.ClientDeadlines;
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,authSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let autoPending=false;
 let importDroppedFile=null,importMode='recipient',queue='soon';
 let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
 function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
-function clearImport(){importMode='recipient';for(const n of document.querySelectorAll('[data-recipient-input]'))n.hidden=false;$('importTitle').textContent='수급자 목록에서 가져오기';importDroppedFile=null;$('clientImportDropZone').classList.remove('dragging');$('clientImportFileName').textContent='암호화된 파일은 엑셀에서 복사·붙여넣기를 이용하세요.';for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;importReadSeq++;importRecords=[];importPlan=[];importSheets=[];importReviewEpoch=-1;$('clientImportText').value='';$('clientImportFile').value='';$('clientImportPreview').innerHTML='';$('clientImportSheet').innerHTML='';$('clientImportSheetWrap').hidden=true;$('importIncludeEnded').checked=false;$('clientImportSelection').textContent='';$('commitClientImport').disabled=true;importMessage('');if($('clientImportDialog').open)$('clientImportDialog').close()}
+function clearImport(){const resumeAuto=importMode==='recipient';importMode='recipient';for(const n of document.querySelectorAll('[data-recipient-input]'))n.hidden=false;$('importTitle').textContent='수급자 목록에서 가져오기';importDroppedFile=null;$('clientImportDropZone').classList.remove('dragging');$('clientImportFileName').textContent='암호화된 파일은 엑셀에서 복사·붙여넣기를 이용하세요.';for(const id of ['previewClientImport','clientImportFile','clientImportText','importIncludeEnded','closeClientImport','cancelClientImport','clientImportSheet'])$(id).disabled=false;importReadSeq++;importRecords=[];importPlan=[];importSheets=[];importReviewEpoch=-1;$('clientImportText').value='';$('clientImportFile').value='';$('clientImportPreview').innerHTML='';$('clientImportSheet').innerHTML='';$('clientImportSheetWrap').hidden=true;$('importIncludeEnded').checked=false;$('clientImportSelection').textContent='';$('commitClientImport').disabled=true;importMessage('');if($('clientImportDialog').open)$('clientImportDialog').close();if(resumeAuto&&userId&&loaded)setTimeout(autoSyncIap,0)}
 function importSelection(){const n=importPlan.filter(p=>p.selected&&['new','update'].includes(p.action)).length;$('clientImportSelection').textContent=n+'명 선택';$('commitClientImport').textContent='선택한 '+n+'명 반영';$('commitClientImport').disabled=!n||busy||loading||!loaded;}
 function paintImport(){
  if(!identity||!userId)return;importPlan=importMode==='iap'?D.planSaved(importRecords,rows,identity):root.ClientImport.plan(importRecords,rows,identity,{includeEnded:$('importIncludeEnded').checked});importReviewEpoch=epoch;
@@ -99,25 +100,37 @@ function initImport(){
 
 function message(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
 function gate(text){$('gate').hidden=false;$('workspace').hidden=true;$('gate').querySelector('h2').textContent='직원 로그인 필요';$('gateMessage').textContent=text}
-function clearPrivate(){clearImport();epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
+function clearPrivate(){autoPending=false;clearImport();epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
 async function authenticate(){
- const token=++epoch;
- try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
-  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;if(token!==epoch)return;if(!staff?.id||staff.mustChangePassword){clearPrivate();gate('상담일정표에서 직원 인증과 비밀번호 변경을 완료해 주세요.');return}
+ const token=epoch,request=++authSeq;
+ try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch||request!==authSeq)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
+  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;if(token!==epoch||request!==authSeq)return;if(!staff?.id||staff.mustChangePassword){clearPrivate();gate('상담일정표에서 직원 인증과 비밀번호 변경을 완료해 주세요.');return}
   if(userId&&userId!==session.user.id){clearPrivate();return authenticate()}
   if(userId!==session.user.id){rows=[];loaded=false;$('timeline').innerHTML='';$('roster').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML=''}
-  userId=session.user.id;identity=staff;$('handoffAdminLink').hidden=!(staff.isAdmin||['director','manager'].includes(staff.role));$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
- }catch(error){if(token!==epoch)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
+  userId=session.user.id;identity=staff;$('autoIap').checked=autoEnabled();$('handoffAdminLink').hidden=!(staff.isAdmin||['director','manager'].includes(staff.role));$('identity').textContent=staff.center+' · '+staff.name+'의 내담자 일정';$('gate').hidden=true;$('workspace').hidden=false;await load();
+ }catch(error){if(token!==epoch||request!==authSeq)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
 }
+function autoEnabled(){if(!userId)return false;try{return localStorage.getItem('goodjob_client_iap_auto_v1:'+userId)!=='0'}catch{return false}}
+function resumeAuto(){if(autoPending&&!busy&&!loading&&userId&&loaded&&!$('clientDialog').open&&!$('clientImportDialog').open){setTimeout(autoSyncIap,0)}}
+async function autoSyncIap(){
+ if(!autoEnabled()){autoPending=false;return}if(busy||loading||!loaded||!identity||$('clientDialog').open||$('clientImportDialog').open)return;autoPending=false;
+ const token=epoch,uid=userId,plan=D.planSaved(D.savedRecords(localStorage,rows),rows,identity).filter(p=>p.action==='update'&&!p.warnings.length&&(!p.row.payload.clientStatus||p.row.payload.clientStatus==='active'));if(!plan.length)return;
+ busy=true;loadSeq++;setButtons(true);let saved=0,conflicts=0;
+ try{for(const entry of plan){if(token!==epoch||uid!==userId||!autoEnabled())break;const current=rows.find(r=>r.id===entry.row.id);if(!current||current.updated_at!==entry.row.updated_at){conflicts++;continue}const payload={...entry.payload,changeHistory:[...(entry.payload.changeHistory||[]),{at:new Date().toISOString(),by:identity.id,from:entry.payload.clientStatus||'active',to:entry.payload.clientStatus||'active',reason:'저장된 IAP 자동 보완',summary:entry.changes.map(c=>c.label).join(', '),changes:[]}]};if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500){conflicts++;continue}
+  const {data,error}=await client.from('schedule_private_items').update({payload,updated_at:new Date().toISOString()}).eq('id',entry.row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',entry.row.updated_at).select('id,kind,item_date,payload,updated_at');if(token!==epoch||uid!==userId)return;if(error||!data?.length){conflicts++;continue}rows=rows.map(r=>r.id===entry.row.id?data[0]:r);saved++;}
+ }catch(error){if(token===epoch)message('IAP 자동 보완을 완료하지 못했습니다. 기존 날짜는 유지했습니다.',true)}finally{if(token===epoch){busy=false;setButtons(false);paint();if(saved||conflicts)message('저장된 IAP에서 '+saved+'명 일정 자동 보완'+(conflicts?' · '+conflicts+'명은 다시 확인해 주세요.':''),!!conflicts)}}
+}
+
 async function load(){
  if(!userId||!identity||busy)return;const token=epoch,seq=++loadSeq,uid=userId;loading=true;loaded=false;message('내담자 일정 불러오는 중…');
  try{let all=[];for(let start=0;;start+=200){const {data,error}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').order('id').range(start,start+199);if(error)throw error;if(token!==epoch||seq!==loadSeq)return;all=all.concat(data||[]);if((data||[]).length<200)break}rows=all;loaded=true;message('본인 전용 · 서버 저장 자료');paint()}catch(error){if(token===epoch&&seq===loadSeq)message('불러오기 실패: '+error.message,true)}finally{if(token===epoch&&seq===loadSeq)loading=false}
+ if(token===epoch&&loaded)await autoSyncIap();
 }
 async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
  try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
-function setButtons(disabled){$('saveClient').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled}
+function setButtons(disabled){$('saveClient').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled;if(!disabled)resumeAuto()}
 function monthRange(){return root.WorkPeriods.range(focusDate,view)}
 function syncPeriodControls(){const monthView=view==='list'||view==='month';$('month').value=focusDate.slice(0,7);$('clientDay').value=focusDate;$('clientMonthWrap').hidden=!monthView;$('clientDayWrap').hidden=monthView;$('clientWeekday').hidden=monthView;$('clientWeekday').textContent='('+['일','월','화','수','목','금','토'][new Date(focusDate+'T12:00:00').getDay()]+')';$('clientRange').textContent=root.WorkPeriods.periodLabel(focusDate,view);$('thisMonth').textContent=monthView?'이번 달':view==='week'?'이번 주':'오늘';const unit=monthView?'달':view==='week'?'주':'날짜';$('prevMonth').setAttribute('aria-label','이전 '+unit);$('nextMonth').setAttribute('aria-label','다음 '+unit);document.querySelectorAll('[data-client-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clientView===view)));try{localStorage.setItem('goodjob_clients_view',view)}catch{}}
 function matches(p,search){return [p?.name,p?.regNo].join(' ').toLowerCase().includes(search)}
@@ -193,7 +206,7 @@ async function saveEventCheck(cb){
  }catch(error){if(token===epoch)message('확인 상태 저장 실패: '+error.message,true)}finally{if(token===epoch){busy=false;setButtons(false);paint()}}
 }
 async function boot(){
- initImport();$('clientOverview').onclick=e=>{const b=e.target.closest('[data-client-queue]');if(b){queue=b.dataset.clientQueue;filter='all';paint()}};$('showChecked').onchange=paint;$('clientAttention').onclick=e=>{const b=e.target.closest('[data-edit]');if(b)openEditor(rows.find(r=>r.id===b.dataset.edit))};$('timeline').onchange=e=>{const cb=e.target.closest('[data-check-event]');if(cb)saveEventCheck(cb);};
+ initImport();$('autoIap').onchange=()=>{if(!userId)return;try{localStorage.setItem('goodjob_client_iap_auto_v1:'+userId,$('autoIap').checked?'1':'0')}catch{}if($('autoIap').checked)autoSyncIap();};$('clientOverview').onclick=e=>{const b=e.target.closest('[data-client-queue]');if(b){queue=b.dataset.clientQueue;filter='all';paint()}};$('showChecked').onchange=paint;$('clientAttention').onclick=e=>{const b=e.target.closest('[data-edit]');if(b)openEditor(rows.find(r=>r.id===b.dataset.edit))};$('timeline').onchange=e=>{const cb=e.target.closest('[data-check-event]');if(cb)saveEventCheck(cb);};
  $('clientStatus').onchange=()=>renderLifecycle(true);$('statusDate').onchange=()=>renderLifecycle(true);$('lifecycleSection').addEventListener('toggle',()=>{if($('lifecycleSection').open)renderLifecycle()});$('restoreEvents').onclick=()=>{$('clientStatus').value='active';renderLifecycle(true);$('changeReason').focus()};$('clientForm').addEventListener('change',e=>{if(!e.target.closest('#lifecycleSection'))renderLifecycle()});
  $('month').value=keyDate(new Date()).slice(0,7);$('cycleFields').innerHTML=Array.from({length:6},(_,i)=>'<label>'+(i+1)+'회차'+(i===0?' · 수립일':' 지정일')+'<input type="date" id="cycle'+i+'"></label>').join('');
  for(let i=0;i<6;i++)$('cycle'+i).onchange=cycleSummary;
@@ -204,10 +217,10 @@ async function boot(){
  const move=n=>{queue='period';focusDate=root.WorkPeriods.shift(focusDate,view,n);syncPeriodControls();paint()};$('prevMonth').onclick=()=>move(-1);$('nextMonth').onclick=()=>move(1);$('thisMonth').onclick=()=>{queue='period';focusDate=keyDate(new Date());syncPeriodControls();paint()};$('refresh').onclick=()=>load();$('addClient').onclick=()=>openEditor();
  for(const node of [$('timeline'),$('roster')])node.onclick=e=>{const day=e.target.closest('[data-period-day]');if(day){queue='period';focusDate=day.dataset.periodDay;view='day';syncPeriodControls();paint();return}const b=e.target.closest('[data-edit]');if(b)openEditor(rows.find(r=>r.id===b.dataset.edit))};
  try{const saved=localStorage.getItem('goodjob_clients_view');if(['list','month','week','day'].includes(saved))view=saved}catch{}syncPeriodControls();
- $('addImportantDate').onclick=()=>addImportantDate();$('addTraining').onclick=()=>addTraining();$('calculateDates').onclick=calculate;$('closeEditor').onclick=$('cancelEditor').onclick=()=>{if(!busy)$('clientDialog').close()};$('clientDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
+ $('addImportantDate').onclick=()=>addImportantDate();$('addTraining').onclick=()=>addTraining();$('calculateDates').onclick=calculate;$('closeEditor').onclick=$('cancelEditor').onclick=()=>{if(!busy){$('clientDialog').close();resumeAuto()}};$('clientDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
  $('clientForm').onsubmit=async e=>{e.preventDefault();try{const record=readForm();await mutate(record)}catch(error){$('formStatus').textContent=error.message}};
  $('deleteClient').onclick=async()=>{if(!editing||!confirm('내담자 일정관리에서 삭제할까요? 원본 IAP와 상담 예약은 유지됩니다.'))return;try{await mutate(null)}catch(error){$('formStatus').textContent=error.message}};
- window.addEventListener('storage',e=>{if(e.key==='iap_participant_records_v1'&&userId&&loaded&&!busy&&!$('clientDialog').open&&!$('clientImportDialog').open)paint()});
+ window.addEventListener('storage',e=>{if(e.key==='iap_participant_records_v1'&&userId&&loaded){autoPending=true;if(!busy&&!loading&&!$('clientDialog').open&&!$('clientImportDialog').open){paint();autoSyncIap()}}});
  window.addEventListener('pageshow',e=>{if(e.persisted){clearPrivate();authenticate()}});
  window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
  if(!root.supabase?.createClient){gate('로그인 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');return}
@@ -219,4 +232,5 @@ async function boot(){
 }
 boot().catch(error=>{clearPrivate();gate('화면을 준비하지 못했습니다: '+error.message)});
 })(typeof window==='undefined'?globalThis:window);
+
 

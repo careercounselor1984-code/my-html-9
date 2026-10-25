@@ -1,0 +1,13 @@
+'use strict';const assert=require('node:assert/strict'),{groups}=require('../schedule-work-blocks.js');
+const slots=['09:00','09:30','10:00','10:30','11:00','11:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+const make=(id,time,end,extra={})=>({id,date:'2026-10-26',owner:'A',type:'연차',title:'연차',work:true,time,end,category:'leave',...extra});
+const source=[make('a','16:00','16:30'),make('b','16:30','17:00'),make('c','17:00','17:30'),make('d','17:30','18:00')],before=JSON.stringify(source);let g=groups(source,slots);assert.equal(g.length,1);assert.deepEqual(g[0].ids,['a','b','c','d']);assert.equal(g[0].end,'18:00');assert.equal(JSON.stringify(source),before,'display grouping never mutates stored source');
+assert.equal(groups([make('a','09:00','11:00')],slots)[0].times.length,4,'one long event is one block');
+assert.equal(groups([make('a','09:00','10:00'),make('b','10:30','11:30')],slots).length,2,'gap remains visible');
+assert.equal(groups([make('a','09:00','10:00'),make('b','10:00','11:00',{memo:'다른 내용'})],slots).length,2,'different memo is not merged');
+assert.equal(groups([make('a','09:00','10:00'),make('b','10:00','11:00',{type:'외부홍보',title:'홍보'})],slots).length,2);
+g=groups([make('a','09:00','11:00'),make('b','10:00','10:30',{work:false,type:'초기',title:'상담'})],slots);assert(!g.some(x=>x.times.includes('10:00')),'overlap is never concealed');
+assert.equal(groups([make('a','09:00','10:00'),make('b','10:00','11:00',{owner:'B'})],slots).length,2,'owners are separate');assert.equal(groups([make('a','09:00','10:00'),make('b','10:00','11:00',{date:'2026-10-27'})],slots).length,2,'dates are separate');
+assert.equal(groups([make('a','11:30','12:00'),make('b','13:00','13:30')],slots).length,0,'separate records across lunch are not adjacent');
+assert.equal(groups([make('odd','09:15','10:15')],slots).length,0,'unaligned legacy times keep their exact source presentation');
+console.log('PASS: adjacent leave/promotion/work display groups, time ranges, overlap/gap/memo/owner boundaries and source preservation');
