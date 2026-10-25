@@ -112,7 +112,7 @@ async function authenticate(){
  }catch(error){if(token!==epoch||request!==authSeq)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
 }
 function autoEnabled(){if(!userId)return false;try{return localStorage.getItem('goodjob_client_iap_auto_v1:'+userId)!=='0'}catch{return false}}
-function resumeAuto(){if(autoPending&&!busy&&!loading&&userId&&loaded&&!$('clientDialog').open&&!$('clientImportDialog').open){setTimeout(autoSyncIap,0)}}
+function resumeAuto(){if(autoPending&&!busy&&!loading&&userId&&loaded&&!$('clientDialog').open&&!$('clientImportDialog').open){setTimeout(()=>{if(!busy&&!loading&&!$('clientDialog').open&&!$('clientImportDialog').open)load()},0)}}
 async function autoSyncIap(){
  if(!autoEnabled()){autoPending=false;return}if(busy||loading||!loaded||!identity||$('clientDialog').open||$('clientImportDialog').open)return;autoPending=false;
  const token=epoch,uid=userId,plan=D.planSaved(D.savedRecords(localStorage,rows,userEmail),rows,identity).filter(p=>p.action==='update'&&(!p.warnings.length||p.changes.every(c=>c.key==='jobCertExpire'))&&(!p.row.payload.clientStatus||p.row.payload.clientStatus==='active'));if(!plan.length)return;
@@ -232,7 +232,7 @@ async function boot(){
  $('addImportantDate').onclick=()=>addImportantDate();$('addTraining').onclick=()=>addTraining();$('calculateDates').onclick=calculate;$('closeEditor').onclick=$('cancelEditor').onclick=()=>{if(!busy){$('clientDialog').close();resumeAuto()}};$('clientDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
  $('clientForm').onsubmit=async e=>{e.preventDefault();try{const record=readForm();await mutate(record)}catch(error){$('formStatus').textContent=error.message}};
  $('deleteClient').onclick=async()=>{if(!editing||!confirm('내담자 일정관리에서 삭제할까요? 원본 IAP와 상담 예약은 유지됩니다.'))return;try{await mutate(null)}catch(error){$('formStatus').textContent=error.message}};
- window.addEventListener('storage',e=>{if((e.key==='iap_participant_records_v1'||userEmail&&e.key==='goodjob_client_basic_dates_v1:'+userEmail)&&userId&&loaded){autoPending=true;if(!busy&&!loading&&!$('clientDialog').open&&!$('clientImportDialog').open){paint();autoSyncIap()}}});
+ window.addEventListener('storage',e=>{if((e.key==='iap_participant_records_v1'||userEmail&&e.key==='goodjob_client_basic_dates_v1:'+userEmail)&&userId){if(!autoEnabled()){autoPending=false;paint();return}autoPending=true;if(!busy&&!loading&&!$('clientDialog').open&&!$('clientImportDialog').open)load()}});
  window.addEventListener('pageshow',e=>{if(e.persisted){clearPrivate();authenticate()}});
  window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
  if(!root.supabase?.createClient){gate('로그인 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');return}
