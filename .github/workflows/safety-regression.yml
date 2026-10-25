@@ -50,6 +50,7 @@ jobs:
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-xlsx.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-import-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-deadlines-dom.test.cjs
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/client-lifecycle-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-auto-background.test.cjs
 
       - name: Headless Chrome offline initial-screen smoke (unauthenticated)
