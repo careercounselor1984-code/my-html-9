@@ -29,6 +29,7 @@ const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']
 const D=root.ClientDeadlines;
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,authSeq=0,filter='all',view='list',focusDate=keyDate(new Date());
+let autoPending=false;
 let importDroppedFile=null,importMode='recipient',queue='soon';
 let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
 function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
@@ -99,7 +100,7 @@ function initImport(){
 
 function message(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
 function gate(text){$('gate').hidden=false;$('workspace').hidden=true;$('gate').querySelector('h2').textContent='직원 로그인 필요';$('gateMessage').textContent=text}
-function clearPrivate(){clearImport();epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
+function clearPrivate(){autoPending=false;clearImport();epoch++;loadSeq++;userId='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
 async function authenticate(){
  const token=epoch,request=++authSeq;
  try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch||request!==authSeq)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
@@ -110,8 +111,9 @@ async function authenticate(){
  }catch(error){if(token!==epoch||request!==authSeq)return;clearPrivate();gate('계정 확인 실패: '+error.message)}
 }
 function autoEnabled(){if(!userId)return false;try{return localStorage.getItem('goodjob_client_iap_auto_v1:'+userId)!=='0'}catch{return false}}
+function resumeAuto(){if(autoPending&&!busy&&!loading&&userId&&loaded&&!$('clientDialog').open&&!$('clientImportDialog').open){setTimeout(autoSyncIap,0)}}
 async function autoSyncIap(){
- if(!autoEnabled()||busy||loading||!loaded||!identity||$('clientDialog').open||$('clientImportDialog').open)return;
+ if(!autoEnabled()){autoPending=false;return}if(busy||loading||!loaded||!identity||$('clientDialog').open||$('clientImportDialog').open)return;autoPending=false;
  const token=epoch,uid=userId,plan=D.planSaved(D.savedRecords(localStorage,rows),rows,identity).filter(p=>p.action==='update'&&!p.warnings.length&&(!p.row.payload.clientStatus||p.row.payload.clientStatus==='active'));if(!plan.length)return;
  busy=true;loadSeq++;setButtons(true);let saved=0,conflicts=0;
  try{for(const entry of plan){if(token!==epoch||uid!==userId||!autoEnabled())break;const current=rows.find(r=>r.id===entry.row.id);if(!current||current.updated_at!==entry.row.updated_at){conflicts++;continue}const payload={...entry.payload,changeHistory:[...(entry.payload.changeHistory||[]),{at:new Date().toISOString(),by:identity.id,from:entry.payload.clientStatus||'active',to:entry.payload.clientStatus||'active',reason:'저장된 IAP 자동 보완',summary:entry.changes.map(c=>c.label).join(', '),changes:[]}]};if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500){conflicts++;continue}
@@ -128,7 +130,7 @@ async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
  try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
-function setButtons(disabled){$('saveClient').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled}
+function setButtons(disabled){$('saveClient').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled;if(!disabled)resumeAuto()}
 function monthRange(){return root.WorkPeriods.range(focusDate,view)}
 function syncPeriodControls(){const monthView=view==='list'||view==='month';$('month').value=focusDate.slice(0,7);$('clientDay').value=focusDate;$('clientMonthWrap').hidden=!monthView;$('clientDayWrap').hidden=monthView;$('clientWeekday').hidden=monthView;$('clientWeekday').textContent='('+['일','월','화','수','목','금','토'][new Date(focusDate+'T12:00:00').getDay()]+')';$('clientRange').textContent=root.WorkPeriods.periodLabel(focusDate,view);$('thisMonth').textContent=monthView?'이번 달':view==='week'?'이번 주':'오늘';const unit=monthView?'달':view==='week'?'주':'날짜';$('prevMonth').setAttribute('aria-label','이전 '+unit);$('nextMonth').setAttribute('aria-label','다음 '+unit);document.querySelectorAll('[data-client-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clientView===view)));try{localStorage.setItem('goodjob_clients_view',view)}catch{}}
 function matches(p,search){return [p?.name,p?.regNo].join(' ').toLowerCase().includes(search)}
@@ -215,10 +217,10 @@ async function boot(){
  const move=n=>{queue='period';focusDate=root.WorkPeriods.shift(focusDate,view,n);syncPeriodControls();paint()};$('prevMonth').onclick=()=>move(-1);$('nextMonth').onclick=()=>move(1);$('thisMonth').onclick=()=>{queue='period';focusDate=keyDate(new Date());syncPeriodControls();paint()};$('refresh').onclick=()=>load();$('addClient').onclick=()=>openEditor();
  for(const node of [$('timeline'),$('roster')])node.onclick=e=>{const day=e.target.closest('[data-period-day]');if(day){queue='period';focusDate=day.dataset.periodDay;view='day';syncPeriodControls();paint();return}const b=e.target.closest('[data-edit]');if(b)openEditor(rows.find(r=>r.id===b.dataset.edit))};
  try{const saved=localStorage.getItem('goodjob_clients_view');if(['list','month','week','day'].includes(saved))view=saved}catch{}syncPeriodControls();
- $('addImportantDate').onclick=()=>addImportantDate();$('addTraining').onclick=()=>addTraining();$('calculateDates').onclick=calculate;$('closeEditor').onclick=$('cancelEditor').onclick=()=>{if(!busy)$('clientDialog').close()};$('clientDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
+ $('addImportantDate').onclick=()=>addImportantDate();$('addTraining').onclick=()=>addTraining();$('calculateDates').onclick=calculate;$('closeEditor').onclick=$('cancelEditor').onclick=()=>{if(!busy){$('clientDialog').close();resumeAuto()}};$('clientDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
  $('clientForm').onsubmit=async e=>{e.preventDefault();try{const record=readForm();await mutate(record)}catch(error){$('formStatus').textContent=error.message}};
  $('deleteClient').onclick=async()=>{if(!editing||!confirm('내담자 일정관리에서 삭제할까요? 원본 IAP와 상담 예약은 유지됩니다.'))return;try{await mutate(null)}catch(error){$('formStatus').textContent=error.message}};
- window.addEventListener('storage',e=>{if(e.key==='iap_participant_records_v1'&&userId&&loaded&&!busy&&!$('clientDialog').open&&!$('clientImportDialog').open){paint();autoSyncIap()}});
+ window.addEventListener('storage',e=>{if(e.key==='iap_participant_records_v1'&&userId&&loaded){autoPending=true;if(!busy&&!loading&&!$('clientDialog').open&&!$('clientImportDialog').open){paint();autoSyncIap()}}});
  window.addEventListener('pageshow',e=>{if(e.persisted){clearPrivate();authenticate()}});
  window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
  if(!root.supabase?.createClient){gate('로그인 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');return}
@@ -230,4 +232,5 @@ async function boot(){
 }
 boot().catch(error=>{clearPrivate();gate('화면을 준비하지 못했습니다: '+error.message)});
 })(typeof window==='undefined'?globalThis:window);
+
 
