@@ -31,6 +31,7 @@ jobs:
           node tests/client-import.test.cjs
           node tests/clients.test.cjs
           node tests/client-deadlines.test.cjs
+          node tests/client-date-types.test.cjs
           node tests/schedule-work-blocks.test.cjs
           node tests/work-menus.test.cjs
           node tests/work-periods.test.cjs
