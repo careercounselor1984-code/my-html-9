@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="referrer" content="no-referrer">
 <script src="./secure-backup.js"></script>
+<script src="./schedule-save-recovery.js?v=20261026-1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
@@ -1043,6 +1044,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
     <button id="cloudSetPassword" type="button">비밀번호 설정·변경</button>
     <button id="cloudRefresh" type="button">동기화</button>
     <button id="cloudRetry" type="button">저장 재시도</button>
+    <button id="cloudResolve" type="button" class="hide">⚠ 저장 문제 해결</button>
     <button id="cloudLogout" type="button">로그아웃</button>
   </div></details>
  </nav>
@@ -1373,6 +1375,8 @@ const cloudAuthStorage={
 const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
+ cloudClearSaveIssue();
+ cloud.resolvingSaveIssue=false;
  cloud.sessionEpoch=(cloud.sessionEpoch||0)+1;cloud.reloadSeq=(cloud.reloadSeq||0)+1;
  clearTimeout(cloud.timer);cloud.timer=null;cloud.active=false;cloud.identity=null;cloud.busy=false;cloud.needsSave=false;cloud.base=null;cloud.eventVersions=new Map();
  journalDirectPending=null;journalDirectBusy=false;journalBookingPending=null;
@@ -1438,7 +1442,56 @@ function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
  return {rows,added,conflicts};
 }
 function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
+function cloudClearSaveIssue(){
+ cloud.saveIssue=null;$('cloudResolve').classList.add('hide');
+ const dlg=$('cloudSaveIssueDialog');if(dlg){if(dlg.open)dlg.close();dlg.remove();}
+}
+async function cloudShowSaveIssue(message){
+ const valid=cloudSessionGuard(),epoch=cloud.mutationEpoch;
+ cloud.saveIssue=message;$('cloudResolve').classList.remove('hide');
+ let dlg=$('cloudSaveIssueDialog');
+ if(!dlg){
+  dlg=document.createElement('dialog');dlg.id='cloudSaveIssueDialog';dlg.setAttribute('aria-labelledby','cloudSaveIssueTitle');
+  dlg.innerHTML='<div class="modal"><div class="modal-head"><h2 id="cloudSaveIssueTitle">일정이 저장되지 않았습니다</h2><button type="button" data-recovery-close aria-label="닫기">✕</button></div><p>상담과 근무 시간이 겹치거나 입력한 시간이 올바르지 않아 저장이 중단되었습니다. 미저장 내용은 이 기기에 보관되어 있으며, 센터 일정표에는 아직 반영되지 않았습니다.</p><p>아래 미저장 변경을 수정하거나 해당 변경만 취소해 주세요. 수정 후 자동으로 다시 저장합니다.</p><p data-recovery-status role="status">서버의 최신 일정과 비교하는 중…</p><div data-recovery-list style="max-height:50vh;overflow:auto"></div><p class="hint">창을 닫아도 상단 ‘저장 문제 해결’에서 다시 확인할 수 있습니다. 해결 전에는 사이트 데이터를 삭제하지 마세요.</p><button type="button" data-recovery-export>미저장 자료 백업 다운로드</button></div>';
+  document.body.appendChild(dlg);
+  dlg.querySelector('[data-recovery-close]').onclick=()=>dlg.close();
+  dlg.querySelector('[data-recovery-export]').onclick=()=>$('export').click();
+ }
+ if(!dlg.open)dlg.showModal();
+ const own=cloudOwnRows(model.events),base=cloud.base.events;
+ function display(server,feedback){
+  if(!valid()||cloud.saveIssue!==message||epoch!==cloud.mutationEpoch||!dlg.isConnected)return;
+  dlg.querySelector('[data-recovery-status]').textContent=feedback;
+  const list=dlg.querySelector('[data-recovery-list]');list.replaceChildren();
+  const pending=ScheduleSaveRecovery.pending(own,base);
+  if(!pending.length){list.textContent='미저장 일정 변경을 찾지 못했습니다. 백업 후 담당자에게 문의해 주세요.';return;}
+  for(const {row,deleted} of pending){
+   const item=document.createElement('section');item.className='notice';
+   const label=document.createElement('p');label.textContent=row.date+' '+(row.allDay?'하루 전체':row.time+'–'+(row.end||addMinutes(row.time,30)))+' · '+(row.type||'일정')+' · '+(row.title||'')+(deleted?' (삭제 대기)':' (미저장)');item.appendChild(label);
+   const collisions=deleted?[]:ScheduleSaveRecovery.conflicts(row,own,base,server);
+   for(const other of collisions){const note=document.createElement('p');note.textContent='겹치는 일정: '+other.date+' '+(other.allDay?'하루 전체':other.time+'–'+(other.end||addMinutes(other.time,30)))+' · '+(other.type||'일정');item.appendChild(note);}
+   if(!deleted){const edit=document.createElement('button');edit.type='button';edit.textContent='날짜·시간 수정';edit.onclick=()=>{
+    if($('dlg').open){alert('열려 있는 일정 수정창을 먼저 저장하거나 닫아 주세요.');return;}
+    dlg.close();focusDate=parseDate(row.date);changeView('personalWeek');openEditor(row.date,row.time,row.id,row.owner);
+   };item.appendChild(edit);}
+   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='이 변경만 취소';cancel.onclick=()=>{
+    if(!valid()||cloud.busy)return;
+    if(!confirm(row.date+' '+(row.time||'')+' 일정의 미저장 변경만 취소할까요? 서버에 저장된 다른 일정은 유지됩니다.'))return;
+    const original=base.get(row.id);model.events=model.events.filter(e=>e.id!==row.id);
+    if(original)model.events.push(JSON.parse(original));
+    save();render();
+   };item.appendChild(cancel);list.appendChild(item);
+  }
+ }
+ display([], '미저장 변경 목록입니다. 서버의 최신 일정과 비교하는 중…');
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_get_snapshot');if(error)throw error;
+  if(!data||!Array.isArray(data.events))throw Error('응답 오류');
+  display(data.events.filter(e=>!e.readonly&&e.center===cloud.identity?.center&&e.owner===cloud.identity?.name),'최신 서버 일정과 비교했습니다. 겹치는 항목을 확인하고 수정해 주세요.');
+ }catch{display([], '서버의 최신 일정을 확인하지 못했습니다. 기기에 보관된 변경 목록을 확인하세요.');}
+}
 function cloudQueue(){if(!cloud.active)return;
+ if(cloud.saveIssue){cloud.resolvingSaveIssue=true;cloudClearSaveIssue();}
  cloud.mutationEpoch=(cloud.mutationEpoch||0)+1;
  // If an earlier pending draft was deliberately deferred, archive it before replacing the draft key.
  if(cloud.unresolvedDraft){
@@ -1507,7 +1560,7 @@ async function cloudSyncList(kind,rows,base,table){
  return actions.length;
 }
 async function cloudCommit(){
- if(!cloud.active||cloud.busy||!cloud.needsSave||cloud.queueBlocked)return;
+ if(!cloud.active||cloud.busy||!cloud.needsSave||cloud.queueBlocked||cloud.saveIssue)return;
  const valid=cloudSessionGuard();
  cloud.busy=true;cloud.needsSave=false;
  try{
@@ -1537,6 +1590,7 @@ async function cloudCommit(){
   offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
  if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}cloud.draftBackupFailed=false;}
  cloudStatus(cloud.needsSave?'새 변경사항 서버 저장 대기 중…':'서버 저장 완료 ✓');
+ if(!cloud.needsSave&&cloud.resolvingSaveIssue){cloud.resolvingSaveIssue=false;alert('미저장 변경 처리가 완료되었습니다. 서버 저장을 확인했으며 센터 일정표에서도 최신 일정을 조회할 수 있습니다.');}
  if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
@@ -1548,10 +1602,14 @@ async function cloudCommit(){
   cloud.queueBlocked=!!cloud.draftBackupFailed;
   cloudStatus(cloud.draftBackupFailed?'일정 충돌 및 기기 백업 실패 · 새로고침 금지, JSON 내보내기 후 복구 필요':'다른 기기와 일정 충돌 · 미전송 초안을 보호했습니다. 새로고침 후 확인하세요: '+err.message,true);
  }else{
-  cloud.needsSave=true;cloudStatus((cloud.draftBackupFailed?'기기 백업 실패 · 새로고침 금지 / ':'')+'저장 실패 · 재시도 필요: '+err.message,true);
+  cloud.needsSave=true;
+  if(ScheduleSaveRecovery.isCorrectable(err.message)){
+   cloudStatus('⚠ 일정 미저장 · 날짜·시간 수정이 필요합니다. ‘저장 문제 해결’을 눌러 주세요.',true);
+   cloudShowSaveIssue(err.message).catch(()=>{});
+  }else cloudStatus((cloud.draftBackupFailed?'기기 백업 실패 · 새로고침 금지 / ':'')+'저장 실패 · 재시도 필요: '+err.message,true);
  }
 }
- finally{if(valid()){cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}}
+ finally{if(valid()){cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked&&!cloud.saveIssue){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}}
 }
 async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
@@ -4025,8 +4083,9 @@ async function cloudBoot(){
   finally{button.disabled=false;}
  });
  $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();cloudClearSession('로그아웃됨');};
- $('cloudRetry').onclick=()=>{if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
- $('cloudRefresh').onclick=()=>cloudReload().catch(()=>{});
+$('cloudResolve').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});};
+$('cloudRetry').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});else if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
+$('cloudRefresh').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});else cloudReload().catch(()=>{});};
  cloud.client.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){cloudClearSession();return;}
   if(event==='PASSWORD_RECOVERY')setTimeout(cloudOpenRecoveryDialog,100);
@@ -4529,7 +4588,7 @@ function openEditor(date,time,eventId,owner,mode='consult',special=false){
  if(cloud.active && eventId && model.events.some(e=>e.id===eventId&&e.readonly)){alert('다른 상담사의 일정은 조회만 가능해요.');return}
  if(currentView==='teamLeave'||currentView==='teamDay')return;
  $('fperson').dataset.manualType='';$('fperson').dataset.autoType='';
- editing=eventId||null;const e=eventId?model.events.find(x=>x.id===eventId):newDefault(date,time,owner);if(!e)return;if(isClosedDay(e.date,e.center)&&!(eventId&&e.specialWork)&&!(mode==='work'&&special)){closedDayAlert(e.date,e.center);return}
+ editing=eventId||null;const e=eventId?model.events.find(x=>x.id===eventId):newDefault(date,time,owner);if(!e)return;if(isClosedDay(e.date,e.center)&&!(eventId&&(e.specialWork||cloud.saveIssue))&&!(mode==='work'&&special)){closedDayAlert(e.date,e.center);return}
  editorMode=eventId?eventKind(e):mode;
  const f=$('editor');$('fcenter').value=cloud.active?cloud.identity.center:(CENTERS.includes(e.center)?e.center:currentCenter());formStaff(cloud.active&&editorMode==='work'?cloud.identity.name:e.owner);$('fcenter').disabled=cloud.active;$('fowner').disabled=cloud.active&&(editorMode==='work'||!!eventId);
  clearPersonChoice();selectedParticipantId=e.participantId||null;if(selectedParticipantId&&selectedParticipant()){$('personStatus').textContent='✓ '+personLabel(selectedParticipant())+' 선택됨';$('personStatus').classList.add('selected')}
@@ -4641,9 +4700,10 @@ async function saveEntry(ev){
  if(!dest.owner){alert('담당 상담사를 선택해 줘.');return false}if(!dest.title){alert('내담자 이름을 입력해 줘.');return false}
  if(isClosedDay(dest.date,dest.center)&&!specialWork){closedDayAlert(dest.date,dest.center);return false}
  if(!allDay&&!withinSameDay(dest.date,dest.time,service?30:Number($('duration').value),specialWork)){alert('근무시간을 확인해 줘. 월~목 09:00~12:00, 13:00~18:00 / 금 09:00~12:00 이내로 등록해 줘.');return false}
- const conflict=model.events.find(e=>e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
+ const conflicts=model.events.filter(e=>e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
+ const conflict=conflicts.find(isConsultEvent)||conflicts[0];
  if(conflict){
-   if(service){alert('같은 시간에 상담 또는 근무 일정이 등록되어 있습니다. 상담 중복 예약은 허용되지 않습니다. 다른 시간을 선택해 주세요.');return false;}
+   if(service||isConsultEvent(conflict)){alert('같은 시간에 상담 또는 근무 일정이 등록되어 있습니다. 상담 중복 예약은 허용되지 않습니다. 다른 시간을 선택해 주세요.');return false;}
    if(!confirm('같은 시간에 기존 일정이 있습니다. 근무 일정이 겹치는 것을 확인하고 계속 등록할까요?'))return false;
  }
  // A colleague can only create a 30-minute reservation via a checked server function. No local participant list or owner-write access.
