@@ -19,6 +19,7 @@ const context={
  isFridayClosed:(d,t)=>new Date(d+'T00:00:00Z').getUTCDay()===5&&t>='12:00',
  isClosedDay:()=>false,holidays:()=>[],matchingAt:(e,t)=>e.time<=t&&t<e.end,
  isConsultEvent:e=>e.kind==='consult',isWorkEvent:e=>e.kind==='work',isVisitorPrintEvent:e=>e.kind==='consult',
+ isShiftEvent:e=>e.kind==='work'&&e.type==='시차',shiftArrivalLabel:()=> '09:00 출근',
  escapeHtml:v=>String(v),showName:e=>e.title,typeClass:()=> 'field',eventBlock:e=>'<b>'+e.title+'</b>',
  sharedNotices:()=>[],alert:()=>{},$:()=>state.target
 };

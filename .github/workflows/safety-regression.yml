@@ -22,6 +22,7 @@ jobs:
         run: |
           node tests/schedule-safety.test.cjs
           node tests/schedule-save-recovery.test.cjs
+          node tests/schedule-error-reporting.test.cjs
           node tests/consult-kakao.test.cjs
           node tests/desktop-mini.test.cjs
           node tests/notification-policy.test.cjs
@@ -43,6 +44,7 @@ jobs:
           node tests/task-reminder-session.test.cjs
           node tests/full-runtime-browser-smoke.cjs
           node tests/calendar-workspace-browser-smoke.cjs
+          node tests/schedule-error-reporting-browser.cjs
           node tests/private-screens-browser-smoke.cjs
 
       - name: Verify client import with actual DOM

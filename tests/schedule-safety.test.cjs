@@ -56,6 +56,7 @@ function queueCase({deferred=false,failArchive=false,failDraft=false}={}){
   setItem:(key,value)=>{if((failArchive&&key.includes('deferred_draft_backup'))||(failDraft&&key==='schedule_pending_test-staff'))throw Error('quota');db.set(key,value)}
  };
  const context={cloud,model,localStorage,
+  cloudReportSaveIssue:()=>{},
   cloudOwnRows:rows=>rows.filter(v=>v.center==='북부센터'&&v.owner==='상담사A'),
   cloudDraftKey:()=> 'schedule_pending_test-staff',
   cloudStatus:(message,bad)=>statuses.push({message,bad}),

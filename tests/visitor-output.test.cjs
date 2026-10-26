@@ -8,7 +8,7 @@ const context={currentView:'teamDay',WORK_TYPES:new Set(work),SERVICES:new Set([
 vm.createContext(context);
 const kinds=html.slice(html.indexOf('const eventKind='),html.indexOf('const HOL='));
 const helpers=html.slice(html.indexOf('const isVisitorPrintEvent='),html.indexOf('function buildDailyPrint('));
-vm.runInContext(kinds+helpers+'\nconst printMasked='+html.match(/const printMasked=([^\n]+)/)[1]+'\nconst showName='+html.match(/const showName=([^\n]+)/)[1]+'\n'+body('buildDailyPrint'),context);
+vm.runInContext(kinds+helpers+'\nconst printMasked='+html.match(/const printMasked=([^\n]+)/)[1]+'\nconst showName='+html.match(/const showName=([^\n]+)/)[1]+'\n'+body('shiftArrivalLabel')+'\n'+body('buildDailyPrint'),context);
 function check(){assert(!/비공개職員|비공개직원|특수연차|개인사유|직원 공통 비고|내부 메모|내부 인계|예약 직원/.test(target.innerHTML));for(const type of work)assert(!target.innerHTML.includes(' · '+type+'<'),type);assert(target.innerHTML.includes('홍*동'));assert(target.innerHTML.includes('김*희'));assert(target.innerHTML.includes('추가상담'));assert(target.innerHTML.includes('(출장)'));assert(target.innerHTML.includes('박*수'));assert(target.innerHTML.includes('(에너지고 출장상담)'));assert(!target.innerHTML.includes('홍길동'));assert(!/data-(?:work|leave)-id/.test(target.innerHTML));}
 context.buildDailyPrint(day);check();
 context.buildDailyPrint(day,{audience:'staff'});assert(target.innerHTML.includes('비공개직원'));
