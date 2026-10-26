@@ -23,7 +23,15 @@ const scenario=`window.addEventListener('DOMContentLoaded',()=>setTimeout(async(
  changeView('personalWeek');by('swDayListOpen').click();must(by('swDayDialog').open,'detail dialog opens');await new Promise(resolve=>{by('swDayDialog').addEventListener('close',resolve,{once:true});by('swDayDialog').close();});must(by('swDayPanel').parentElement.classList.contains('sw-calendar-layout'),'panel restored');
  by('swDensity').value='compact';by('swDensity').dispatchEvent(new Event('change'));must(document.body.dataset.calendarDensity==='compact','density changes');
  if(innerWidth<=900){by('swNavToggle').click();must(by('swNavToggle').getAttribute('aria-expanded')==='true','drawer opens');document.querySelector('[data-sw-date="2026-10-20"]').click();must(by('swNavToggle').getAttribute('aria-expanded')==='false','drawer closes after selection');}
- cloudClearSession();must(!api.snapshot().authenticated,'logout scope');must(!by('swDayPanel').textContent&&!by('swCalendarMetrics').textContent&&!document.querySelector('.sw-mini-day'),'logout clears new presentation');must(!window.__workspaceErrors.length,window.__workspaceErrors.join(' | '));document.body.dataset.workspaceAudit='passed';
+ // Exercise the recovery dialog in the actual desktop/mobile calendar, with synthetic rows only.
+ const baseEvent=model.events.find(e=>e.id==='own'),pendingEvent={...baseEvent,id:'unsent',time:'09:00',end:'09:30'};
+ cloud.base={events:new Map([[baseEvent.id,JSON.stringify(cloudClean(baseEvent))]])};model.events.push(pendingEvent);
+ cloud.client.rpc=async()=>({data:{events:[baseEvent]}});cloud.needsSave=true;
+ await cloudShowSaveIssue('기존 상담 또는 근무 일정과 시간이 중복됩니다');
+ const issue=by('cloudSaveIssueDialog');must(issue.open,'recovery opens automatically');must(issue.textContent.includes('겹치는 일정:'),'recovery shows conflicting time');
+ must(issue.getBoundingClientRect().width<=innerWidth,'recovery fits viewport');must(!by('cloudResolve').classList.contains('hide'),'recovery can be reopened');
+ [...issue.querySelectorAll('button')].find(b=>b.textContent==='날짜·시간 수정').click();must(by('dlg').open&&!issue.open,'recovery navigates directly to editor');by('dlg').close();
+ cloudClearSession();must(!by('cloudSaveIssueDialog')&&by('cloudResolve').classList.contains('hide'),'logout clears recovery details');must(!api.snapshot().authenticated,'logout scope');must(!by('swDayPanel').textContent&&!by('swCalendarMetrics').textContent&&!document.querySelector('.sw-mini-day'),'logout clears new presentation');must(!window.__workspaceErrors.length,window.__workspaceErrors.join(' | '));document.body.dataset.workspaceAudit='passed';
  }catch(e){document.body.dataset.workspaceAudit='failed';document.body.dataset.workspaceAuditError=e.message+' | '+window.__workspaceErrors.join(' | ');}},800));`;
 let html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/\r\n/g,'\n').replace(/<script\b[^>]*src=["']https?:[^"']+["'][^>]*>[\s\S]*?<\/script>/gi,'');
 const anchor='changeView(currentView);\n})();';assert(html.includes(anchor));html=html.replace('<head>','<head>'+setup).replace(anchor,'changeView(currentView);\n'+scenario+'\n})();');const file=path.join(root,'.workspace-audit-smoke.html');fs.writeFileSync(file,html);

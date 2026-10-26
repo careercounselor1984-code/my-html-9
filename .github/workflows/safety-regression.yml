@@ -21,6 +21,7 @@ jobs:
       - name: Check safety regression
         run: |
           node tests/schedule-safety.test.cjs
+          node tests/schedule-save-recovery.test.cjs
           node tests/consult-kakao.test.cjs
           node tests/desktop-mini.test.cjs
           node tests/notification-policy.test.cjs
@@ -49,6 +50,7 @@ jobs:
           npm install --prefix /tmp/client-import-test jsdom@30.1.2 --no-audit --no-fund
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-xlsx.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-import-dom.test.cjs
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/schedule-save-recovery-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-deadlines-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-lifecycle-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-auto-background.test.cjs
