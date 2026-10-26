@@ -5,6 +5,7 @@
 <meta name="referrer" content="no-referrer">
 <script src="./secure-backup.js"></script>
 <script src="./schedule-save-recovery.js?v=20261026-2"></script>
+<script src="./schedule-error-reporting.js?v=20261026-1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
@@ -1026,6 +1027,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
  <div class="mobile-account-heading"><div class="mobile-account-label"><b id="cloudUser"></b><span id="cloudStatus" role="status">연결 준비 중</span></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="mobileCloudActions" aria-expanded="false">☰ 메뉴</button></div>
  <nav class="cloud-actions" id="mobileCloudActions" aria-label="일정관리 메뉴">
   <button id="alertTopButton" type="button">🔔 알림 <span id="alertBadge" class="alert-badge hide">0</span></button>
+  <button id="managerSaveIssues" type="button" class="hide">⚠ 오류 보고</button>
   <button id="sharedTopButton" type="button">🤝 공유 일정</button>
   <button id="presenceBtn" type="button">오늘 근무현황</button>
   <button id="messageBtn" type="button">쪽지</button>
@@ -1045,6 +1047,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
     <button id="cloudRefresh" type="button">동기화</button>
     <button id="cloudRetry" type="button">저장 재시도</button>
     <button id="cloudResolve" type="button" class="hide">⚠ 저장 문제 해결</button>
+    <span id="cloudIssueReportStatus" role="status" style="font-size:12px"></span>
     <button id="cloudLogout" type="button">로그아웃</button>
   </div></details>
  </nav>
@@ -1377,6 +1380,8 @@ function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.i
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
  cloud.resolvingSaveIssue=false;
+ cloud.issueReporter=null;$('cloudIssueReportStatus').textContent='';$('managerSaveIssues').classList.add('hide');
+ const reports=$('managerSaveIssueDialog');if(reports){if(reports.open)reports.close();reports.remove();}
  cloud.sessionEpoch=(cloud.sessionEpoch||0)+1;cloud.reloadSeq=(cloud.reloadSeq||0)+1;
  clearTimeout(cloud.timer);cloud.timer=null;cloud.active=false;cloud.identity=null;cloud.busy=false;cloud.needsSave=false;cloud.base=null;cloud.eventVersions=new Map();
  journalDirectPending=null;journalDirectBusy=false;journalBookingPending=null;
@@ -1442,6 +1447,46 @@ function cloudRecoverPendingRows(serverRows,draftRows,eligible,baselineIds){
  return {rows,added,conflicts};
 }
 function cloudDraftKey(){return 'schedule_pending_'+cloud.identity.id}
+function cloudIssueReporter(){
+ if(!cloud.active||!cloud.identity?.id)return null;
+ if(!cloud.issueReporter){
+  const valid=cloudSessionGuard();
+  cloud.issueReporter=ScheduleErrorReporting.create({staffId:cloud.identity.id,storage:localStorage,isCurrent:valid,uuid:()=>crypto.randomUUID(),
+   rpc:(name,args)=>cloud.client.rpc(name,args),onDelivery:resolved=>{if(valid())$('cloudIssueReportStatus').textContent=resolved===null?'팀장 오류 보고 전송 대기 · 연결되면 자동 전송':resolved?'팀장에게 해결 상태 전달 완료':'팀장에게 오류 보고 완료';}});
+ }
+ return cloud.issueReporter;
+}
+function cloudReportSaveIssue(message){
+ try{
+  const reporter=cloudIssueReporter();if(!reporter)return;
+  const count=cloud.base?ScheduleSaveRecovery.pending(cloudOwnRows(model.events),cloud.base.events).length:0;
+  $('cloudIssueReportStatus').textContent='팀장 오류 보고 전송 중…';
+  Promise.resolve(reporter.open(message,count)).catch(()=>{});
+ }catch{if(cloud.active)$('cloudIssueReportStatus').textContent='팀장 오류 보고 전송 대기 · 연결되면 자동 전송';}
+}
+function cloudResolveSaveReport(){try{Promise.resolve(cloudIssueReporter()?.resolve()).catch(()=>{});}catch{}}
+async function managerSaveIssueOpen(){
+ if(!cloud.active||!['manager','director'].includes(cloud.identity?.role))return;
+ const valid=cloudSessionGuard();let dlg=$('managerSaveIssueDialog');
+ if(!dlg){dlg=document.createElement('dialog');dlg.id='managerSaveIssueDialog';dlg.setAttribute('aria-label','직원 일정 저장 오류 보고');
+  dlg.innerHTML='<div class="modal"><div class="modal-head"><h2>직원 일정 저장 오류 보고</h2><button type="button" data-issue-close>닫기</button></div><p>읽음 처리와 해결 상태는 별개입니다. 상담사가 미저장 변경을 정상 저장하면 해결로 표시됩니다.</p><p data-issue-status role="status">불러오는 중…</p><div data-issue-list style="max-height:60vh;overflow:auto"></div><button type="button" data-issue-refresh>새로고침</button></div>';
+  document.body.appendChild(dlg);dlg.querySelector('[data-issue-close]').onclick=()=>dlg.close();dlg.querySelector('[data-issue-refresh]').onclick=()=>managerSaveIssueOpen().catch(()=>{});
+ }
+ if(!dlg.open)dlg.showModal();
+ try{const {data,error}=await cloud.client.rpc('schedule_save_issue_feed');if(error)throw error;
+  if(!valid()||!dlg.isConnected)return;
+  const items=Array.isArray(data?.items)?data.items:[];
+  dlg.querySelector('[data-issue-status]').textContent='미해결 '+items.filter(x=>x.status==='open').length+'건 · 최근 해결 '+items.filter(x=>x.status==='resolved').length+'건';
+  const list=dlg.querySelector('[data-issue-list]');list.replaceChildren();
+  for(const item of items){const card=document.createElement('section');card.className='notice';
+   const title=document.createElement('h3');title.textContent=item.title;card.appendChild(title);
+   const details=document.createElement('p');details.textContent=item.scope+' · '+item.detail+' · 발생 당시 미저장 일정 변경 '+item.pendingCount+'건';card.appendChild(details);
+   const date=document.createElement('p');const format=x=>new Date(x).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+   date.textContent='보고 '+format(item.openedAt)+(item.resolvedAt?' / 해결 '+format(item.resolvedAt):' / 상담사 조치 필요');card.appendChild(date);list.appendChild(card);
+  }
+  if(!items.length)list.textContent='보고된 일정 저장 오류가 없습니다.';
+ }catch{if(valid()&&dlg.isConnected)dlg.querySelector('[data-issue-status]').textContent='오류 보고를 불러오지 못했습니다. 새로고침을 눌러 주세요.';}
+}
 function cloudClearSaveIssue(){
  cloud.saveIssue=null;$('cloudResolve').classList.add('hide');
  const dlg=$('cloudSaveIssueDialog');if(dlg){if(dlg.open)dlg.close();dlg.remove();}
@@ -1501,6 +1546,7 @@ function cloudQueue(){if(!cloud.active)return;
    if(localStorage.getItem(archiveKey)!==previous)throw Error('기기 백업 확인 실패');
   }cloud.unresolvedDraft=false;cloud.queueBlocked=false;
   }catch(err){cloud.queueBlocked=true;cloud.draftBackupFailed=true;cloud.needsSave=true;
+   cloudReportSaveIssue('기기 백업 실패');
    cloudStatus('미전송 초안을 별도로 보관할 수 없습니다. 기존 기록 보호를 위해 서버 전송을 차단했습니다. JSON 내보내기 후 기기 저장공간을 확인하세요.',true);return;}
  }
  cloud.needsSave=true;
@@ -1516,6 +1562,7 @@ function cloudQueue(){if(!cloud.active)return;
  }catch(err){console.warn('미전송 일정 기기 백업 실패',err)}
  cloud.draftBackupFailed=!backedUp;
  cloud.queueBlocked=!backedUp;
+ if(!backedUp)cloudReportSaveIssue('기기 백업 실패');
  cloudStatus(backedUp?'변경사항 저장 중…':'기기 백업 실패: 기존 데이터 보호를 위해 자동 전송을 중단했습니다. JSON 내보내기 후 기기 저장공간을 확인하세요.',!backedUp);
  clearTimeout(cloud.timer);if(backedUp)cloud.timer=setTimeout(()=>cloudCommit(),700)}
 
@@ -1590,12 +1637,14 @@ async function cloudCommit(){
   offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
  if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}cloud.draftBackupFailed=false;}
  cloudStatus(cloud.needsSave?'새 변경사항 서버 저장 대기 중…':'서버 저장 완료 ✓');
+ if(!cloud.needsSave)cloudResolveSaveReport();
  if(!cloud.needsSave&&cloud.resolvingSaveIssue){cloud.resolvingSaveIssue=false;alert('미저장 변경 처리가 완료되었습니다. 서버 저장을 확인했으며 센터 일정표에서도 최신 일정을 조회할 수 있습니다.');}
  if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
  }catch(err){
  if(!valid())return;
+ cloudReportSaveIssue(err.message);
  if(String(err.message||'').includes('일정 버전 충돌')){
   // Preserve the draft on this device. Repeating the same stale patch cannot succeed safely.
   cloud.needsSave=!!cloud.draftBackupFailed;
@@ -1672,6 +1721,8 @@ async function cloudReload(){
 }
 function cloudApplyIdentity(info){
  cloud.identity=info;cloud.active=true;
+ $('managerSaveIssues').classList.toggle('hide',!['manager','director'].includes(info.role));
+ cloudIssueReporter()?.flush();
  document.body.classList.add('cloud-ready');
  $('cloudGate').classList.add('hide');
  $('cloudUser').textContent=info.center+' · '+info.name+' ('+(info.role==='manager'?'팀장':info.role==='director'?'부장':'상담사')+')';
@@ -3629,7 +3680,7 @@ function alertDraw(){
  $('alertReadAll').disabled=!unseen.some(x=>x.source!=='energy');
  alertBridgeUpdate();
  $('alertItems').innerHTML=unseen.length?unseen.map(x=>{
-  const source=x.source==='energy'?'에너지고 출입 신청':x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='arrival'?'내담자 도착':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
+  const source=x.source==='saveerror'?'직원 일정 저장 오류':x.source==='energy'?'에너지고 출입 신청':x.source==='report'?'직원 일정 종합보고':x.source==='work'?'직원 연차·외부일정':x.source==='arrival'?'내담자 도착':x.source==='shared'?'팀 공유 일정':x.source==='board'?'공용 게시판':'공통 공지·행사';
   const scope=x.scope==='전체'||x.scope==='all'?'전체 지사':x.scope;
   return '<article class="alert-item"><strong>'+escapeHtml(x.title||'새 업무 알림')+'</strong><p>'+escapeHtml(source+' · '+scope+(x.date?' · '+x.date:''))+'</p><div><button type="button" data-alert-open="'+escapeHtml(x.key)+'">내용 보기</button><button type="button" data-alert-ack="'+escapeHtml(x.key)+'">'+(x.source==='energy'?'학교 등록 완료 ✓':x.source==='work'||x.source==='report'||x.source==='arrival'?'확인 ✓':'읽음')+'</button></div></article>';
  }).join(''):'<div class="executive-empty">새 알림이 없습니다.</div>';
@@ -3732,6 +3783,7 @@ async function alertPoll(pop=true){
  if(alerts.staffId!==cloud.identity.id){alerts.items=[];alerts.staffId=cloud.identity.id;alerts.shown.clear();alerts.snoozedUntil=0}
  const staffId=cloud.identity.id,valid=cloudSessionGuard();
  alerts.busy=true;
+ cloudIssueReporter()?.flush();
  try{
   const {data,error}=await cloud.client.rpc('schedule_alert_feed');
   if(error)throw error;
@@ -3741,6 +3793,11 @@ async function alertPoll(pop=true){
     if(workError)throw workError;work=Array.isArray(workData?.items)?workData.items:[];
   }catch(err){console.warn('근무일정 관리자 알림 조회 지연',err?.message||err)}
   let digest=[];
+  let saveIssues=[];
+  if(['manager','director'].includes(cloud.identity.role)){
+   try{const {data:issueData,error:issueError}=await cloud.client.rpc('schedule_save_issue_feed');if(issueError)throw issueError;saveIssues=Array.isArray(issueData?.items)?issueData.items:[];
+   }catch{console.warn('직원 저장 오류 보고 조회 지연');}
+  }
   try{const {data:dig,error:digError}=await cloud.client.rpc('schedule_work_report_alert_feed');
     if(digError)throw digError;digest=Array.isArray(dig?.items)?dig.items:[];
   }catch(err){console.warn('관리자 종합보고 알림 조회 지연',err?.message||err)}
@@ -3760,7 +3817,8 @@ async function alertPoll(pop=true){
    if(arrivalError)throw arrivalError;arrivals=Array.isArray(arrivalData?.items)?arrivalData.items:[];
   }catch(err){console.warn('내담자 도착 알림 조회 지연',err?.message||err)}
   if(!valid()||cloud.identity?.id!==staffId)return;
-  alerts.items=[...arrivals,...energy,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board].filter(alertInScope);
+  alerts.items=[...arrivals,...energy,...saveIssues,...(Array.isArray(data?.items)?data.items:[]),...digest,...work,...board].filter(alertInScope);
+  $('managerSaveIssues').textContent='⚠ 오류 보고'+(saveIssues.some(x=>x.status==='open')?' · 미해결 '+saveIssues.filter(x=>x.status==='open').length+'건':'');
   alertDraw();
   const fresh=GoodJobNotificationPolicy.pending(alertUnread(),localStorage,cloud.identity?.name).filter(x=>!alerts.shown.has(alertPopupKey(x))&&!energyPopupPreviouslyShown(x));
   if(pop&&window.self===window.top&&fresh.length&&Date.now()>alerts.snoozedUntil&&!document.querySelector('dialog[open]')&&!document.body.classList.contains('mobile-quick-open')){
@@ -3776,7 +3834,9 @@ async function alertAck(keys){
  const workKeys=keys.filter(x=>x.startsWith('work:')).slice(0,40);
  const reportKeys=keys.filter(x=>x.startsWith('report:')).slice(0,40);
  const arrivalKeys=keys.filter(x=>x.startsWith('arrival:')).slice(0,40);
- const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')&&!x.startsWith('energy:')&&!x.startsWith('arrival:')).slice(0,40);
+ const issueKeys=keys.filter(x=>x.startsWith('saveerror:')).slice(0,40);
+ const regularKeys=keys.filter(x=>!x.startsWith('work:')&&!x.startsWith('report:')&&!x.startsWith('energy:')&&!x.startsWith('arrival:')&&!x.startsWith('saveerror:')).slice(0,40);
+ if(issueKeys.length){const {error}=await cloud.client.rpc('schedule_save_issue_ack',{p_keys:issueKeys});if(error)throw error;}
  if(workKeys.length){
    const {error}=await cloud.client.rpc('schedule_work_alert_ack',{p_keys:workKeys});
    if(error)throw error;
@@ -3800,6 +3860,8 @@ function alertLater(){
 function alertInitialize(){
  if(alerts.initialized)return;alerts.initialized=true;
  $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
+ $('managerSaveIssues').onclick=()=>managerSaveIssueOpen().catch(()=>{});
+ window.addEventListener('online',()=>{if(cloud.active){cloudIssueReporter()?.flush();alertPoll(true);}});
  $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
  $('alertReadAll').onclick=async()=>{try{await alertAck(alertUnread().filter(x=>x.source!=='energy').map(x=>x.key))}catch(e){alert('읽음 저장 실패: '+e.message)}};
  $('alertItems').onclick=async e=>{
@@ -3815,6 +3877,7 @@ function alertInitialize(){
   if(!button.dataset.alertOpen)return;
   if($('alertDialog').open)$('alertDialog').close();
   if(item.source==='shared')await sharedOpen();
+  else if(item.source==='saveerror')await managerSaveIssueOpen();
   else if(item.source==='board')window.open(BOARD_WEB_URL,'_blank','noopener,noreferrer');
   else if(item.source==='report')await workReportOpen(item.kind==='월간'?'month':item.kind==='주간'?'week':'day');
   else if(item.source==='work')await workReportOpen('day');

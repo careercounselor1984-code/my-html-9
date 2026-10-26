@@ -20,7 +20,7 @@ const commit=html.slice(html.indexOf('async function cloudCommit(){'),html.index
 async function failure(message){
  const cloud={active:true,busy:false,needsSave:true,identity:{id:'test'},base:{events:new Map()}},timers=[],dialogs=[];
  const ctx={cloud,model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
-  cloudSyncEvents:async()=>{throw Error(message)},ScheduleSaveRecovery:recovery,cloudShowSaveIssue:async text=>{cloud.saveIssue=text;dialogs.push(text)},cloudStatus:()=>{},clearTimeout:()=>{},setTimeout:(fn,ms)=>{timers.push(ms);return 1}};
+  cloudReportSaveIssue:()=>{},cloudResolveSaveReport:()=>{},cloudSyncEvents:async()=>{throw Error(message)},ScheduleSaveRecovery:recovery,cloudShowSaveIssue:async text=>{cloud.saveIssue=text;dialogs.push(text)},cloudStatus:()=>{},clearTimeout:()=>{},setTimeout:(fn,ms)=>{timers.push(ms);return 1}};
  vm.createContext(ctx);vm.runInContext(commit,ctx);await ctx.cloudCommit();return {cloud,timers,dialogs,ctx};
 }
 (async()=>{
@@ -32,7 +32,7 @@ async function failure(message){
  const success={cloud:{active:true,busy:false,needsSave:true,resolvingSaveIssue:true,identity:{id:'test'},base:{events:new Map(),people:new Map()}},
   model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
   cloudSyncEvents:async()=>0,cloudSyncList:async()=>0,cloudMap:rows=>new Map(rows.map(e=>[e.id,JSON.stringify(e)])),cloudDraftKey:()=> 'pending-test',localStorage:{removeItem:key=>removed.push(key)},
-  cloudStatus:()=>{},alert:text=>alerts.push(text),calendarState:{},setTimeout:()=>1,clearTimeout:()=>{}};
+  cloudReportSaveIssue:()=>{},cloudResolveSaveReport:()=>{},cloudStatus:()=>{},alert:text=>alerts.push(text),calendarState:{},setTimeout:()=>1,clearTimeout:()=>{}};
  vm.createContext(success);vm.runInContext(commit,success);await success.cloudCommit();
  assert.equal(alerts.length,1,'recovery success is confirmed after server acknowledgement');assert.equal(success.cloud.resolvingSaveIssue,false);assert.deepEqual(removed,['pending-test']);
  console.log('PASS: pending preservation, current/server overlap comparison, adjacency, deleted rows, own scope, immediate dialog, retry pause and network retry');
