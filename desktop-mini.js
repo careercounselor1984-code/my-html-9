@@ -149,7 +149,7 @@ function createEventButton(e){
  const kind=e.kind==='consult'?'consult':eventType(e);
  el.className='mini-event'+(kind==='consult'?'':' '+kind)+(readonly?' readonly':'');
  el.title=readonly?'다른 상담사의 일정 · 조회 전용':'클릭하여 일정 수정';
- const time=document.createElement('span');time.className='mini-event-time';time.textContent=e.allDay?'종일':(e.time||'09:00');
+ const time=document.createElement('span');time.className='mini-event-time';time.textContent=e.type==='시차'?'시차':e.allDay?'종일':(e.time||'09:00');
  const main=document.createElement('span');main.className='mini-event-main';
  const name=document.createElement('b');
  // Other counselors' titles are masked in the general schedule snapshot.
@@ -158,7 +158,7 @@ function createEventButton(e){
    ?arrivalNamesByEvent.get(e.arrivalEventId):'';
  const title=clientName||e.title||e.type||'일정';
  name.textContent=(miniScope==='center'?(e.owner+' · '):'')+title;
- const desc=document.createElement('small');desc.textContent=(e.type||'근무 일정')+(e.allDay?' · 종일':e.end?' · '+e.end:'')+(readonly?' · 조회만 가능':'');
+ const desc=document.createElement('small');desc.textContent=(e.type||'근무 일정')+(e.type==='시차'?' · 출근시간 정보':e.allDay?' · 종일':e.end?' · '+e.end:'')+(readonly?' · 조회만 가능':'');
  main.append(name,desc);el.append(time,main);
  if(!readonly&&e.id)el.addEventListener('click',()=>focusEditor(()=>bridge.edit(e.id)));
  if(miniScope==='center'&&e.kind==='consult'&&e.date===today()&&e.arrivalEventId){
