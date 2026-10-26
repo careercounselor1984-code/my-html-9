@@ -4,7 +4,7 @@
  const minutes=t=>{const m=/^(\d{2}):(\d{2})$/.exec(t||'');return m?Number(m[1])*60+Number(m[2]):NaN};
  const consultation=e=>e.kind==='consult'||(!e.kind&&['초기','해석','IAP','컨설팅','재진단','훈련등록','카드발급','신청','일경험','연계'].includes(e.type));
  function overlaps(a,b){
-  if(a.id===b.id||a.date!==b.date||a.center!==b.center||a.owner!==b.owner||!(consultation(a)||consultation(b)))return false;
+  if(a.id===b.id||a.date!==b.date||a.center!==b.center||a.owner!==b.owner||a.type==='시차'||b.type==='시차'||!(consultation(a)||consultation(b)))return false;
   if(a.allDay||b.allDay)return true;
   const start=e=>minutes(e.time),end=e=>e.end?minutes(e.end):start(e)+30;
   return start(a)<end(b)&&start(b)<end(a);
