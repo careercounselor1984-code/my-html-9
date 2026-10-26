@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="referrer" content="no-referrer">
 <script src="./secure-backup.js"></script>
-<script src="./schedule-save-recovery.js?v=20261026-1"></script>
+<script src="./schedule-save-recovery.js?v=20261026-2"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
@@ -4125,6 +4125,8 @@ const CUSTOM_TYPE='__custom__';
 const eventKind=e=>e.kind==='consult'||e.kind==='work'?e.kind:SERVICES.has(e.type)?'consult':'work';
 const isConsultEvent=e=>eventKind(e)==='consult';
 const isWorkEvent=e=>eventKind(e)==='work';
+// 시차는 출근시간 정보이며 상담·연차 시간대를 점유하지 않는다.
+const isShiftEvent=e=>isWorkEvent(e)&&e.type==='시차';
 const HOL={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-01':'노동절','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일','2026-06-03':'지방선거일','2026-06-06':'현충일','2026-07-17':'제헌절','2026-08-15':'광복절','2026-08-17':'대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절'};
 // 2027년 월력요항(우주항공청 2026-06-29 발표). 새 임시공휴일 고시 여부는 주기적으로 검증.
 Object.assign(HOL,{
@@ -4236,22 +4238,23 @@ function closedDayAlert(date,center=currentCenter()){
  alert(date+'은(는) '+closedDayReasons(date,center).join(' · ')+'로 비근무일이야. 상담·연차 등 개인 일정은 등록할 수 없어.');
 }
 
-function matchingAt(e,t){return e.allDay||(minute(e.time)<=minute(t)&&minute(e.end||addMinutes(e.time,30))>minute(t))}
+function matchingAt(e,t){return !isShiftEvent(e)&&(e.allDay||(minute(e.time)<=minute(t)&&minute(e.end||addMinutes(e.time,30))>minute(t)))}
 function eventBlock(e,{compact=false,repeat=false,showOwner=false}={}){
  const name=escapeHtml(showName(e,false)),masked=escapeHtml(showName(e,true)),typ=escapeHtml(e.type),owner=showOwner&&e.owner?`<small>${escapeHtml(e.owner)}</small>`:'';
  const content=`<strong><span class="screen-only">${name}</span><span class="print-only">${masked}</span></strong><span class="pilltype">· ${typ}${e.energySchool?' · 에너지고':e.trip&&isConsultEvent(e)?' · 출장상담':''}</span>${owner}${e.bookedBy?`<small class="screen-only">예약 등록: ${escapeHtml(e.bookedBy)}</small>`:''}${e.handoffFrom?`<small class="handoff-tag">↪ 인계받음 · 원담당 ${escapeHtml(e.handoffFrom)}</small>`:''}`;
  return `<div class="entry entry-${typeClass(e)}${repeat?' gap':''}" data-id="${escapeHtml(e.id)}" title="${escapeHtml(e.memo||'')}">${content}</div>`;
 }
-function headerDay(date,label){const tags=holidays(date),closed=parseDate(date).getDay()===5;return `<th>${label}<span class="thead-note">${date.slice(5)}</span>${closed?'<span class="thead-alert">12시까지 근무</span>':''}${tags.map(t=>`<span class="thead-alert">${escapeHtml(t)}</span>`).join('')}${shortNotices(date).map(t=>`<span class="thead-note noted">${escapeHtml(t)}</span>`).join('')}</th>`}
+function headerDay(date,label){const tags=holidays(date),closed=parseDate(date).getDay()===5,shift=employeeEventsFor(date).filter(isShiftEvent).map(shiftArrivalLabel).join(' / ');return `<th>${label}<span class="thead-note">${date.slice(5)}</span>${closed?'<span class="thead-alert">12시까지 근무</span>':''}${tags.map(t=>`<span class="thead-alert">${escapeHtml(t)}</span>`).join('')}${shortNotices(date).map(t=>`<span class="thead-note noted">${escapeHtml(t)}</span>`).join('')}${shift?`<span class="thead-note noted">시차 ${escapeHtml(shift)}</span>`:''}</th>`}
 function personalDay(dayOverride){
  const date=dayOverride||dateKey(focusDate),off=closedDayReasons(date),available=workSlots(date),entries=employeeEventsFor(date).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+ const shift=entries.filter(isShiftEvent).map(shiftArrivalLabel).join(' / ');
  let h='<div class="day-agenda">';
- h+=`<div class="agenda-head"><div><strong>${escapeHtml(date)} · ${['일','월','화','수','목','금','토'][parseDate(date).getDay()]}요일</strong><small>${escapeHtml(currentOwner())} 상담사 일정</small></div><button type="button" class="agenda-today" data-agenda-today>오늘로 이동</button></div>`;
+ h+=`<div class="agenda-head"><div><strong>${escapeHtml(date)} · ${['일','월','화','수','목','금','토'][parseDate(date).getDay()]}요일</strong><small>${escapeHtml(currentOwner())} 상담사 일정${shift?' · 시차 '+escapeHtml(shift):''}</small></div><button type="button" class="agenda-today" data-agenda-today>오늘로 이동</button></div>`;
  if(off.length){h+=`<div class="agenda-closed">🔒 ${escapeHtml(off.join(' · '))} · 상담 등록은 기본 차단. 실제 근무는 연장·휴일근무 버튼으로 등록해요.</div>`;h+=entries.filter(e=>e.specialWork).map(e=>`<button type="button" class="agenda-event" data-agenda-edit="${escapeHtml(e.id)}">${escapeHtml(e.time+' · '+e.type+' · '+e.title)}</button>`).join('');return h+'</div>'}
  const filled=new Set();for(const ev of entries)for(const t of available)if(matchingAt(ev,t))filled.add(t);
  const consultCount=entries.filter(isConsultEvent).length,workCount=entries.filter(isWorkEvent).length;
  h+=`<div class="agenda-stats"><span>상담 <b>${consultCount}건</b></span><span>근무·외부 <b>${workCount}건</b></span><span>예약 가능 <b>${available.filter(t=>!filled.has(t)).length}칸</b></span></div>`;
- h+=`<div class="mobile-compact-agenda">`+(entries.length?entries.map(ev=>`<button type="button" class="mobile-compact-item" data-agenda-edit="${escapeHtml(ev.id)}"><span>${escapeHtml(ev.allDay?"종일":ev.time)}</span><strong>${escapeHtml(ev.title||ev.type)}</strong><small>${escapeHtml(ev.type)}${ev.handoffFrom?' · ↪ 인계받음 ('+escapeHtml(ev.handoffFrom)+')':''}</small></button>`).join(""):`<div class="mobile-empty-agenda"><b>등록된 일정이 없어요</b><small>아래 빠른 예약으로 상담을 추가할 수 있어요.</small></div>`)+`</div>`;
+ h+=`<div class="mobile-compact-agenda">`+(entries.length?entries.map(ev=>`<button type="button" class="mobile-compact-item" data-agenda-edit="${escapeHtml(ev.id)}"><span>${escapeHtml(isShiftEvent(ev)?'시차 '+shiftArrivalLabel(ev):ev.allDay?'종일':ev.time)}</span><strong>${escapeHtml(ev.title||ev.type)}</strong><small>${escapeHtml(ev.type)}${ev.handoffFrom?' · ↪ 인계받음 ('+escapeHtml(ev.handoffFrom)+')':''}</small></button>`).join(""):`<div class="mobile-empty-agenda"><b>등록된 일정이 없어요</b><small>아래 빠른 예약으로 상담을 추가할 수 있어요.</small></div>`)+`</div>`;
  h+=`<div class="agenda-items">`;
  for(const t of available){const starting=entries.filter(ev=>!ev.allDay&&ev.time===t||(ev.allDay&&t===available[0]));const continuing=entries.some(ev=>matchingAt(ev,t)&&!starting.includes(ev));
  h+=`<div class="agenda-line"><span class="agenda-time">${t}</span><div class="agenda-actions">`;
@@ -4307,7 +4310,7 @@ function teamDay(){
  const consultCount=events.filter(isConsultEvent).length,workCount=events.filter(isWorkEvent).length;
  let h='<div class="team-day-overview"><div class="team-day-overview-title"><span class="team-day-marker">센터 전체</span><strong>시간대별 상담 현황</strong></div><div class="team-day-metrics"><span>상담 예약 <b>'+consultCount+'건</b></span><span>상담사 <b>'+names.length+'명</b></span><span>근무·외부 일정 <b>'+workCount+'건</b></span></div></div>';
  if(names.length>2)h+='<p class="team-day-swipe-tip">↔ 좌우로 밀어 다른 상담사 보기</p>';
- h+='<table class="timetable team-day-table" style="--staff-count:'+names.length+';min-width:'+Math.max(690,82+names.length*160)+'px" aria-label="센터 일일 상담 일정표"><thead><tr><th scope="col">시간</th>'+names.map(n=>'<th scope="col">'+escapeHtml(n)+'</th>').join('')+'</tr></thead><tbody>';
+ h+='<table class="timetable team-day-table" style="--staff-count:'+names.length+';min-width:'+Math.max(690,82+names.length*160)+'px" aria-label="센터 일일 상담 일정표"><thead><tr><th scope="col">시간</th>'+names.map(n=>{const shift=events.filter(e=>e.owner===n&&isShiftEvent(e)).map(shiftArrivalLabel).join(' / ');return '<th scope="col">'+escapeHtml(n)+(shift?'<small>시차 '+escapeHtml(shift)+'</small>':'')+'</th>'}).join('')+'</tr></thead><tbody>';
  for(const t of daySlots){
   if(isFridayClosed(date,t)){
    if(t===daySlots.find(slot=>isFridayClosed(date,slot)))h+='<tr class="closed-summary"><th class="time">오후</th><td colspan="'+names.length+'">금요일 오후 비근무</td></tr>';
@@ -4700,7 +4703,7 @@ async function saveEntry(ev){
  if(!dest.owner){alert('담당 상담사를 선택해 줘.');return false}if(!dest.title){alert('내담자 이름을 입력해 줘.');return false}
  if(isClosedDay(dest.date,dest.center)&&!specialWork){closedDayAlert(dest.date,dest.center);return false}
  if(!allDay&&!withinSameDay(dest.date,dest.time,service?30:Number($('duration').value),specialWork)){alert('근무시간을 확인해 줘. 월~목 09:00~12:00, 13:00~18:00 / 금 09:00~12:00 이내로 등록해 줘.');return false}
- const conflicts=model.events.filter(e=>e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
+ const conflicts=isShiftEvent(dest)?[]:model.events.filter(e=>!isShiftEvent(e)&&e.id!==dest.id&&e.center===dest.center&&e.owner===dest.owner&&e.date===dest.date&&(e.allDay||dest.allDay||minute(e.time)<minute(dest.end)&&minute(dest.time)<minute(e.end||addMinutes(e.time,30))));
  const conflict=conflicts.find(isConsultEvent)||conflicts[0];
  if(conflict){
    if(service||isConsultEvent(conflict)){alert('같은 시간에 상담 또는 근무 일정이 등록되어 있습니다. 상담 중복 예약은 허용되지 않습니다. 다른 시간을 선택해 주세요.');return false;}
@@ -4766,7 +4769,7 @@ function renderQuickExisting(){
  for(const e of entries){const key=e.quick&&e.type==='연차'?'quick:연차':'entry:'+e.id;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(e)}
  const rows=[...grouped.values()].map(list=>{
   const e=list[0],isQuick=list.length>1&&e.quick,mins=new Set(list.flatMap(ev=>coveredSlots(ev,quickDate))).size*30;
-  const timeDisplay=e.allDay?'종일':isQuick?durationLabel(mins)+' · '+list.length+'칸':e.time;
+  const timeDisplay=isShiftEvent(e)?shiftArrivalLabel(e):e.allDay?'종일':isQuick?durationLabel(mins)+' · '+list.length+'칸':e.time;
   const title=e.title&&e.title!==e.type?' · '+escapeHtml(isConsultEvent(e)?printMasked(e.title):e.title):'';
   const ids=list.map(ev=>escapeHtml(ev.id)).join(',');
   return `<div class="rowitem"><span><b>${escapeHtml(e.type)}</b> · ${escapeHtml(timeDisplay)}${title}</span><button type="button" data-remove-group="${ids}">${isQuick?'선택 연차 삭제':'삭제'}</button></div>`
@@ -4976,8 +4979,10 @@ function buildDailyPrint(date,{audience='visitor'}={}){
   html+='</tr>';
  }
  html+='</tbody></table>';
- const notes=includeWork?sharedNotices(date):[];
- if(notes.length)html+='<div class="day-print-footnote">'+notes.map(n=>escapeHtml(n.type+': '+n.title)).join(' · ')+'</div>';
+ const notes=includeWork?sharedNotices(date).map(n=>n.type+': '+n.title):[];
+ // 시차는 시간 칸을 가리지 않고 내부 보고 이미지 하단에 표시한다.
+ if(includeWork)for(const name of owners)for(const ev of events.filter(e=>e.owner===name&&isShiftEvent(e)))notes.push(name+' · 시차 '+shiftArrivalLabel(ev));
+ if(notes.length)html+='<div class="day-print-footnote">'+notes.map(escapeHtml).join(' · ')+'</div>';
  html+='</div>';
  let target=$('schedulePrintOneDay');
  if(!target){target=document.createElement('section');target.id='schedulePrintOneDay';target.setAttribute('aria-label','일일 상담표 인쇄 전용');document.body.appendChild(target)}
@@ -5368,7 +5373,7 @@ window.GoodJobCalendarWorkspace={
    entries:source(date).map(e=>({id:e.id,date:e.date,time:e.time||'',end:e.end||'',allDay:!!e.allDay,title:showName(e,false),owner:e.owner||'',type:e.type,category:typeClass(e),consult:isConsultEvent(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center})).sort((a,b)=>String(a.time).localeCompare(String(b.time))),
    workGroups:teamDayGroups(source(date),date).map(g=>({owner:g.owner,labels:g.labels.map(x=>({type:x.type,text:teamGroupLabel(x),category:typeClass(x)}))}))};
  },
- bandEntries(){if(!cloud.active||!cloud.identity||!['personalWeek','teamDay'].includes(currentView))return {events:[],slots:[]};const team=currentView==='teamDay',days=team?[dateKey(focusDate)]:this.snapshot().dates;return {slots:slots(),events:days.filter(day=>!isClosedDay(day)).flatMap(day=>(team?allEventsFor(day):employeeEventsFor(day)).map(e=>({id:e.id,date:e.date,owner:e.owner,type:e.type,title:showName(e,false),memo:e.memo||'',trip:!!e.trip,specialWork:!!e.specialWork,readonly:!!e.readonly,allDay:!!e.allDay,time:e.allDay?'09:00':e.time||'09:00',end:parseDate(day).getDay()===5&&minute(e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)))>720?'12:00':e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)),work:isWorkEvent(e),category:typeClass(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center}))) }},
+ bandEntries(){if(!cloud.active||!cloud.identity||!['personalWeek','teamDay'].includes(currentView))return {events:[],slots:[]};const team=currentView==='teamDay',days=team?[dateKey(focusDate)]:this.snapshot().dates;return {slots:slots(),events:days.filter(day=>!isClosedDay(day)).flatMap(day=>(team?allEventsFor(day):employeeEventsFor(day)).filter(e=>!isShiftEvent(e)).map(e=>({id:e.id,date:e.date,owner:e.owner,type:e.type,title:showName(e,false),memo:e.memo||'',trip:!!e.trip,specialWork:!!e.specialWork,readonly:!!e.readonly,allDay:!!e.allDay,time:e.allDay?'09:00':e.time||'09:00',end:parseDate(day).getDay()===5&&minute(e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)))>720?'12:00':e.end||(e.allDay?'18:00':addMinutes(e.time||'09:00',30)),work:isWorkEvent(e),category:typeClass(e),editable:!team&&!e.readonly&&e.owner===cloud.identity.name&&e.center===cloud.identity.center}))) }},
  navigate(date){if(!cloud.active||!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return;const next=parseDate(date);if(!next||Number.isNaN(+next)||dateKey(next)!==date)return;if(sharedState.open||executiveState.open)return;focusDate=next;mobileMonthSelected=date;render();},
  edit(id){if(!cloud.active||!cloud.identity||['teamDay','teamLeave'].includes(currentView))return;const e=model.events.find(x=>x.id===id&&x.center===cloud.identity.center&&x.owner===cloud.identity.name&&!x.readonly);if(e)openEditor(e.date,e.time,e.id,e.owner);},
  add(date,kind){if(!cloud.active||['teamDay','teamLeave'].includes(currentView))return;this.navigate(date);$(kind==='work'?'addWork':'quickEntryOpen').click();},
