@@ -1271,7 +1271,7 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
  </section>
 </dialog>
 <dialog id="installGuideDlg" class="staff-admin-dialog"><section class="staff-admin-body"><header><h2>휴대폰 앱 설치</h2><button id="installGuideClose" type="button">닫기</button></header><p>앱스토어를 거치지 않고 휴대폰 홈 화면에 아이콘을 만들 수 있어요.</p><div class="status-panel"><strong>안드로이드 (Chrome)</strong><p>주소창 오른쪽의 메뉴 ⋮ → 앱 설치 또는 홈 화면에 추가 → 설치</p></div><div class="status-panel"><strong>아이폰 (Safari)</strong><p>하단 공유 버튼 → 홈 화면에 추가 → 추가</p></div><p>PC와 같은 계정으로 로그인하면 일정이 자동 동기화돼요. 인터넷 연결이 필요합니다.</p></section></dialog>
-<dialog id="presenceDlg" class="team-status-dialog"><section class="status-modal"><header><h2>센터별 오늘 근무현황</h2><button type="button" id="presenceClose">닫기</button></header><p>직원 본인이 표시한 상태만 보여요. 미확인은 결근이 아니며 실제 출퇴근 인증도 아니야.</p><div class="status-actions"><label>내 상태 <select id="myPresence"><option value="">미확인</option><option value="출근">출근</option><option value="외근">외근</option><option value="퇴근">퇴근</option><option value="휴무">휴무</option></select></label><button class="primary" id="presenceSave" type="button">상태 저장</button><button id="presenceRefresh" type="button">새로고침</button></div><div id="presenceFeedback"></div><div id="presenceList"></div></section></dialog>
+<dialog id="presenceDlg" class="team-status-dialog"><section class="status-modal"><header><h2>센터별 오늘 근무현황</h2><button type="button" id="presenceClose">닫기</button></header><p>근무일은 기본적으로 출근으로 표시하고, 연차·외부일정은 일정표를 기준으로 자동 반영합니다. 직접 입력한 퇴근·휴무도 반영됩니다. 실제 출퇴근 인증은 아닙니다.</p><div class="status-actions"><label>내 상태 (필요시 직접 변경) <select id="myPresence"><option value="">자동 (일정 기준)</option><option value="출근">출근</option><option value="외근">외근</option><option value="퇴근">퇴근</option><option value="휴무">휴무</option></select></label><button class="primary" id="presenceSave" type="button">상태 저장</button><button id="presenceRefresh" type="button">새로고침</button></div><div id="presenceFeedback"></div><div id="presenceList"></div></section></dialog>
 <dialog id="messageDlg" class="team-status-dialog"><section class="status-modal"><header><h2>상담사 쪽지</h2><button type="button" id="messageClose">닫기</button></header><p>500자 이하 텍스트만 보낼 수 있어. 내담자 이름·연락처 등 개인정보는 적지 마세요.</p><form id="messageForm"><label>받는 직원 <select id="messageTo" required></select></label><label>쪽지 <textarea id="messageText" rows="3" maxlength="500" required></textarea></label><div class="status-actions"><button type="submit" class="primary" id="messageSend">보내기</button><button id="messageRefresh" type="button">새로고침</button></div></form><div id="messageFeedback"></div><div id="messageList"></div></section></dialog>
 <dialog id="dlg"><form class="modal" id="editor"><div id="journalPrefillInfo" role="status" hidden></div><div class="modal-head"><div><h2 id="editTitle">일정 등록</h2><span class="modal-sub">상담 예약과 개인 근무 일정을 별도로 등록해요</span></div><button id="closeModal" type="button" aria-label="닫기">✕</button></div>
   <div class="entry-mode-picker" id="entryModePicker" role="group" aria-label="등록할 일정 종류">
@@ -1764,16 +1764,18 @@ async function refreshPresence(){
  if(error){$('presenceFeedback').textContent='조회 오류: '+error.message;return}
  sharedTeam.presence=Array.isArray(data)?data:[];
  const me=sharedTeam.presence.find(x=>x.center===cloud.identity.center&&x.name===cloud.identity.name);
- $('myPresence').value=me&&me.status!=='미확인'?me.status:'';
+ $('myPresence').value=me?.manualStatus||'';
  const centers=[...new Set(sharedTeam.presence.map(x=>x.center))];
  $('presenceList').innerHTML=centers.map(c=>'<div class="status-panel"><h3>'+escapeHtml(c)+'</h3>'+
- sharedTeam.presence.filter(x=>x.center===c).map(x=>'<span class="status-person">'+escapeHtml(x.name)+' · <b>'+escapeHtml(x.status)+'</b> <small>'+escapeHtml(x.status==='미확인'?'':x.time||'')+'</small></span>').join('')+'</div>').join('');
- $('presenceFeedback').textContent='직원 본인이 입력한 상태 기준 · '+date;
+ sharedTeam.presence.filter(x=>x.center===c).map(x=>'<span class="status-person">'+escapeHtml(x.name)+' · <b>'+escapeHtml(x.status||'출근')+'</b> <small>'+escapeHtml(x.time||'자동')+'</small></span>').join('')+'</div>').join('');
+ $('presenceFeedback').textContent='일정 기준 자동 반영 · 직접 입력 상태 우선 · '+date;
 }
 async function savePresence(){
  const status=$('myPresence').value;
- if(!status){$('presenceFeedback').textContent='상태를 선택해 주세요.';return}
- const {error}=await cloud.client.from('schedule_presence').upsert({staff_id:cloud.identity.id,work_date:dateKey(new Date()),status},{onConflict:'staff_id,work_date'});
+ const today=dateKey(new Date());
+ // 자동 판정을 선택하면 자신의 수동 상태 기록만 지우고 일정 기준으로 돌아간다.
+ const query=cloud.client.from('schedule_presence');
+ const {error}=status?await query.upsert({staff_id:cloud.identity.id,work_date:today,status},{onConflict:'staff_id,work_date'}):await query.delete().eq('staff_id',cloud.identity.id).eq('work_date',today);
  if(error){$('presenceFeedback').textContent='저장 오류: '+error.message;return}
  await refreshPresence();
 }
@@ -2551,7 +2553,7 @@ function executiveRender(){
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+' · '+selectedDay.slice(5).replace('-','/')+'</h4>'+(sorted.join('')||'<div class="executive-empty">등록된 일정 없음</div>')+'</div>';
  }).join('');
  $('executivePresenceTitle').textContent=selectedDay===dateKey(new Date())?'오늘의 직원 근무·예약현황':'선택일의 직원 일정 · 근무현황';
- $('executivePresenceHelp').textContent=selectedDay===dateKey(new Date())?'직접 등록한 근무상태를 우선합니다. 상태 미등록 중 상담 예약이 있다면 출근(일정 기준)으로 표시합니다. 실제 출근 인증은 아닙니다.':'선택 날짜의 예약·연차입니다. 출근 상태는 오늘에 한해 표시하고 과거·미래의 출근 여부를 판정하지 않습니다.';
+ $('executivePresenceHelp').textContent=selectedDay===dateKey(new Date())?'근무일 기본 출근 · 출장·외근·외부교육은 외부일정으로 표시합니다. 연차·반차 및 직접 입력한 퇴근·휴무는 따로 반영합니다. 실제 출퇴근 인증은 아닙니다.':'선택 날짜의 예약·연차입니다. 출근 상태는 오늘에 한해 일정 기준으로 표시합니다.';
  $('executivePresence').innerHTML=viewCenters.map(c=>{
   const people=staff.filter(x=>x.center===c);
   const presence=all.presence.filter(x=>x.center===c);
@@ -2562,14 +2564,15 @@ function executiveRender(){
    const bookings=own.filter(x=>x.kind==='consult').map(x=>x.time).filter(Boolean).sort();
    const work=own.filter(x=>x.kind==='work');
    const workDetails=work.map(x=>executiveWorkLabel(x,isToday));
-   const saved=isToday?String(record?.status||'미확인'):'';
-   const manuallySet=isToday&&saved&&saved!=='미확인';
-   const fullLeave=work.find(x=>x.allDay&&/연차|반차|휴무/.test(String(x.type||'')));
-   const outside=work.find(x=>/출장|외근|교육|홍보/.test(String(x.type||'')));
-   const auto=isToday?(fullLeave?String(fullLeave.type||'연차'):bookings.length?'출근 (일정 기준)':outside?'외근 (일정 기준)':'근무상태 미등록'):'';
-   const shown=manuallySet?saved:auto;
+   const saved=isToday?String(record?.status||''):'';
+   const fullLeave=work.some(x=>x.type==='연차'&&x.allDay);
+   const partialLeave=work.some(x=>['연차','반차','반반차','2시간 연차'].includes(x.type)&&!(x.type==='연차'&&x.allDay));
+   const outside=work.some(x=>['출장','외근','외부교육','외부홍보'].includes(x.type));
+   const manualOff=['퇴근','휴무'].includes(saved);
+   const nonworking=isToday&&isClosedDay(selectedDay,c)&&!['출근','외근'].includes(saved)&&!work.some(x=>x.type==='휴일근무');
+   const shown=isToday?(fullLeave?'연차':manualOff?saved:nonworking?'휴무일':outside||saved==='외근'?'출근 · 외부일정'+(partialLeave?' · 부분연차':''):partialLeave?'출근 · 부분연차':'출근'):'';
    const details=[bookings.length?'상담 '+bookings.length+'건'+(bookings.length<=5?' · '+bookings.join(', '):''):'',...workDetails].filter(Boolean);
-   const pill=shown?'<span class="executive-pill'+(shown==='근무상태 미등록'?' is-unknown':'')+'">'+escapeHtml(shown)+'</span>':'';
+   const pill=shown?'<span class="executive-pill">'+escapeHtml(shown)+'</span>':'';
    return '<div class="executive-person"><strong>'+escapeHtml(person.name)+'</strong><div class="executive-person-details">'+pill+(details.length?'<small>'+details.map(escapeHtml).join(' / ')+'</small>':'<small class="executive-no-record">일정 등록 없음</small>')+'</div></div>';
   }).join('');
   return '<div class="executive-detail-group"><h4>'+escapeHtml(c)+'</h4>'+(items||'<div class="executive-empty">직원 명단 없음</div>')+'</div>';
