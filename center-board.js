@@ -6,12 +6,12 @@
  const names={memo:'공유 메모',notice:'공지',request:'인원 취합'},priorities={normal:'일반',important:'중요',urgent:'긴급'};
  const norm=s=>String(s||'').replace(/\s/g,'');
  const date=s=>s?new Date(s).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'';
- let identity=null,epoch=0,expectedName='',linked=!journal,filter='open',cards=[],responses=[],people=[],selected=null,editing=null,busy=false,offset=0,total=0,hasMore=false,loading=false,client;
+ let identity=null,sessionUserId='',epoch=0,expectedName='',linked=!journal,filter='open',cards=[],responses=[],people=[],selected=null,editing=null,busy=false,offset=0,total=0,hasMore=false,loading=false,client;
  document.body.classList.toggle('feed-mode',feedMode);
  const status=(message,error=false,id='status')=>{$(id).textContent=message;$(id).classList.toggle('error',error);resize()};
  function resize(){if(feedMode&&window.parent!==window)window.parent.postMessage({type:'goodjob:center-board-height',height:Math.min(260,Math.max(40,document.querySelector('main').getBoundingClientRect().height))},ORIGIN)}
  function tellParent(message){if(window.parent!==window)window.parent.postMessage(message,ORIGIN)}
- function clear(){epoch++;identity=null;cards=[];responses=[];people=[];selected=null;editing=null;for(const id of ['cards','feed','responses','detailTools'])$(id).replaceChildren();for(const id of ['detailBody','detailTitle','detailMeta','detailStatus','composeStatus','identity'])$(id).textContent='';$('workspace').hidden=true;$('gate').hidden=false;$('detail').close();$('compose').close();$('cardForm').reset();$('respondForm').reset();resize()}
+ function clear(){epoch++;identity=null;sessionUserId='';cards=[];responses=[];people=[];selected=null;editing=null;for(const id of ['cards','feed','responses','detailTools'])$(id).replaceChildren();for(const id of ['detailBody','detailTitle','detailMeta','detailStatus','composeStatus','identity'])$(id).textContent='';$('workspace').hidden=true;$('gate').hidden=false;$('detail').close();$('compose').close();$('cardForm').reset();$('respondForm').reset();resize()}
  async function call(action,payload={}){
   if(!identity||!linked)throw Error('직원 로그인 후 이용해 주세요.');
   const request=epoch;
@@ -32,7 +32,7 @@
    if(request!==epoch)return;
    if(!result.data?.id||result.data.mustChangePassword)throw Error('상담일정표에서 직원 인증과 비밀번호 변경을 완료해 주세요.');
    if(journal&&(!expectedName||norm(expectedName)!==norm(result.data.name)))throw Error('통합본과 일정표의 직원 계정이 다릅니다. 같은 직원으로 로그인해 주세요.');
-   identity=result.data;$('identity').textContent=identity.center+' · '+identity.name;$('gate').hidden=true;$('workspace').hidden=false;$('full').hidden=feedMode;$('feed').hidden=!feedMode;
+   identity=result.data;sessionUserId=session.data.session.user.id;$('identity').textContent=identity.center+' · '+identity.name;$('gate').hidden=true;$('workspace').hidden=false;$('full').hidden=feedMode;$('feed').hidden=!feedMode;
    loading=false;await load();
    const id=params.get('card');if(id&&!feedMode)await openDetail(id);
   }catch(error){if(request!==epoch)return;clear();status(error.message,true)}
@@ -95,7 +95,7 @@
  const remember=()=>{try{return localStorage.getItem('goodjob_schedule_remember_v1')!=='0'}catch{return false}},storage={getItem:key=>{try{if(!remember())return sessionStorage.getItem(key);const pending=sessionStorage.getItem(key);if(pending!==null){localStorage.setItem(key,pending);if(localStorage.getItem(key)===pending)sessionStorage.removeItem(key);return pending}return localStorage.getItem(key)}catch{return null}},setItem:(key,value)=>{try{(remember()?localStorage:sessionStorage).setItem(key,value)}catch{}},removeItem:key=>{try{localStorage.removeItem(key);sessionStorage.removeItem(key)}catch{}}};
  if(!window.supabase?.createClient){clear();status('로그인 모듈을 불러오지 못했습니다. 새로고침해 주세요.',true);return}
  client=window.supabase.createClient('https://hnhccnyitrlzqprnredi.supabase.co','sb_publishable_3tzdh4GuDjdx9GX8K9B4dQ_4gUaZAds',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'sb-hnhccnyitrlzqprnredi-auth-token',storage}});
- client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){clear();status('로그아웃되었습니다.')}else if(event==='SIGNED_IN')setTimeout(()=>authenticate(),0)});
+ client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){clear();status('로그아웃되었습니다.')}else if(event==='SIGNED_IN'&&(!identity||session?.user?.id!==sessionUserId))setTimeout(()=>authenticate(),0)});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!busy){if(identity)load();else authenticate()}});
  window.addEventListener('pageshow',e=>{if(e.persisted)authenticate()});
  if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='goodjob:open-center-card'&&identity)openDetail(String(e.data.cardId||''))});
