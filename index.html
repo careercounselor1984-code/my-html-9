@@ -936,7 +936,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .legend span{display:inline-flex;align-items:center;gap:5px;border:1px solid #e8eef5;background:#f6f9fc;border-radius:40px;padding:5px 9px;white-space:nowrap}
  body[data-view="teamDay"] .legend i{width:8px;height:8px;margin:0;border-radius:50%;flex:none}
  body[data-view="teamDay"] .legend span:nth-child(3) i{background:#c789a4!important}
- body[data-view="teamDay"] .scroll{max-height:min(76vh,970px);overflow:auto;overscroll-behavior:contain;border:1px solid #d9e5f1;border-radius:11px;scrollbar-color:#c5d5e5 #f5f8fc}
+ body[data-view="teamDay"] .scroll{max-height:none;overflow:auto;border:1px solid #d9e5f1;border-radius:11px;scrollbar-color:#c5d5e5 #f5f8fc}
  body[data-view="teamDay"] .team-day-overview{position:sticky;left:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 13px;background:linear-gradient(105deg,#f3f8fe,#fafcff);border-bottom:1px solid #dbe7f3}
  body[data-view="teamDay"] .team-day-overview-title{display:flex;align-items:center;gap:9px;color:#2c4e6c;font-size:12px}
  body[data-view="teamDay"] .team-day-overview-title strong{font-size:13px;font-weight:850}
@@ -977,7 +977,7 @@ body.director-preview-mode #workReportAcknowledge,body.director-preview-mode #sh
  body[data-view="teamDay"] .sheet-meta{font-size:11px!important}
  body[data-view="teamDay"] .legend{gap:5px!important;margin:8px 0!important}
  body[data-view="teamDay"] .legend span{font-size:10px;padding:5px 7px}
- body[data-view="teamDay"] .scroll{max-height:70dvh}
+ body[data-view="teamDay"] .scroll{max-height:none}
  body[data-view="teamDay"] .team-day-overview{padding:8px 10px}
  body[data-view="teamDay"] .team-day-swipe-tip{display:block;position:sticky;left:0;margin:0;padding:5px 9px;background:#f7fafe;color:#7189a2;font-size:10px;text-align:center;border-bottom:1px solid #e5edf4}
  body[data-view="teamDay"] .team-day-overview-title strong{font-size:12px}
@@ -5004,7 +5004,7 @@ $('staffList').onclick=e=>{const b=e.target.closest('[data-staff]');if(!b)return
 
 /* Visitor print/PDF excludes employee schedules; company report images include them. */
 const isVisitorPrintEvent=e=>isConsultEvent(e)&&!WORK_TYPES.has(String(e.type||'').trim())&&!/^\d+(?:\.\d+)?시간\s*연차$/.test(String(e.type||'').trim());
-const isLeavePrintEvent=e=>isWorkEvent(e)&&['연차','반차','2시간 연차','반반차'].includes(e.type);
+const isLeavePrintEvent=e=>['연차','반차','반반차'].includes(e.type)||/^\d+(?:\.\d+)?시간\s*연차$/.test(String(e.type||'').trim());
 const isContinuousWorkPrintEvent=e=>isWorkEvent(e)&&!isLeavePrintEvent(e);
 function buildDailyPrint(date,{audience='visitor'}={}){
  const includeWork=audience==='staff';
@@ -5012,7 +5012,7 @@ function buildDailyPrint(date,{audience='visitor'}={}){
  const owners=allPeople?employees(currentCenter()):[currentOwner()];
  if(!owners.length){alert('인쇄할 상담사를 선택해 주세요.');return false}
  // Never expose leave or other internal employee schedules on the visitor-facing sheet.
- const events=allEventsFor(date).filter(e=>includeWork||isVisitorPrintEvent(e));
+ const events=allEventsFor(date).filter(e=>includeWork||isVisitorPrintEvent(e)).map(e=>includeWork&&((WORK_TYPES.has(e.type)&&e.type!=='기타')||isLeavePrintEvent(e))?{...e,kind:'work'}:e);
  const weekday=['일','월','화','수','목','금','토'][parseDate(date).getDay()];
  const number=owners.length;
  const cols=owners.map(n=>'<th>'+escapeHtml(n)+'</th>').join('');
@@ -5036,9 +5036,14 @@ function buildDailyPrint(date,{audience='visitor'}={}){
    if(closed)cellContent='<span class="day-print-closed">비근무</span>';
    else if(first.length){
     // Leave itself is drawn as one continuous band by the staff-image renderer.
-    cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>'<div class="day-print-entry"><b>'+escapeHtml(showName(e,true))+'</b><span> · '+escapeHtml(e.type)+(e.energySchool&&isConsultEvent(e)?' (에너지고 출장상담)':e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>').join('');
+    cellContent=first.filter(e=>!isLeavePrintEvent(e)).map(e=>{
+     const name=escapeHtml(showName(e,true)),type=escapeHtml(e.type);
+     if(!includeWork)return '<div class="day-print-entry"><b>'+name+'</b><span> · '+type+(e.energySchool&&isConsultEvent(e)?' (에너지고 출장상담)':e.trip&&isConsultEvent(e)?' (출장)':'')+'</span></div>';
+     const detail=isConsultEvent(e)?e.energySchool?'출장상담 · 에너지고':e.trip?'출장상담':'':'';
+     return '<div class="day-print-entry"><b class="day-print-primary">'+name+(name!==type?' · '+type:'')+'</b>'+(detail?'<span class="day-print-detail">'+escapeHtml(detail)+'</span>':'')+'</div>';
+    }).join('');
    }else if(matching.some(e=>!isLeavePrintEvent(e)))cellContent='<span class="day-print-ongoing">계속</span>';
-   const leaveMeta=leave?' data-leave-id="'+escapeHtml(String(leaveEvent.id||leaveEvent.owner+'|'+leaveEvent.time+'|'+leaveEvent.type))+'" data-leave-type="'+escapeHtml(leaveEvent.type)+'"':'';
+   const leaveMeta=leave?' data-leave-id="'+escapeHtml(leaveEvent.owner+'|'+leaveEvent.type)+'" data-leave-type="'+escapeHtml(leaveEvent.type)+'"':'';
    const workMeta=workEvent?' data-work-id="'+escapeHtml(String(workEvent.id||workEvent.owner+'|'+workEvent.time+'|'+workEvent.end+'|'+workEvent.type+'|'+workEvent.title))+'" data-work-title="'+escapeHtml(showName(workEvent,true))+'" data-work-type="'+escapeHtml(workEvent.type)+'"':'';
    html+='<td class="'+[closed?'day-print-blocked':'',leave?'day-print-leave':'',workEvent?'day-print-work':''].filter(Boolean).join(' ')+'"'+leaveMeta+workMeta+'>'+cellContent+'</td>';
   }
@@ -5116,9 +5121,22 @@ function renderDailyShareCanvas(){
  ctx.font='700 '+labelSize+'px '+fontFamily;
  const prepared=trs.map(tr=>{
   const cells=Array.from(tr.children);
-  const lines=cells.slice(1).map(cell=>shareWrappedLines(ctx,cell.textContent,colWidth-26,6));
-  const height=Math.max(74,...lines.map(ls=>ls.length*lineHeight+22));
-  return {time:cells[0]?.textContent.trim()||'',lines,height,summary:tr.classList.contains('closed-summary')?cells[1]?.textContent.trim():'',
+  // Keep destination and consultation labels separate instead of wrapping a long parenthesis.
+  const labels=cells.slice(1).map(cell=>{
+   const entries=Array.from(cell.querySelectorAll('.day-print-entry'));
+   if(!entries.length)return shareWrappedLines(ctx,cell.textContent,colWidth-32,6).map(text=>({text,detail:false}));
+   return entries.flatMap(entry=>{
+    ctx.font='700 '+labelSize+'px '+fontFamily;
+    const primary=shareWrappedLines(ctx,entry.querySelector('.day-print-primary')?.textContent||entry.textContent,colWidth-32,3).map(text=>({text,detail:false}));
+    ctx.font='500 '+Math.round(labelSize*.8)+'px '+fontFamily;
+    const detail=shareWrappedLines(ctx,entry.querySelector('.day-print-detail')?.textContent||'',colWidth-32,2).map(text=>({text,detail:true}));
+    return [...primary,...detail];
+   });
+  });
+  ctx.font='700 '+labelSize+'px '+fontFamily;
+  const lines=labels.map(ls=>ls.map(l=>l.text));
+  const height=Math.max(74,...lines.map(ls=>ls.length*lineHeight+26));
+  return {time:cells[0]?.textContent.trim()||'',lines,labels,height,summary:tr.classList.contains('closed-summary')?cells[1]?.textContent.trim():'',
    blocked:cells.slice(1).map(el=>el.classList.contains('day-print-blocked')),
    leave:cells.slice(1).map(el=>el.classList.contains('day-print-leave')),
    leaveId:cells.slice(1).map(el=>el.dataset.leaveId||''),
@@ -5145,16 +5163,9 @@ function renderDailyShareCanvas(){
  ctx.fillStyle='#56718f';ctx.font='600 27px '+fontFamily;
  ctx.fillText(detail,pad,119,tableWidth-70);
  let y=headerTop;
- function bandGridLines(x,colWidth,start,end){
-  ctx.save();ctx.strokeStyle='#9dafc2';ctx.lineWidth=2;
-  for(let r=start+1;r<end;r++){
-   ctx.beginPath();ctx.moveTo(x+.5,rowTops[r]-.5);ctx.lineTo(x+colWidth-.5,rowTops[r]-.5);ctx.stroke();
-  }
-  ctx.restore();
- }
  function boxCell(x,top,w,h,color,strong){
   ctx.fillStyle=color;ctx.fillRect(x,top,w,h);
-  ctx.strokeStyle=strong?'#718ba5':'#bfccda';ctx.lineWidth=strong?2:1;
+  ctx.strokeStyle=strong?'#a9bdd1':'#d3dfe9';ctx.lineWidth=strong?1.5:1;
   ctx.strokeRect(x+.5,top+.5,w-1,h-1);
  }
  boxCell(pad,y,timeWidth,headerHeight,'#dce8f5',false);
@@ -5188,10 +5199,13 @@ function renderDailyShareCanvas(){
    // These slots are drawn together as a continuous activity band below.
    if(row.workId[i])continue;
    const lines=row.lines[i];if(!lines?.length)continue;
-   ctx.fillStyle=row.blocked[i]?'#7b8795':'#1a344f';
-   ctx.font='700 '+labelSize+'px '+fontFamily;
    const first=y+(row.height-(lines.length-1)*lineHeight)/2;
-   for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],x+colWidth/2,first+n*lineHeight,colWidth-22);
+   for(let n=0;n<lines.length;n++){
+    const detail=row.labels[i][n].detail;
+    ctx.fillStyle=row.blocked[i]?'#7b8795':detail?'#75628d':'#1a344f';
+    ctx.font=(detail?'500 '+Math.round(labelSize*.8):'700 '+labelSize)+'px '+fontFamily;
+    ctx.fillText(lines[n],x+colWidth/2,first+n*lineHeight,colWidth-32);
+   }
   }
   y+=row.height;
  }
@@ -5207,7 +5221,6 @@ function renderDailyShareCanvas(){
    const top=rowTops[start],bottom=rowTops[end-1]+prepared[end-1].height;
    const spanHeight=bottom-top,label=current.leaveType[i]||'연차';
    boxCell(x,top,colWidth,spanHeight,'#fbf2f6',false);
-   bandGridLines(x,colWidth,start,end);
    const cx=x+colWidth/2,cy=top+spanHeight/2;
    const duration=label.match(/^(\d+(?:\.\d+)?)시간 연차$/);
    ctx.fillStyle='#8b4763';ctx.textAlign='center';
@@ -5223,7 +5236,7 @@ function renderDailyShareCanvas(){
    start=end;
   }
  }
- // Match the leave treatment: one centered, hatched block for contiguous external/work slots.
+ // Match the leave treatment: one centered block for contiguous external/work slots.
  // Internal work bands are supported only when an explicitly internal sheet is rendered.
  for(let i=0;i<count;i++){
   for(let start=0;start<prepared.length;){
@@ -5239,7 +5252,6 @@ function renderDailyShareCanvas(){
     /교육/.test(type)?['#fff5e6','#edd7b2','#c29148','#986a30']:
     ['#edf4fb','#cbdced','#7297bd','#426b93'];
    boxCell(x,top,colWidth,spanHeight,tone[0],false);
-   bandGridLines(x,colWidth,start,end);
    const cx=x+colWidth/2,cy=top+spanHeight/2;
    const titleSize=Math.min(31,Math.max(20,Math.floor(colWidth*.105))),lineHeight=titleSize+5;
    ctx.textAlign='center';ctx.fillStyle=tone[3];
@@ -5247,11 +5259,12 @@ function renderDailyShareCanvas(){
    const maxLines=Math.max(1,Math.min(3,Math.floor((spanHeight-40)/lineHeight)));
    const lines=shareWrappedLines(ctx,title,colWidth-34,maxLines);
    const typeSize=Math.min(24,Math.max(17,Math.floor(colWidth*.074)));
-   const total=lines.length*lineHeight+typeSize+8;
+   const showType=title!==type;
+   const total=lines.length*lineHeight+(showType?typeSize+12:0);
    const firstY=cy-total/2+lineHeight/2;
    for(let n=0;n<lines.length;n++)ctx.fillText(lines[n],cx,firstY+n*lineHeight,colWidth-32);
-   ctx.font='750 '+typeSize+'px '+fontFamily;
-   ctx.fillText(type,cx,firstY+(lines.length-.5)*lineHeight+8,colWidth-32);
+   if(showType){ctx.font='750 '+typeSize+'px '+fontFamily;
+    ctx.fillText(type,cx,firstY+(lines.length-1)*lineHeight+(lineHeight+typeSize)/2+12,colWidth-32);}
    start=end;
   }
  }
@@ -5459,3 +5472,4 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
 <script src="./schedule-work-blocks.js?v=20261025-1"></script>
 <script src="./client-auto-background.js?v=20261025-1"></script>
 </body></html>
+
