@@ -12,7 +12,7 @@ function body(name){
 const daySlots=['09:00','09:30','10:00','10:30','11:00','11:30','13:00','13:30','14:00'];
 const state={day:'2026-10-16',events:[],target:{}};
 const context={
- currentView:'teamDay',focusDate:new Date('2026-10-16T00:00:00Z'),
+ currentView:'teamDay',focusDate:new Date('2026-10-16T00:00:00Z'),WORK_TYPES:new Set(['연차','반차','2시간 연차','반반차','외부홍보']),
  dateKey:()=>state.day,currentCenter:()=> '북부센터',currentOwner:()=> 'A',
  employees:()=>['A','B'],allEventsFor:()=>state.events,slots:()=>daySlots,
  parseDate:d=>new Date(d+'T00:00:00Z'),
