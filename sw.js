@@ -1,5 +1,5 @@
-const CACHE='goodjob-schedule-v65-manager-errors-20261026';
-const ASSETS=['./schedule-error-reporting.js','./schedule-save-recovery.js','./schedule-work-blocks.js','./client-auto-background.js','./clients-workspace.css','./client-deadlines.js','./calendar-workspace.css','./calendar-workspace.js','./schedule-theme.css','./notification-policy.js','./handoff.html','./handoff.js','./handoff.css','./secure-backup.js','./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
+const CACHE='goodjob-schedule-v66-center-board-20261028';
+const ASSETS=['./board.html','./center-board.js','./center-board.css','./center-board-link.js','./schedule-error-reporting.js','./schedule-save-recovery.js','./schedule-work-blocks.js','./client-auto-background.js','./clients-workspace.css','./client-deadlines.js','./calendar-workspace.css','./calendar-workspace.js','./schedule-theme.css','./notification-policy.js','./handoff.html','./handoff.js','./handoff.css','./secure-backup.js','./index.html','./manifest.webmanifest','./mini.webmanifest','./desktop-mini.css','./desktop-mini.js','./private-planner.js','./private-planner.css','./clients.html','./clients.js','./client-import.js','./client-xlsx.js','./clients.css','./tasks.html','./tasks.js','./app-menu.css','./work-periods.js','./work-periods.css','./task-model.js','./task-reminders.js','./task-details.css','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('goodjob-schedule-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request,{ignoreSearch:true})));});
@@ -20,12 +20,14 @@ self.addEventListener('notificationclick',event=>{
  let target=new URL('./index.html',self.registration.scope).href;
  const candidate=event.notification.data?.url;
  if(typeof candidate==='string'&&candidate.startsWith(self.registration.scope))target=candidate;
+ const centerCard=new URL(target).pathname.endsWith('/board.html')?new URL(target).searchParams.get('card'):null;
  const taskId=new URL(target).pathname.endsWith('/tasks.html')?new URL(target).searchParams.get('task'):null;
  const isDirectorReport=new URL(target).searchParams.get('directorReport')==='1';
  const isEnergySchool=new URL(target).searchParams.get('energySchool')==='1';
  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async items=>{
   for(const client of items){
    if(new URL(client.url).origin===self.location.origin&&client.url.startsWith(self.registration.scope)){
+    if(centerCard){await client.focus();client.postMessage({type:'goodjob:open-center-card',cardId:centerCard});return;}
     if(taskId){if(!new URL(client.url).pathname.endsWith('/tasks.html'))continue;await client.focus();client.postMessage({type:'goodjob:open-task',taskId});return;}
     await client.focus();if(isDirectorReport)client.postMessage({type:'goodjob:open-director-report'});if(isEnergySchool)client.postMessage({type:'goodjob:open-energy-school'});return;
    }

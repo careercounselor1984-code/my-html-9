@@ -1,0 +1,11 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+async function worker(file,scope,journal){const handlers={},notifications=[],messages=[],opened=[],id='20000000-0000-4000-8000-000000000001';let waited;
+ const client={url:scope+'index.html',focus:async()=>{},postMessage:m=>messages.push(m)};
+ const self={location:{origin:new URL(scope).origin},registration:{scope,showNotification:async(title,options)=>notifications.push({title,options})},addEventListener:(name,fn)=>handlers[name]=fn,clients:{matchAll:async()=>[client],openWindow:async url=>opened.push(url)}};
+ vm.runInNewContext(fs.readFileSync(file,'utf8'),{self,URL,console,Promise,caches:{},fetch(){}});
+ handlers.push({data:{json:()=>({cardId:id,url:'https://careercounselor1984-code.github.io/my-html-9/board.html?card='+id,tag:'center-card:'+id+':1',title:'비공개 제목',body:'비공개 내용'})},waitUntil:p=>waited=p});await waited;assert(!JSON.stringify(notifications).includes('비공개'));
+ handlers.notificationclick({notification:{data:notifications[0].options.data,close(){}},waitUntil:p=>waited=p});await waited;assert.equal(messages[0].type,'goodjob:open-center-card');assert.equal(messages[0].cardId,id);
+ self.clients.matchAll=async()=>[];handlers.notificationclick({notification:{data:notifications[0].options.data,close(){}},waitUntil:p=>waited=p});await waited;assert(opened[0].includes(journal?'centerCard='+id:'board.html?card='+id));
+ handlers.push({data:{json:()=>({})},waitUntil:p=>waited=p});await waited;handlers.notificationclick({notification:{data:notifications[1].options.data,close(){}},waitUntil:p=>waited=p});await waited;assert(opened[1].includes(journal?'workAlerts=1':'index.html'));
+}
+(async()=>{const root=path.resolve(__dirname,'..'),journal=fs.existsSync(path.join(root,'journal-push-sw.js'));await worker(path.join(root,journal?'journal-push-sw.js':'sw.js'),'https://careercounselor1984-code.github.io/'+(journal?'my-html-4/':'my-html-9/'),journal);console.log('PASS: '+(journal?'journal':'calendar')+' push privacy, open-window routing, closed-window card deep links and existing notification fallback')})().catch(e=>{console.error(e);process.exitCode=1});

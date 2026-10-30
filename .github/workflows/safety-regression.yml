@@ -26,6 +26,8 @@ jobs:
           node tests/consult-kakao.test.cjs
           node tests/desktop-mini.test.cjs
           node tests/notification-policy.test.cjs
+          node tests/center-board.test.cjs
+          node tests/center-board-push.test.cjs
           node tests/energy-alert-once.test.cjs
           node tests/daily-layout-alert-scope.test.cjs
           node tests/visitor-output.test.cjs

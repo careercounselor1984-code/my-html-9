@@ -9,4 +9,5 @@
 <section class="card"><h2>3. 함께 옮길 상담예약 선택 <small>선택 사항</small></h2><p>동명이인 혼동을 막기 위해 자동으로 연결하지 않습니다. 각 예약의 내담자를 확인하고 인계할 내담자를 직접 선택하세요. ‘옮기지 않음’인 예약은 기존 담당자에게 그대로 남습니다.</p><div class="handoff-table-scroll"><table><thead><tr><th>일시</th><th>예약 이름 / 상담 구분</th><th>연결할 인계 내담자</th></tr></thead><tbody id="handoffEvents"><tr><td colspan="3">기존 담당자를 선택하세요.</td></tr></tbody></table></div></section>
 <section class="card"><h2>4. 최종 확인 후 인계</h2><label>인계 사유<input id="handoffReason" maxlength="300" value="퇴사에 따른 담당자 변경"></label><div class="actions"><button id="handoffPreview" type="button" class="primary">인계 내용 미리보기</button></div><div id="handoffPreviewContent" class="handoff-review" hidden></div><label class="handoff-check"><input id="handoffConfirm" type="checkbox" disabled>새 담당자와 예약을 확인했습니다. 실행하면 기존 담당자의 목록에서 새 담당자의 목록으로 이동합니다.</label><button id="handoffCommit" type="button" class="primary" disabled>확인한 내용으로 인계 실행</button><p class="muted">실행 전에 원본과 인계 이력을 서버에 함께 보존하며, 처리 실패 시 전체 변경이 취소됩니다. 인계 이후 새 담당자가 자료를 수정하거나 관련 예약을 사용했다면 자동 취소할 수 없습니다.</p></section>
 <details class="card"><summary>인계 처리 이력</summary><p>수정이 없는 인계만 전체 취소할 수 있습니다. 일부 내담자만 되돌리거나 수정 후 자료를 덮어쓰는 작업은 지원하지 않습니다.</p><div id="handoffHistory"></div></details>
-</div></main></body></html>
+</div></main><script defer src="./center-board-link.js"></script>
+</body></html>
