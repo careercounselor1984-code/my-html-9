@@ -4,6 +4,7 @@ const checked = result => { if (result.error) throw result.error; return result.
 const text = (value, max) => { if (typeof value !== 'string' || value.trim().length > max) fail('입력 길이를 확인해 주세요.'); return value.trim(); };
 const timestamp = value => { if (!value) return null; const time = Date.parse(value); if (!Number.isFinite(time)) fail('날짜를 확인해 주세요.'); return new Date(time).toISOString(); };
 const manages = (actor, card) => actor.center === card.center && (actor.id === card.created_by || actor.role === 'manager' || actor.is_schedule_admin === true);
+const categories = ['general','employment','company','center','case'];
 export function actionable(card, response, acknowledgement, now = Date.now()) {
  if (card.status !== 'open' || (card.expires_at && Date.parse(card.expires_at) <= now)) return false;
  if (card.kind === 'request') return !response;
@@ -15,9 +16,11 @@ export function cardValues(body, actor, old) {
  if (!['memo', 'notice', 'request'].includes(body.kind) || !['normal', 'important', 'urgent'].includes(body.priority)) fail('카드 종류와 중요도를 확인해 주세요.');
  if (!['open', 'done'].includes(body.status)) fail('진행 상태를 확인해 주세요.');
  if (old && body.kind !== old.kind) fail('등록한 카드의 종류는 바꿀 수 없습니다.');
+ const category = body.category ?? old?.category ?? 'general';
+ if (!categories.includes(category)) fail('글 분류를 확인해 주세요.');
  const deadline = timestamp(body.deadline), expires_at = timestamp(body.expires_at);
  if (deadline && expires_at && expires_at < deadline) fail('노출 종료는 마감 이후로 설정해 주세요.');
- return {center:actor.center,created_by:old?.created_by || actor.id,title,content,kind:body.kind,priority:body.priority,pinned:body.pinned === true,status:body.status,deadline,expires_at,revision:old ? old.revision + 1 : 1,updated_at:new Date().toISOString()};
+ return {center:actor.center,created_by:old?.created_by || actor.id,title,content,kind:body.kind,category,priority:body.priority,pinned:body.pinned === true,status:body.status,deadline,expires_at,revision:old ? old.revision + 1 : 1,updated_at:new Date().toISOString()};
 }
 export async function handleBoard(db, actor, body, delivery) {
  if (!actor?.id || !actor.center || !actor.is_active || actor.must_change_password) fail('직원 인증을 완료해 주세요.', 403);
@@ -33,6 +36,10 @@ export async function handleBoard(db, actor, body, delivery) {
  if (action === 'list' || action === 'feed') {
   const offset = action === 'feed' ? 0 : Math.max(0, Math.min(100000, Math.floor(Number(body.offset) || 0)));
   let query = db.from('schedule_center_cards').select('*', {count:'exact'}).eq('center', actor.center);
+  if (action==='list' && body.category && body.category!=='all') {
+   if (!categories.includes(body.category)) fail('글 분류를 확인해 주세요.');
+   query = query.eq('category', body.category);
+  }
   if (action === 'feed' || body.filter === 'open') query = query.eq('status', 'open');
   else if (body.filter === 'done') query = query.eq('status', 'done');
   const search = String(body.search || '').trim().slice(0, 100);
