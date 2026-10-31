@@ -25,5 +25,17 @@ const assert=require('node:assert/strict'),{pathToFileURL}=require('node:url'),p
  await call(a,{...input,id:notice.id,revision:1,kind:'notice',title:'수정된 공지'});assert.equal((await call(b,{action:'feed'})).cards.length,1);
  assert(!actionable({...notice,expires_at:'2000-01-01T00:00:00Z'},null,null));
  assert.equal((await call(a,{action:'list',search:'수정했어요'})).cards[0].id,card.id);
+ const training=require('../center-board-training.js');
+ const caseCard=(await call(a,{...input,kind:'memo',category:'case',title:'수당 신청 누락 사례',content:training.template,status:'done'})).card;
+ assert.equal(caseCard.category,'case');
+ const preserved=(await call(a,{...input,kind:'memo',id:caseCard.id,revision:1,title:caseCard.title,content:caseCard.content,status:'done'})).card;
+ assert.equal(preserved.category,'case','older clients preserve category when omitted');
+ assert.equal((await call(a,{action:'list',category:'case',filter:'all'})).cards.length,1);
+ assert.equal((await call(a,{action:'list',category:'case',filter:'open'})).cards.length,0);
+ assert.equal((await call(c,{action:'list',category:'case',filter:'all'})).cards.length,0);
+ for(const category of ['employment','company','center']){const saved=(await call(a,{...input,kind:'notice',category,title:category})).card;assert.equal((await call(a,{action:'list',category})).cards[0].id,saved.id)}
+ await assert.rejects(call(a,{...input,category:'invalid'}));await assert.rejects(call(a,{action:'list',category:'invalid'}));
+ const print=training.html('북부센터',[preserved,{...caseCard,title:'<script>bad</script>',content:'<img src=x>',id:'another'},notice]);
+ assert(print.includes('선택 사례 2건'));assert(print.includes('재발 방지'));assert(print.includes('&lt;script&gt;'));assert(!print.includes('<script>bad'));assert(!print.includes(notice.title));assert(print.includes('window.print()'));
  console.log('PASS: server center/author isolation, concurrent responses, 0 vs missing, own response updates, archive, search, revision conflict, acknowledgements, expiry, opted-in push routing and deduplication');
 })().catch(e=>{console.error(e);process.exitCode=1});
