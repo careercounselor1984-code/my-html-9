@@ -36,3 +36,17 @@
 .tasks-page .task-origin-link{display:inline-flex;align-items:center;margin:6px 0 0 9px;color:#2255ba;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:2px}
 @media(max-width:600px){.tasks-page .planner-dash{grid-template-columns:repeat(2,minmax(0,1fr))}}
 }
+
+@media screen {
+.tasks-page .task-suggestions{margin:12px 0 18px;border-color:#d7e5fa;background:#fcfdff;padding:14px}
+.tasks-page .task-suggestion-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tasks-page .task-suggestion-head strong{font-size:15px;color:#28436b}
+.tasks-page .task-suggestions>p{font-size:12px;color:#64758a;margin:8px 0 10px}
+.tasks-page .task-suggestion-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #e6edf7}
+.tasks-page .task-suggestion-item div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tasks-page .task-suggestion-item strong{font-size:13px}
+.tasks-page .task-suggestion-item small{font-size:11px;color:#6e7d91}
+.tasks-page .task-suggestion-item button{white-space:nowrap;background:#fff2db;color:#975817;border:1px solid #e4c997;font-size:12px;border-radius:7px}
+.tasks-page #suggestionStatus{display:block;margin-top:7px;font-size:11px;color:#74839a}
+.tasks-page .task-suggestion-empty{font-size:12px;color:#7c8898}
+}
