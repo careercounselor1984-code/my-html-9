@@ -2,7 +2,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),M=require('../task-model.js');
 const day='2026-10-16',make=(id,p,item_date=day)=>({id,kind:'todo',item_date,payload:{text:id,done:false,...p}});
 const rows=[make('overdue',{dueDate:'2026-10-15',entryType:'task'}),make('today',{dueDate:day}),make('soon',{dueDate:'2026-10-23'}),make('later',{dueDate:'2026-10-24'}),make('memo',{entryType:'memo'}),make('done',{dueDate:'2026-10-15',done:true}),make('legacy',{},'2026-10-01')];
-assert.deepEqual(M.counts(rows,day),{noDue:1,overdue:1,today:1,soon:1,memo:1,done:1});
+assert.deepEqual(M.counts(rows,day),{priority:3,noDue:1,overdue:1,today:1,soon:1,memo:1,done:1});
+assert.deepEqual(M.select(rows,'priority',day,day,day).map(r=>r.id),['overdue','today','soon']);
 assert.deepEqual(M.select(rows,'overdue',day,day,day).map(r=>r.id),['overdue'],'missed deadlines remain visible outside chosen date');
 assert.deepEqual(M.select(rows,'today',day,day,day).map(r=>r.id),['today']);
 assert.deepEqual(M.select(rows,'soon',day,day,day).map(r=>r.id),['soon']);
