@@ -57,6 +57,7 @@ jobs:
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-import-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/schedule-save-recovery-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-deadlines-dom.test.cjs
+          NODE_PATH=/tmp/client-import-test/node_modules node tests/client-sync-health-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-lifecycle-dom.test.cjs
           NODE_PATH=/tmp/client-import-test/node_modules node tests/client-auto-background.test.cjs
 

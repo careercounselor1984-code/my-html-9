@@ -16,3 +16,5 @@
 @media(max-width:700px){.person-actions{grid-column:2;grid-row:1/3;flex-direction:column}.person-row .person-actions button{font-size:10px;padding:7px 8px}.lifecycle-exclude-label{white-space:normal;max-width:48px}.lifecycle-preview{font-size:11px}#lifecycleSection>summary{font-size:12px}}
 
 .lifecycle-tools{display:flex;flex-wrap:wrap;gap:7px}.lifecycle-tools button{font-size:12px}#lifecycleSaveStatus:empty{display:none}#lifecycleSaveStatus{color:#ae4250}
+
+.client-sync-health{margin:0 0 16px;padding:12px 16px;border:1px solid #dce5f1;border-radius:10px;background:#fff;font-size:12px;color:#526783;line-height:1.7}.client-sync-health p{margin:4px 0}.client-sync-health summary{cursor:pointer;color:#835f2b}.client-sync-health li{margin:4px 0}.client-sync-health p:last-child{color:#7a6b54}
