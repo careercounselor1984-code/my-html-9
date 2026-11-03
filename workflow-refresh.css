@@ -23,3 +23,16 @@
 .clients-page .client-period-task{display:block;margin-top:4px}
 @media(max-width:900px){.schedule-workspace .sw-calendar-actions .sw-workflow-link{padding:8px;font-size:11px}.schedule-workspace .sw-agenda-linked{flex-wrap:wrap}.schedule-workspace .sw-create-task{margin-left:auto}}
 }
+
+@media screen {
+.tasks-page .planner-dash{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0 12px}
+.tasks-page .planner-dash-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:76px;padding:12px;background:#f4f7fb;border:1px solid #e0e7f0;border-radius:11px;text-align:left;font-size:12px;color:#4b607c}
+.tasks-page .planner-dash-card strong{font-size:25px;line-height:1;color:#315fb1}
+.tasks-page .planner-dash-card small{font-size:11px;font-weight:400;margin-left:3px}
+.tasks-page .planner-dash-card.dash-overdue strong{color:#bd4b3b}
+.tasks-page .planner-dash-card.dash-today strong{color:#ab6a17}
+.tasks-page .planner-dash-card[aria-pressed=true]{border-color:#577ede;background:#e9efff}
+.tasks-page .planner-linked-draft #plannerAdd{border:1px solid #d9b87a;background:#fff9ed;border-radius:10px;padding:12px}
+.tasks-page .task-origin-link{display:inline-flex;align-items:center;margin:6px 0 0 9px;color:#2255ba;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:600px){.tasks-page .planner-dash{grid-template-columns:repeat(2,minmax(0,1fr))}}
+}
