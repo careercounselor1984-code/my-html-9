@@ -43,8 +43,8 @@ function init(){
  // Account for shell differences in standalone, embedded and high-zoom layouts.
  // Measure the real gap instead of assuming the fixed header and iframe use one scale.
  function fitScheduleViewport(){
-   if(!d.body.classList.contains('cloud-ready')||d.body.classList.contains('executive-mode')||d.body.classList.contains('shared-board-mode')||!viewPanel)return;
-   const banner=by('directorPreviewBanner');if(banner&&!banner.classList.contains('hide'))return;
+   if(!d.body.classList.contains('cloud-ready')||d.body.classList.contains('executive-mode')||d.body.classList.contains('shared-board-mode')||window.matchMedia?.('print').matches||!viewPanel){main.style.removeProperty('margin-top');return;}
+   const banner=by('directorPreviewBanner');if(banner&&!banner.classList.contains('hide')){main.style.removeProperty('margin-top');return;}
    const old=main.style.marginTop;main.style.removeProperty('margin-top');
    const normal=Number.parseFloat(window.getComputedStyle(main).marginTop)||0;
    const gap=viewPanel.getBoundingClientRect().top-header.getBoundingClientRect().bottom;
