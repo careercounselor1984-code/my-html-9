@@ -1,0 +1,52 @@
+/* Daily workflow and compact client schedule */
+@media screen {
+.schedule-workspace .sw-calendar-actions .sw-workflow-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;font-size:12px;font-weight:800;line-height:1.25;border-radius:9px;padding:10px 11px;min-height:38px;border:1px solid;}
+.schedule-workspace .sw-calendar-actions .sw-workflow-tasks{color:#97500e;background:#fff0d8;border-color:#e9b867}
+.schedule-workspace .sw-calendar-actions .sw-workflow-clients{color:#244fb5;background:#e8efff;border-color:#abc2ff}
+.schedule-workspace .sw-calendar-actions .sw-workflow-link:hover{filter:brightness(.96)}
+.schedule-workspace .sw-agenda-linked{display:flex;gap:5px;align-items:stretch;min-width:0}
+.schedule-workspace .sw-agenda-linked>.sw-agenda-item{flex:1;min-width:0}
+.schedule-workspace .sw-create-task{align-self:center;white-space:nowrap;background:#fff7e9;border:1px solid #edd4a8;border-radius:7px;font-size:11px;color:#985d10;padding:5px 8px}
+.clients-page #workspace .client-search-bar{margin-top:12px}
+.clients-page .client-owner-indicator{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px;padding:9px 12px;border-radius:9px;background:#f2f6fd;font-size:12px;color:#42516b}
+.clients-page .client-owner-indicator strong{color:#2254b6;font-size:13px}
+.clients-page .client-owner-indicator small{color:#74839a;font-size:11px}
+.clients-page .client-source-fold{border:1px solid #dbe3ee;border-radius:12px;background:white;margin:15px 0;padding:12px}
+.clients-page .client-source-fold>summary{cursor:pointer;color:#495f83;font-size:13px;font-weight:750}
+.clients-page .client-source-fold .client-intake{margin-top:12px}
+.clients-page .client-source-fold .client-sync-health{margin-top:12px}
+.clients-page .client-custom-range{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:8px 0}
+.clients-page .client-custom-range label{font-size:11px;color:#62738b;display:flex;flex-direction:column;gap:4px}
+.clients-page .client-custom-range input{min-height:36px;padding:6px 8px}
+.clients-page .client-custom-range button{min-height:36px;font-size:12px}
+.clients-page .client-add-task,.clients-page .client-period-task{font-size:11px;font-weight:750;background:#fff4e3;color:#975718;border:1px solid #e9c88b;padding:5px 7px;border-radius:7px;white-space:nowrap}
+.clients-page .client-period-task{display:block;margin-top:4px}
+@media(max-width:900px){.schedule-workspace .sw-calendar-actions .sw-workflow-link{padding:8px;font-size:11px}.schedule-workspace .sw-agenda-linked{flex-wrap:wrap}.schedule-workspace .sw-create-task{margin-left:auto}}
+}
+
+@media screen {
+.tasks-page .planner-dash{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0 12px}
+.tasks-page .planner-dash-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:76px;padding:12px;background:#f4f7fb;border:1px solid #e0e7f0;border-radius:11px;text-align:left;font-size:12px;color:#4b607c}
+.tasks-page .planner-dash-card strong{font-size:25px;line-height:1;color:#315fb1}
+.tasks-page .planner-dash-card small{font-size:11px;font-weight:400;margin-left:3px}
+.tasks-page .planner-dash-card.dash-overdue strong{color:#bd4b3b}
+.tasks-page .planner-dash-card.dash-today strong{color:#ab6a17}
+.tasks-page .planner-dash-card[aria-pressed=true]{border-color:#577ede;background:#e9efff}
+.tasks-page .planner-linked-draft #plannerAdd{border:1px solid #d9b87a;background:#fff9ed;border-radius:10px;padding:12px}
+.tasks-page .task-origin-link{display:inline-flex;align-items:center;margin:6px 0 0 9px;color:#2255ba;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:600px){.tasks-page .planner-dash{grid-template-columns:repeat(2,minmax(0,1fr))}}
+}
+
+@media screen {
+.tasks-page .task-suggestions{margin:12px 0 18px;border-color:#d7e5fa;background:#fcfdff;padding:14px}
+.tasks-page .task-suggestion-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tasks-page .task-suggestion-head strong{font-size:15px;color:#28436b}
+.tasks-page .task-suggestions>p{font-size:12px;color:#64758a;margin:8px 0 10px}
+.tasks-page .task-suggestion-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #e6edf7}
+.tasks-page .task-suggestion-item div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tasks-page .task-suggestion-item strong{font-size:13px}
+.tasks-page .task-suggestion-item small{font-size:11px;color:#6e7d91}
+.tasks-page .task-suggestion-item button{white-space:nowrap;background:#fff2db;color:#975817;border:1px solid #e4c997;font-size:12px;border-radius:7px}
+.tasks-page #suggestionStatus{display:block;margin-top:7px;font-size:11px;color:#74839a}
+.tasks-page .task-suggestion-empty{font-size:12px;color:#7c8898}
+}
