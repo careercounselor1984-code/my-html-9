@@ -50,3 +50,24 @@
 .tasks-page #suggestionStatus{display:block;margin-top:7px;font-size:11px;color:#74839a}
 .tasks-page .task-suggestion-empty{font-size:12px;color:#7c8898}
 }
+/* Calendar-first landing: retain controls, show the actual timetable sooner. */
+@media screen {
+ .schedule-workspace main.wrap{padding-top:7px!important}
+ .schedule-workspace .sw-view-panel{margin-bottom:6px!important}
+ .schedule-workspace .viewbar{gap:8px!important}
+ .schedule-workspace .navline{margin-bottom:7px!important}
+ .schedule-workspace .sheet-head{padding:10px 14px!important}
+ .schedule-workspace #reportTitle{font-size:14px!important}
+ .schedule-workspace #reportMeta{margin-top:2px!important}
+ .schedule-workspace .day-agenda{padding-top:4px;padding-bottom:10px}
+ .schedule-workspace .day-agenda .agenda-head{padding:5px 2px 7px;margin-bottom:0}
+ .schedule-workspace .day-agenda .agenda-head strong{font-size:17px}
+ .schedule-workspace .day-agenda .agenda-stats{padding:7px 0;gap:6px}
+ .schedule-workspace .day-agenda .agenda-stats>span{padding:6px 8px}
+}
+@media screen and (max-width:900px){
+ .schedule-workspace main.wrap{padding-top:7px!important}
+ .schedule-workspace .sw-view-panel{margin-bottom:6px!important}
+ .schedule-workspace .navline{margin-bottom:6px!important}
+ .schedule-workspace .sheet-head{padding:9px 11px!important}
+}
