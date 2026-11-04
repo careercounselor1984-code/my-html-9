@@ -10,6 +10,7 @@ const scenario=`window.addEventListener('DOMContentLoaded',()=>setTimeout(async(
  model.events=[{id:'own',center:identity.center,owner:identity.name,date:'2026-10-19',time:'09:00',end:'09:30',kind:'consult',type:'IAP',title:'검증용상담'}, {id:'other',center:identity.center,owner:'동료',date:'2026-10-19',time:'09:00',end:'18:00',kind:'work',type:'연차',title:'동료연차'}];
  cloudApplyIdentity(identity);by('center').value=identity.center;refreshEmployees(identity.name);by('owner').value=identity.name;focusDate=parseDate('2026-10-19');changeView('personalWeek');
  must(document.body.classList.contains('schedule-workspace'),'module mounted');
+ if(innerWidth>900){await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));const chromeGap=document.querySelector('.sw-view-panel').getBoundingClientRect().top-document.querySelector('.headbar').getBoundingClientRect().bottom;must(chromeGap<=24,'schedule view starts below the header without dead space: '+Math.round(chromeGap));}
  must(by('workMenu').parentElement.id==='swSidebar','menu relocated');must(by('cloudArea').parentElement.classList.contains('headbar'),'account toolbar relocated');
  let s=api.snapshot();must(s.entries.length===1&&s.entries[0].id==='own'&&s.entries[0].editable,'personal scope');must(s.metrics.consultations===1,'consultation count');
  must(by('swDayPanel').textContent.includes('검증용상담')&&!by('swDayPanel').textContent.includes('동료연차'),'panel personal scope');
