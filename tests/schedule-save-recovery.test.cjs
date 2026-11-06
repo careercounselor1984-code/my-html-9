@@ -17,6 +17,29 @@ assert.equal(recovery.conflicts(b,[b],new Map(),[row('other','10:00',{owner:'동
 assert(recovery.isCorrectable('일정 서버 저장 실패: 기존 상담 또는 근무 일정과 시간이 중복됩니다'));
 assert(!recovery.isCorrectable('Failed to fetch'));
 const commit=html.slice(html.indexOf('async function cloudCommit(){'),html.indexOf('async function cloudReload(){'));
+const move=html.slice(html.indexOf('async function moveScheduleApply(){'),html.indexOf("$('moveScheduleBtn').onclick=moveScheduleOpen;"));
+async function moveWithServerReply(reject){
+ const alerts=[],statuses=[];
+ const fields={moveScheduleDate:{value:a.date},moveScheduleTime:{value:'10:30'},moveScheduleApply:{},moveScheduleDlg:{close(){}},editor:{elements:{date:{value:a.date},time:{value:a.time}}}};
+ let settle,markStarted;
+ const started=new Promise(resolve=>{markStarted=resolve});
+ const model={events:[a],participants:[],offs:[],notices:[]};
+ const cloud={active:true,busy:false,needsSave:false,identity:{id:'test'},base:{events:new Map(base),people:new Map()}};
+ const ctx={cloud,model,$:id=>fields[id],editing:a.id,editorMode:'consult',withinSameDay:()=>true,confirm:()=>true,
+  alert:message=>alerts.push(message),cloudStatus:message=>statuses.push(message),cloudSessionGuard:()=>()=>true,
+  saveEntry:async()=>{model.events=[{...a,time:fields.editor.elements.time.value}];cloud.needsSave=true;return true;},
+  cloudSyncEvents:()=>new Promise((resolve,fail)=>{settle=()=>reject?fail(Error('일정 버전 충돌: 다른 기기에서 먼저 수정했습니다')):resolve(1);markStarted();}),
+  cloudSyncList:async()=>0,cloudOwnRows:rows=>rows,cloudClean:row=>row,cloudMap:rows=>new Map(rows.map(e=>[e.id,JSON.stringify(e)])),
+  cloudReportSaveIssue:()=>{},cloudResolveSaveReport:()=>{},pushServer:async()=>{},calendarState:{},
+  setTimeout:()=>1,clearTimeout:()=>{}};
+ vm.createContext(ctx);vm.runInContext(commit+move,ctx);
+ const pending=ctx.moveScheduleApply();await started;
+ assert.equal(alerts.length,0,'no success notification while the server write is in flight');
+ settle();await pending;
+ assert.equal(alerts.some(message=>message.includes('변경되었습니다')),!reject);
+ assert.equal(JSON.parse(cloud.base.events.get(a.id)).time,reject?'10:00':'10:30');
+ if(reject)assert(statuses.some(message=>message.includes('일정 충돌')));
+}
 async function failure(message){
  const cloud={active:true,busy:false,needsSave:true,identity:{id:'test'},base:{events:new Map()}},timers=[],dialogs=[];
  const ctx={cloud,model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
@@ -24,6 +47,7 @@ async function failure(message){
  vm.createContext(ctx);vm.runInContext(commit,ctx);await ctx.cloudCommit();return {cloud,timers,dialogs,ctx};
 }
 (async()=>{
+ await moveWithServerReply(false);await moveWithServerReply(true);
  const overlap=await failure('기존 상담 또는 근무 일정과 시간이 중복됩니다');
  assert(overlap.cloud.needsSave,'failed changes remain pending');assert.equal(overlap.dialogs.length,1);assert.equal(overlap.timers.length,0,'deterministic rejection never retries in background');
  await overlap.ctx.cloudCommit();assert.equal(overlap.dialogs.length,1,'same unresolved error does not reopen repeatedly');

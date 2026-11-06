@@ -4966,6 +4966,7 @@ function moveScheduleRefreshTimes(wanted){
 }
 async function moveScheduleApply(){
  if(!editing||editorMode!=='consult')return;
+ if(cloud.active&&cloud.busy){alert('이전 변경사항을 저장 중입니다. 저장 상태를 확인한 뒤 일정을 이동해 주세요.');return;}
  const date=$('moveScheduleDate').value,time=$('moveScheduleTime').value;
  const beforeDate=$('editor').elements.date.value,beforeTime=$('editor').elements.time.value;
  if(!date||!time||!withinSameDay(date,time,30,false))return;
@@ -4973,13 +4974,24 @@ async function moveScheduleApply(){
  if(!current)return;
  if(current.date===date&&current.time===time){alert('기존 예약과 날짜·시간이 같습니다.');return}
  if(!confirm('기존 '+current.date+' '+current.time+' 예약을 '+date+' '+time+'으로 이동할까요?'))return;
+ const isServerMove=cloud.active;
+ const sameSession=isServerMove?cloudSessionGuard():null;
  $('editor').elements.date.value=date;
  $('editor').elements.time.value=time;
  const btn=$('moveScheduleApply');btn.disabled=true;btn.textContent='이동 중…';
  try{
   const moved=await saveEntry();
-  if(moved){$('moveScheduleDlg').close();alert('상담 일정이 '+date+' '+time+'으로 변경되었습니다. 기존 시간의 예약은 남지 않습니다.')}
-  else{$('editor').elements.date.value=beforeDate;$('editor').elements.time.value=beforeTime}
+  if(!moved){$('editor').elements.date.value=beforeDate;$('editor').elements.time.value=beforeTime;return;}
+  $('moveScheduleDlg').close();
+  if(!isServerMove)return;
+  await cloudCommit();
+  if(!sameSession())return;
+  const saved=JSON.parse(cloud.base?.events?.get(current.id)||'null');
+  if(saved?.date===date&&saved?.time===time){
+   alert('상담 일정이 '+date+' '+time+'으로 변경되었습니다.');
+  }else if(!cloud.saveIssue){
+   alert('서버에서 일정 이동을 확인하지 못했습니다. 일정표 상단의 저장 상태를 확인해 주세요.');
+  }
  }finally{btn.disabled=false;btn.textContent='변경 후 이동'}
 }
 $('moveScheduleBtn').onclick=moveScheduleOpen;
