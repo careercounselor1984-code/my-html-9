@@ -31,6 +31,21 @@ function init(){
   status.textContent=allowed?message:'';
   if(!allowed||!Object.values(checks).some(x=>x.checked))return;
   const all=items(),forDay=date=>all.filter(x=>x.date===date);
+  // The consultation grid has five columns. Keep weekend deadlines visible
+  // under their actual dates rather than silently moving them to a weekday.
+  if(['personalWeek','personalMonth'].includes(s.view)&&s.dates?.length){
+   const dates=[...s.dates].sort(),start=dates[0];let end=dates.at(-1);
+   if(s.view==='personalWeek'){const day=new Date(end+'T12:00:00');day.setDate(day.getDate()+2);end=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');}
+   const weekend=all.filter(item=>item.date>=start&&item.date<=end&&[0,6].includes(new Date(item.date+'T12:00:00').getDay()));
+   if(weekend.length){
+    const section=document.createElement('section');section.className='together-weekend together-added no-print';
+    const heading=document.createElement('strong');heading.textContent='주말 일정';section.append(heading);
+    for(const date of [...new Set(weekend.map(item=>item.date))]){
+     const group=document.createElement('div'),label=document.createElement('div');group.className='together-weekend-day';label.className='together-weekend-date';label.textContent=date+' ('+['일','월','화','수','목','금','토'][new Date(date+'T12:00:00').getDay()]+')';group.append(label,box(forDay(date)));section.append(group);
+    }
+    calendar.prepend(section);
+   }
+  }
   // Date-only items stay above the time slots and never occupy appointment time.
   calendar.querySelectorAll('.desktop-week').forEach((week,index)=>{const head=week.querySelector('thead');if(!head)return;const tr=document.createElement('tr');tr.className='together-added no-print';tr.append(document.createElement('td'));let count=0;
    for(let i=0;i<5;i++){const td=document.createElement('td'),list=forDay(s.dates[index*5+i]);count+=list.length;td.append(box(list));tr.append(td);}if(count)head.append(tr);

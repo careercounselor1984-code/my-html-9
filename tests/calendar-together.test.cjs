@@ -5,6 +5,7 @@ const tick=()=>new Promise(r=>setImmediate(r));
 class Element{
  constructor(tag='div'){this.tag=tag;this.children=[];this.textContent='';this.checked=false;this.hidden=false;this.className='';}
  append(...children){this.children.push(...children)}
+ prepend(...children){this.children.unshift(...children)}
  after(child){this.afterChild=child}
  remove(){this.removed=true}
  setAttribute(){}
@@ -14,6 +15,7 @@ class Element{
 (async()=>{
  const calendar=new Element(),head=new Element(),sheet=new Element(),sheetHead=new Element(),week=new Element(),agenda=new Element(),agendaHead=new Element();
  sheet.targets={'.sheet-head':sheetHead};calendar.closest=()=>sheet;week.targets={thead:head};agenda.targets={'.agenda-head':agendaHead};calendar.lists={'.desktop-week':[week],'.day-agenda':[agenda]};
+ Object.defineProperty(calendar.lists,'.together-added',{get:()=>calendar.children.filter(n=>n.className.split(' ').includes('together-added')&&!n.removed)});
  const callbacks={},docCallbacks={},d={readyState:'complete',createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),getElementById:id=>id==='calendar'?calendar:null,addEventListener:(name,fn)=>docCallbacks[name]=fn};
  let state={authenticated:true,team:false,aux:false,view:'personalDay',date:'2026-11-11',dates:['2026-11-11']},scope='staff-A|1',calls=0,release,pending=false;
  const data=[{id:'t',kind:'todo',payload:{text:'확인할 일',dueDate:state.date}},{id:'done',kind:'todo',payload:{text:'완료한 일',dueDate:state.date,done:true}},{id:'memo',kind:'todo',payload:{text:'메모',entryType:'memo',dueDate:state.date}},{id:'client',kind:'iap',payload:{name:'내담자',dates:[state.date],eventChecks:{'due:1':{date:state.date,checked:true}}}},{id:'ended',kind:'iap',payload:{name:'종료자',dates:[state.date],clientStatus:'ended',statusDate:state.date}}];
@@ -25,6 +27,11 @@ class Element{
  const text=n=>(n?.textContent||'')+(n?.children||[]).map(text).join('');
  assert(text(agendaHead.afterChild).includes('확인할 일'));assert(!text(agendaHead.afterChild).includes('완료한 일'));assert(!text(agendaHead.afterChild).includes('메모'));
  checkboxes[1].checked=true;checkboxes[1].onchange();await tick();assert(text(agendaHead.afterChild).includes('내담자'));assert(!text(agendaHead.afterChild).includes('종료자'));
+ data.push({id:'sat',kind:'iap',payload:{name:'토요일지정일',dates:['2026-11-14']}},{id:'sun',kind:'iap',payload:{name:'일요일지정일',dates:['2026-11-15']}},{id:'next',kind:'iap',payload:{name:'다음주지정일',dates:['2026-11-21']}});
+ state.view='personalWeek';state.dates=['2026-11-09','2026-11-10','2026-11-11','2026-11-12','2026-11-13'];callbacks['goodjob:mini-update']();
+ let weekend=calendar.children[0];assert(text(weekend).includes('2026-11-14 (토)'));assert(text(weekend).includes('일요일지정일'));assert(!text(weekend).includes('다음주지정일'));
+ state.view='personalMonth';state.dates=Array.from({length:30},(_,i)=>'2026-11-'+String(i+1).padStart(2,'0'));callbacks['goodjob:mini-update']();assert(text(calendar.children[0]).includes('다음주지정일'),'monthly view includes all weekends of that month');
+ checkboxes[1].checked=false;checkboxes[1].onchange();await tick();assert(weekend.removed,'unchecking removes weekend client dates');checkboxes[1].checked=true;checkboxes[1].onchange();await tick();
  state.team=true;callbacks['goodjob:mini-update']();assert(bar.hidden,'team views hide private overlays');
  state.team=false;callbacks['goodjob:mini-update']();await tick();assert(!bar.hidden);
  pending=true;callbacks.focus();await tick();assert(release);scope='';state.authenticated=false;callbacks['goodjob:mini-update']();release(data);await tick();assert(bar.hidden,'late response cannot restore signed-out data');assert.equal(bar.children.at(-1).textContent,'');
