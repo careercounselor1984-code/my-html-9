@@ -29,6 +29,8 @@ function eventsFor(rows,includeExcluded=false){
 }
 root.ClientTimeline={reassessmentFromState,trainingFromState,savedClientIaps,eventsFor,excluded,states};
 if(typeof module!=='undefined'){module.exports=root.ClientTimeline;return}
+// Calendar overlays reuse the date rules without mounting the client editor.
+if(!document.getElementById('workspace'))return;
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const D=root.ClientDeadlines;
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');

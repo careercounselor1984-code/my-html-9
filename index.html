@@ -5446,6 +5446,18 @@ window.goodjobMiniBridge={
 
 /* Calendar workspace: presentation-only access to the current authorized scope. */
 window.GoodJobCalendarWorkspace={
+ togetherScope(){return cloud.active&&cloud.identity&&!directorPreviewState.active&&!sharedState.open&&!executiveState.open&&['personalDay','personalWeek','personalMonth'].includes(currentView)&&currentOwner()===cloud.identity.name&&currentCenter()===cloud.identity.center?cloud.identity.id+'|'+cloud.sessionEpoch:'';},
+ async togetherRows(){
+  const scope=this.togetherScope(),valid=cloudSessionGuard();if(!scope)return [];
+  const {data:sessionData,error:sessionError}=await cloud.client.auth.getSession();if(sessionError)throw sessionError;
+  const uid=sessionData?.session?.user?.id;if(!uid||!valid()||scope!==this.togetherScope())return [];
+  let rows=[];
+  for(let offset=0;;offset+=200){
+   const {data,error}=await cloud.client.from('schedule_private_items').select('id,kind,item_date,payload').eq('user_id',uid).in('kind',['todo','iap']).order('id').range(offset,offset+199);
+   if(!valid()||scope!==this.togetherScope())return [];if(error)throw error;rows.push(...(data||[]));if((data||[]).length<200)break;
+  }
+  return rows;
+ },
  snapshot(month){
   if(!cloud.active||!cloud.identity)return {authenticated:false};
   const team=currentView==='teamDay'||currentView==='teamLeave',date=dateKey(focusDate),start=monday(focusDate),dates=[];
@@ -5481,6 +5493,11 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
 }
 </script>
 <script src="./calendar-workspace.js?v=20261104-compact-1"></script>
+<link rel="stylesheet" href="./calendar-together.css?v=20261111-1">
+<script src="./private-planner.js"></script>
+<script src="./client-deadlines.js"></script>
+<script src="./clients.js?v=20261111-1"></script>
+<script src="./calendar-together.js?v=20261111-1"></script>
 <script src="./schedule-work-blocks.js?v=20261025-1"></script>
 <script src="./client-auto-background.js?v=20261025-1"></script>
 <script defer src="./center-board-link.js"></script>
