@@ -1,0 +1,4 @@
+.calendar-together{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;padding:9px 0 12px;font-size:12px;color:#455d74}
+.calendar-together[hidden]{display:none!important}.calendar-together label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.calendar-together input{width:16px;height:16px;margin:0;accent-color:#2366b4}.together-status{font-size:11px;color:#68778c}
+.together-items{display:flex;flex-direction:column;gap:4px;text-align:left;font-weight:400}.together-item{border-left:3px solid;padding:5px 7px;border-radius:4px;font-size:11px;line-height:1.45;overflow-wrap:anywhere}.together-todo{background:#fff5dc;border-color:#dba841;color:#74551b}.together-iap{background:#eeeafa;border-color:#9472cc;color:#60458a}.day-agenda>.together-items{margin:8px 0}.monthday>.together-items{margin-top:4px}
+@media print{.calendar-together,.together-added{display:none!important}}
