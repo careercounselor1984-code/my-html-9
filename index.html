@@ -1387,7 +1387,7 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,recovering:false,initialPasswordChange:false};
+const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,ownIssueReady:false,recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
@@ -1465,7 +1465,11 @@ function cloudIssueReporter(){
  if(!cloud.issueReporter){
   const valid=cloudSessionGuard();
   cloud.issueReporter=ScheduleErrorReporting.create({staffId:cloud.identity.id,storage:localStorage,isCurrent:valid,uuid:()=>crypto.randomUUID(),
-   rpc:(name,args)=>cloud.client.rpc(name,args),onDelivery:resolved=>{if(valid())$('cloudIssueReportStatus').textContent=resolved===null?'팀장 오류 보고 전송 대기 · 연결되면 자동 전송':resolved?'팀장에게 해결 상태 전달 완료':'팀장에게 오류 보고 완료';}});
+   rpc:(name,args)=>cloud.client.rpc(name,args),onDelivery:resolved=>{
+    if(!valid())return;
+    $('cloudIssueReportStatus').textContent=resolved===null?'팀장 오류 보고 전송 대기 · 연결되면 자동 전송':resolved?'팀장에게 해결 상태 전달 완료':'팀장에게 오류 보고 완료';
+    if(resolved!==null)cloudOwnIssueCheck().catch(()=>{});
+   }});
  }
  return cloud.issueReporter;
 }
@@ -1485,7 +1489,7 @@ function cloudReportSaveIssue(message){
 function cloudResolveSaveReport(){try{Promise.resolve(cloudIssueReporter()?.resolve()).catch(()=>{});}catch{}}
 
 function cloudOwnIssueReset(){
- cloud.myIssues=[];cloud.myIssuePopupSeen=new Set();cloud.myIssueBusy=false;cloud.myIssueResolveBusy=false;
+ cloud.myIssues=[];cloud.myIssuePopupSeen=new Set();cloud.myIssueBusy=false;cloud.myIssueResolveBusy=false;cloud.ownIssueReady=false;
  const banner=$('mySaveIssueBanner'),dlg=$('mySaveIssueDialog');
  if(banner)banner.classList.add('hide');
  if(dlg?.open)dlg.close();
@@ -1545,7 +1549,7 @@ function cloudOwnIssueRender(){
  }
 }
 async function cloudOwnIssueCheck(){
- if(!cloud.active||!cloud.identity?.id||cloud.myIssueBusy)return;
+ if(!cloud.active||!cloud.ownIssueReady||!cloud.identity?.id||cloud.myIssueBusy)return;
  const valid=cloudSessionGuard();
  cloud.myIssueBusy=true;
  try{
@@ -1937,6 +1941,8 @@ async function cloudStartSession(){
   changeView(previous);
  }
  await alertPoll(true);if(epoch!==cloud.sessionEpoch||!cloud.active)return;
+  cloud.ownIssueReady=true;
+  await cloudOwnIssueCheck();if(epoch!==cloud.sessionEpoch||!cloud.active)return;
  arrivalRealtimeStart();
  pushRefresh().catch(()=>{});
  directorAbsFetch().catch(()=>{});
@@ -4027,7 +4033,7 @@ function alertInitialize(){
  $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
  $('managerSaveIssues').onclick=()=>managerSaveIssueOpen().catch(()=>{});
  window.addEventListener('online',()=>{if(cloud.active){
- cloudIssueReporter()?.flush();alertPoll(true);
+ cloudIssueReporter()?.flush();alertPoll(true);cloudOwnIssueCheck().catch(()=>{});
  if(cloud.needsSave&&!cloud.busy&&!cloud.queueBlocked&&!cloud.saveIssue){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),500);}
 }});
  $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
@@ -4056,6 +4062,8 @@ function alertInitialize(){
  window.addEventListener('focus',()=>{if(cloud.active)alertPoll(true)});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)alertPoll(true)});
  window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000);
+ window.setInterval(()=>{if(cloud.active&&!document.hidden)cloudOwnIssueCheck().catch(()=>{})},60000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)cloudOwnIssueCheck().catch(()=>{})});
 }
 
 /* Recovery-only route: do not enter schedule_claim_identity or calendar loading until the password has been changed. */
@@ -4318,6 +4326,24 @@ async function cloudBoot(){
  });
  $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();cloudClearSession('로그아웃됨');};
 $('cloudResolve').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});};
+ $('mySaveIssueOpen').onclick=()=>{
+  const dlg=$('mySaveIssueDialog');
+  if(dlg.open)return;
+  if([...document.querySelectorAll('dialog[open]')].some(x=>x!==dlg))return;
+  cloudOwnIssueRender();dlg.showModal();
+  for(const item of cloud.myIssues)cloud.myIssuePopupSeen.add(item.id);
+ };
+ $('mySaveIssueClose').onclick=()=>$('mySaveIssueDialog').close();
+ $('mySaveIssueRetry').onclick=()=>{
+  $('mySaveIssueDialog').close();
+  $('cloudRetry').click();
+  window.setTimeout(()=>cloudOwnIssueCheck().catch(()=>{}),3500);
+ };
+ $('mySaveIssueRefresh').onclick=()=>cloudOwnIssueCheck().catch(()=>{});
+ $('mySaveIssueBackup').onclick=()=>{
+  $('mySaveIssueDialog').close();
+  $('export').click();
+ };
 $('cloudRetry').onclick=()=>{
  if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});
  else if(cloud.queueBlocked)cloudStatus('기기 백업이 실패하여 재시도가 중지되었습니다. 먼저 JSON 백업을 확보하고 기기 저장공간을 확인해 주세요.',true);
