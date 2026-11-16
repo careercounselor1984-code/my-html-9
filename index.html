@@ -1578,7 +1578,7 @@ function cloudQueue(){if(!cloud.active)return;
    cloudReportSaveIssue('기기 백업 실패');
    cloudStatus('미전송 초안을 별도로 보관할 수 없습니다. 기존 기록 보호를 위해 서버 전송을 차단했습니다. JSON 내보내기 후 기기 저장공간을 확인하세요.',true);return;}
  }
- cloud.needsSave=true;
+ cloud.needsSave=true;cloud.retryCount=0;
  let backedUp=false;
  try{const backupText=JSON.stringify({
   version:2,baseIds:{
@@ -1665,29 +1665,47 @@ async function cloudCommit(){
  cloud.base={events:cloudMap(snapshot.events),people:cloudMap(snapshot.people),
   offs:cloudMap(snapshot.offs),notices:cloudMap(snapshot.notices)};
  if(!cloud.needsSave){try{localStorage.removeItem(cloudDraftKey())}catch{}cloud.draftBackupFailed=false;}
+ cloud.retryCount=0;cloud.lastSaveError='';
  cloudStatus(cloud.needsSave?'새 변경사항 서버 저장 대기 중…':'서버 저장 완료 ✓');
- if(!cloud.needsSave)cloudResolveSaveReport();
+ if(!cloud.needsSave&&!cloud.unresolvedDraft&&!cloud.draftBackupFailed&&!cloud.queueBlocked)cloudResolveSaveReport();
  if(!cloud.needsSave&&cloud.resolvingSaveIssue){cloud.resolvingSaveIssue=false;alert('미저장 변경 처리가 완료되었습니다. 서버 저장을 확인했으며 센터 일정표에서도 최신 일정을 조회할 수 있습니다.');}
  if(changedEventCount>0)pushServer('work_updates').catch(e=>console.warn('직원 일정 관리자 알림 지연',e?.message||e));
  calendarState.nextSync=0;
  setTimeout(()=>calendarSync(false).catch(()=>{}),400);
  }catch(err){
  if(!valid())return;
- cloudReportSaveIssue(err.message);
- if(String(err.message||'').includes('일정 버전 충돌')){
-  // Preserve the draft on this device. Repeating the same stale patch cannot succeed safely.
+ const message=String(err?.message||err);
+ cloud.lastSaveError=message;cloud.retryCount=(cloud.retryCount||0)+1;
+ cloudReportSaveIssue(message);
+ const guide=ScheduleErrorReporting.guide(message);
+ if(guide.code==='version'){
+  // Stale edits are not automatically replayed. Keep the local pending draft for reconciliation.
   cloud.needsSave=!!cloud.draftBackupFailed;
   cloud.queueBlocked=!!cloud.draftBackupFailed;
-  cloudStatus(cloud.draftBackupFailed?'일정 충돌 및 기기 백업 실패 · 새로고침 금지, JSON 내보내기 후 복구 필요':'다른 기기와 일정 충돌 · 미전송 초안을 보호했습니다. 새로고침 후 확인하세요: '+err.message,true);
+  cloudStatus(cloud.draftBackupFailed?'일정 충돌 및 기기 백업 실패 · 새로고침 금지, JSON 백업 후 복구 필요':'⚠ 일정 버전 충돌 · 미전송 초안을 보호했습니다. 최신 서버 일정과 비교해 다시 입력해 주세요: '+message,true);
  }else{
   cloud.needsSave=true;
-  if(ScheduleSaveRecovery.isCorrectable(err.message)){
+  if(ScheduleSaveRecovery.isCorrectable(message)){
    cloudStatus('⚠ 일정 미저장 · 날짜·시간 수정이 필요합니다. ‘저장 문제 해결’을 눌러 주세요.',true);
-   cloudShowSaveIssue(err.message).catch(()=>{});
-  }else cloudStatus((cloud.draftBackupFailed?'기기 백업 실패 · 새로고침 금지 / ':'')+'저장 실패 · 재시도 필요: '+err.message,true);
+   cloudShowSaveIssue(message).catch(()=>{});
+  }else if(guide.code==='backup'){
+   cloud.queueBlocked=true;
+   cloudStatus('⚠ 기기 임시 백업 오류 · 자동 전송 중지. 사이트 데이터를 삭제하지 말고 JSON 백업을 확보하세요: '+message,true);
+  }else{
+   const wait=Math.ceil(ScheduleErrorReporting.retryDelay(cloud.retryCount)/1000);
+   cloudStatus('⚠ '+guide.label+' · 미저장 초안은 이 기기에 보관 중입니다. ‘저장 재시도’를 누르거나 연결 복구 후 다시 시도합니다 (약 '+wait+'초 후 자동 재시도). '+message,true);
+  }
  }
 }
- finally{if(valid()){cloud.busy=false;if(cloud.needsSave&&!cloud.queueBlocked&&!cloud.saveIssue){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),4000)}}}
+finally{
+ if(valid()){
+  cloud.busy=false;
+  if(cloud.needsSave&&!cloud.queueBlocked&&!cloud.saveIssue){
+   clearTimeout(cloud.timer);
+   cloud.timer=setTimeout(()=>cloudCommit(),ScheduleErrorReporting.retryDelay(cloud.retryCount||1));
+  }
+ }
+}
 }
 async function cloudReload(){
  if(!cloud.active||cloud.busy||cloud.needsSave)return;
@@ -3890,7 +3908,10 @@ function alertInitialize(){
  if(alerts.initialized)return;alerts.initialized=true;
  $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
  $('managerSaveIssues').onclick=()=>managerSaveIssueOpen().catch(()=>{});
- window.addEventListener('online',()=>{if(cloud.active){cloudIssueReporter()?.flush();alertPoll(true);}});
+ window.addEventListener('online',()=>{if(cloud.active){
+ cloudIssueReporter()?.flush();alertPoll(true);
+ if(cloud.needsSave&&!cloud.busy&&!cloud.queueBlocked&&!cloud.saveIssue){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),500);}
+}});
  $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
  $('alertReadAll').onclick=async()=>{try{await alertAck(alertUnread().filter(x=>x.source!=='energy').map(x=>x.key))}catch(e){alert('읽음 저장 실패: '+e.message)}};
  $('alertItems').onclick=async e=>{
@@ -4179,8 +4200,18 @@ async function cloudBoot(){
  });
  $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();cloudClearSession('로그아웃됨');};
 $('cloudResolve').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});};
-$('cloudRetry').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});else if(cloud.needsSave)cloudCommit();else cloudReload().catch(()=>{});};
-$('cloudRefresh').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});else cloudReload().catch(()=>{});};
+$('cloudRetry').onclick=()=>{
+ if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});
+ else if(cloud.queueBlocked)cloudStatus('기기 백업이 실패하여 재시도가 중지되었습니다. 먼저 JSON 백업을 확보하고 기기 저장공간을 확인해 주세요.',true);
+ else if(cloud.busy)cloudStatus('서버 저장 중입니다. 완료 여부를 확인해 주세요.');
+ else if(cloud.needsSave){clearTimeout(cloud.timer);cloud.timer=null;cloudCommit();}
+ else cloudReload().catch(()=>{});
+};
+$('cloudRefresh').onclick=()=>{
+ if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});
+ else if(cloud.needsSave)cloudStatus('미저장 변경이 있습니다. 먼저 ‘저장 재시도’로 서버에 저장하거나 백업해 주세요.',true);
+ else cloudReload().catch(()=>{});
+};
  cloud.client.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){cloudClearSession();return;}
   if(event==='PASSWORD_RECOVERY')setTimeout(cloudOpenRecoveryDialog,100);
