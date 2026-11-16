@@ -1054,6 +1054,18 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
 </div>
 
 
+<div id="mySaveIssueBanner" class="hide no-print" role="alert" style="margin:8px 12px;padding:12px 14px;border:2px solid #bf5c00;border-radius:12px;background:#fff5e8;color:#5a3308;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+ <div><strong id="mySaveIssueHeadline">⚠ 저장되지 않은 일정 확인 필요</strong><p id="mySaveIssueBannerDetail" style="margin:5px 0 0;font-size:13px">해결되기 전까지 여기에 표시됩니다.</p></div>
+ <button id="mySaveIssueOpen" type="button" style="font-weight:700">오류 확인 · 해결하기</button>
+</div>
+<dialog id="mySaveIssueDialog" aria-labelledby="mySaveIssueTitle"><div class="modal">
+ <div class="modal-head"><h2 id="mySaveIssueTitle">⚠ 내 일정 저장 오류 · 조치 필요</h2><button id="mySaveIssueClose" type="button">닫기</button></div>
+ <p>서버가 저장 실패를 보고했습니다. 화면에 일정이 보여도 서버에 반영됐다는 뜻은 아닙니다. <strong>오류를 발생시킨 기기의 미저장 변경을 먼저 확인해 주세요.</strong></p>
+ <p class="hint">팝업을 닫아도 오류가 해결되기 전까지 일정표 상단 경고가 유지됩니다. 다시 로그인하면 미해결 오류를 다시 안내합니다.</p>
+ <p id="mySaveIssueFetchStatus" role="status"></p>
+ <div id="mySaveIssueList" style="max-height:53vh;overflow:auto"></div>
+ <div class="actions" style="margin-top:12px"><button id="mySaveIssueRetry" type="button">저장 재시도</button><button id="mySaveIssueRefresh" type="button">상태 새로고침</button><button id="mySaveIssueBackup" type="button">JSON 백업</button></div>
+</div></dialog>
 <div id="directorPreviewBanner" class="director-preview-banner hide no-print" role="status" aria-live="polite">
   <div><strong>👁️ 부장 화면 미리보기 · 조회 전용</strong><p>관리자 계정으로 부장용 화면을 확인합니다. 로그인 계정이나 서버 권한은 바뀌지 않으며, 부장 일정의 등록·삭제는 할 수 없습니다.</p></div>
   <a id="directorPreviewExit" class="director-preview-return-link" href="./index.html?calendarView=1">← 관리자 화면으로 돌아가기</a>
@@ -1375,10 +1387,11 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',recovering:false,initialPasswordChange:false};
+const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
+ cloudOwnIssueReset();
  cloud.resolvingSaveIssue=false;
  cloud.issueReporter=null;$('cloudIssueReportStatus').textContent='';$('managerSaveIssues').classList.add('hide');
  const reports=$('managerSaveIssueDialog');if(reports){if(reports.open)reports.close();reports.remove();}
