@@ -1557,7 +1557,7 @@ async function cloudOwnIssueCheck(){
   if(!valid())return;
   if(error||!data||!Array.isArray(data.items))throw Error(error?.message||'오류 조회 응답이 올바르지 않습니다.');
   cloud.myIssues=data.items.filter(x=>x&&/^[0-9a-f-]{36}$/i.test(x.id)&&x.code).slice(0,20)
-   .map(x=>({id:x.id,code:String(x.code),openedAt:x.openedAt,pendingCount:Math.max(0,Math.min(10000,Number(x.pendingCount)||0))}));
+   .map(x=>({id:x.id,issueKey:typeof x.issueKey==='string'?x.issueKey:'',code:String(x.code),openedAt:x.openedAt,pendingCount:Math.max(0,Math.min(10000,Number(x.pendingCount)||0))}));
   $('mySaveIssueFetchStatus').textContent='';
   cloudOwnIssueRender();
   cloudOwnIssuePopup();
@@ -1587,6 +1587,8 @@ async function cloudOwnIssueResolve(issueId,button){
   if(!valid())return;
   if(error||!data?.ok)throw Error(error?.message||'이 오류를 해결 처리할 수 없습니다.');
   $('mySaveIssueFetchStatus').textContent='해결 보고가 정상 반영됐습니다.';
+  const resolved=cloud.myIssues.find(x=>x.id===issueId);
+  if(resolved?.issueKey)cloudIssueReporter()?.acknowledgeResolvedKey(resolved.issueKey);
   cloud.myIssues=cloud.myIssues.filter(x=>x.id!==issueId);
   cloudOwnIssueRender();
   await cloudOwnIssueCheck();
