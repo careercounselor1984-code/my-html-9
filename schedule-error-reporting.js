@@ -60,7 +60,14 @@
    for(const record of records.filter(x=>!x.resolved)){record.resolved=true;record.delivered=false;}
    persist();return flush();
   }
-  return {open,resolve,flush};
+  function acknowledgeResolvedKey(issueKey){
+   if(!isCurrent()||!/^[0-9a-f-]{36}$/i.test(String(issueKey||'')))return false;
+   const before=records.length;
+   records=records.filter(x=>x.id!==issueKey);
+   if(records.length!==before){persist();return true;}
+   return false;
+  }
+  return {open,resolve,flush,acknowledgeResolvedKey};
  }
  const api={classify,guide,retryDelay,create};if(typeof module==='object'&&module.exports)module.exports=api;else root.ScheduleErrorReporting=api;
 })(typeof window==='object'?window:globalThis);

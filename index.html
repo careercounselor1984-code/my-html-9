@@ -1054,6 +1054,18 @@ body[data-view="teamDay"] .team-day-table td.teamday-leave{background:#fbf2f6!im
 </div>
 
 
+<div id="mySaveIssueBanner" class="hide no-print" role="alert" style="margin:8px 12px;padding:12px 14px;border:2px solid #bf5c00;border-radius:12px;background:#fff5e8;color:#5a3308;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+ <div><strong id="mySaveIssueHeadline">⚠ 저장되지 않은 일정 확인 필요</strong><p id="mySaveIssueBannerDetail" style="margin:5px 0 0;font-size:13px">해결되기 전까지 여기에 표시됩니다.</p></div>
+ <button id="mySaveIssueOpen" type="button" style="font-weight:700">오류 확인 · 해결하기</button>
+</div>
+<dialog id="mySaveIssueDialog" aria-labelledby="mySaveIssueTitle"><div class="modal">
+ <div class="modal-head"><h2 id="mySaveIssueTitle">⚠ 내 일정 저장 오류 · 조치 필요</h2><button id="mySaveIssueClose" type="button">닫기</button></div>
+ <p>서버가 저장 실패를 보고했습니다. 화면에 일정이 보여도 서버에 반영됐다는 뜻은 아닙니다. <strong>오류를 발생시킨 기기의 미저장 변경을 먼저 확인해 주세요.</strong></p>
+ <p class="hint">팝업을 닫아도 오류가 해결되기 전까지 일정표 상단 경고가 유지됩니다. 다시 로그인하면 미해결 오류를 다시 안내합니다.</p>
+ <p id="mySaveIssueFetchStatus" role="status"></p>
+ <div id="mySaveIssueList" style="max-height:53vh;overflow:auto"></div>
+ <div class="actions" style="margin-top:12px"><button id="mySaveIssueRetry" type="button">저장 재시도</button><button id="mySaveIssueRefresh" type="button">상태 새로고침</button><button id="mySaveIssueBackup" type="button">JSON 백업</button></div>
+</div></dialog>
 <div id="directorPreviewBanner" class="director-preview-banner hide no-print" role="status" aria-live="polite">
   <div><strong>👁️ 부장 화면 미리보기 · 조회 전용</strong><p>관리자 계정으로 부장용 화면을 확인합니다. 로그인 계정이나 서버 권한은 바뀌지 않으며, 부장 일정의 등록·삭제는 할 수 없습니다.</p></div>
   <a id="directorPreviewExit" class="director-preview-return-link" href="./index.html?calendarView=1">← 관리자 화면으로 돌아가기</a>
@@ -1375,10 +1387,11 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',recovering:false,initialPasswordChange:false};
+const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssueCheckError:'',myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,ownIssueReady:false,recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
+ cloudOwnIssueReset();
  cloud.resolvingSaveIssue=false;
  cloud.issueReporter=null;$('cloudIssueReportStatus').textContent='';$('managerSaveIssues').classList.add('hide');
  const reports=$('managerSaveIssueDialog');if(reports){if(reports.open)reports.close();reports.remove();}
@@ -1452,7 +1465,11 @@ function cloudIssueReporter(){
  if(!cloud.issueReporter){
   const valid=cloudSessionGuard();
   cloud.issueReporter=ScheduleErrorReporting.create({staffId:cloud.identity.id,storage:localStorage,isCurrent:valid,uuid:()=>crypto.randomUUID(),
-   rpc:(name,args)=>cloud.client.rpc(name,args),onDelivery:resolved=>{if(valid())$('cloudIssueReportStatus').textContent=resolved===null?'팀장 오류 보고 전송 대기 · 연결되면 자동 전송':resolved?'팀장에게 해결 상태 전달 완료':'팀장에게 오류 보고 완료';}});
+   rpc:(name,args)=>cloud.client.rpc(name,args),onDelivery:resolved=>{
+    if(!valid())return;
+    $('cloudIssueReportStatus').textContent=resolved===null?'팀장 오류 보고 전송 대기 · 연결되면 자동 전송':resolved?'팀장에게 해결 상태 전달 완료':'팀장에게 오류 보고 완료';
+    if(resolved!==null)cloudOwnIssueCheck().catch(()=>{});
+   }});
  }
  return cloud.issueReporter;
 }
@@ -1470,6 +1487,118 @@ function cloudReportSaveIssue(message){
  }catch{if(cloud.active)$('cloudIssueReportStatus').textContent='팀장 오류 보고 전송 대기 · 연결되면 자동 전송';}
 }
 function cloudResolveSaveReport(){try{Promise.resolve(cloudIssueReporter()?.resolve()).catch(()=>{});}catch{}}
+
+function cloudOwnIssueReset(){
+ cloud.myIssues=[];cloud.myIssueCheckError='';cloud.myIssuePopupSeen=new Set();cloud.myIssueBusy=false;cloud.myIssueResolveBusy=false;cloud.ownIssueReady=false;
+ const banner=$('mySaveIssueBanner'),dlg=$('mySaveIssueDialog');
+ if(banner)banner.classList.add('hide');
+ if(dlg?.open)dlg.close();
+ $('mySaveIssueList')?.replaceChildren();
+}
+function cloudOwnIssueHasLocalRisk(){
+ if(cloud.busy||cloud.needsSave||cloud.queueBlocked||cloud.unresolvedDraft||cloud.draftBackupFailed||cloud.saveIssue)return true;
+ try{return !!localStorage.getItem(cloudDraftKey());}catch{return true;}
+}
+function cloudOwnIssuePopup(){
+ if(!cloud.active||!cloud.myIssues.length)return;
+ const dlg=$('mySaveIssueDialog');
+ if(!dlg||dlg.open||[...document.querySelectorAll('dialog[open]')].some(x=>x!==dlg))return;
+ const unseen=cloud.myIssues.some(x=>!cloud.myIssuePopupSeen.has(x.id));
+ if(!unseen)return;
+ try{dlg.showModal();for(const item of cloud.myIssues)cloud.myIssuePopupSeen.add(item.id);}catch{}
+}
+function cloudOwnIssueRender(){
+ if(!cloud.active)return;
+ const issues=cloud.myIssues;
+ const banner=$('mySaveIssueBanner'),dlg=$('mySaveIssueDialog');
+ banner.classList.toggle('hide',!issues.length&&!cloud.myIssueCheckError);
+ if(!issues.length){
+  $('mySaveIssueList').replaceChildren();
+  if(cloud.myIssueCheckError){
+   $('mySaveIssueHeadline').textContent='⚠ 저장 오류 조회를 완료하지 못했습니다';
+   $('mySaveIssueBannerDetail').textContent='서버 연결 상태를 확인한 뒤 다시 조회해 주세요. 오류가 없다고 확인된 상태는 아닙니다.';
+  }else if(dlg.open)dlg.close();
+  return;
+ }
+ $('mySaveIssueHeadline').textContent='⚠ 내 일정 저장 오류 미해결 '+issues.length+'건';
+ $('mySaveIssueBannerDetail').textContent='서버 저장 여부를 확인해야 합니다. 팝업을 닫아도 해결되기 전까지 표시됩니다.';
+ const list=$('mySaveIssueList');list.replaceChildren();
+ for(const item of issues){
+  const guide=ScheduleErrorReporting.guide(item.code);
+  const card=document.createElement('section');card.className='notice';card.style.marginBottom='10px';
+  const title=document.createElement('h3');title.textContent=guide.label+' · 미해결';card.appendChild(title);
+  const info=document.createElement('p');const when=new Date(item.openedAt);
+  info.textContent='보고 시각: '+(Number.isNaN(when.getTime())?'확인 불가':when.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}))+' / 발생 당시 미저장 변경 '+item.pendingCount+'건';
+  card.appendChild(info);
+  const desc=document.createElement('p');desc.textContent=guide.description;card.appendChild(desc);
+  const steps=document.createElement('ol');steps.style.paddingLeft='22px';
+  for(const text of guide.steps){const li=document.createElement('li');li.textContent=text;steps.appendChild(li);}
+  card.appendChild(steps);
+  const warning=document.createElement('p');warning.className='hint';
+  warning.textContent='이전 PC·휴대폰에 저장되지 않은 내용이 남아 있을 수 있습니다. 다른 기기에서 정상으로 보이더라도 원래 기기의 초안을 확인해야 합니다.';
+  card.appendChild(warning);
+  const verify=document.createElement('label');verify.style.display='flex';verify.style.gap='8px';verify.style.alignItems='flex-start';
+  const check=document.createElement('input');check.type='checkbox';check.style.marginTop='4px';
+  const checkText=document.createElement('span');
+  checkText.textContent='오류가 발생한 기기의 미저장 변경과 서버 일정을 직접 비교했고, 빠진 일정을 모두 복구했음을 확인합니다.';
+  verify.append(check,checkText);card.appendChild(verify);
+  const button=document.createElement('button');button.type='button';button.textContent='직접 확인 후 해결 처리';button.disabled=true;
+  check.onchange=()=>{button.disabled=!check.checked||cloud.myIssueResolveBusy;};
+  button.onclick=()=>cloudOwnIssueResolve(item.id,button).catch(err=>{
+   if(cloud.active)$('mySaveIssueFetchStatus').textContent='해결 처리 실패: '+String(err?.message||err);
+  });
+  card.appendChild(button);
+  list.appendChild(card);
+ }
+}
+async function cloudOwnIssueCheck(){
+ if(!cloud.active||!cloud.ownIssueReady||!cloud.identity?.id||cloud.myIssueBusy)return;
+ const valid=cloudSessionGuard();
+ cloud.myIssueBusy=true;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_my_save_issues');
+  if(!valid())return;
+  if(error||!data||!Array.isArray(data.items))throw Error(error?.message||'오류 조회 응답이 올바르지 않습니다.');
+  cloud.myIssues=data.items.filter(x=>x&&/^[0-9a-f-]{36}$/i.test(x.id)&&x.code).slice(0,20)
+   .map(x=>({id:x.id,issueKey:typeof x.issueKey==='string'?x.issueKey:'',code:String(x.code),openedAt:x.openedAt,pendingCount:Math.max(0,Math.min(10000,Number(x.pendingCount)||0))}));
+  cloud.myIssueCheckError='';
+  $('mySaveIssueFetchStatus').textContent='';
+  cloudOwnIssueRender();
+  cloudOwnIssuePopup();
+ }catch(err){
+  if(valid()){
+   cloud.myIssueCheckError=String(err?.message||err);
+   $('mySaveIssueFetchStatus').textContent='저장 오류 내역 확인 실패: '+cloud.myIssueCheckError;
+   cloudOwnIssueRender();
+  }
+ }finally{if(valid())cloud.myIssueBusy=false;}
+}
+async function cloudOwnIssueResolve(issueId,button){
+ if(!cloud.active||cloud.myIssueResolveBusy||!cloud.myIssues.some(x=>x.id===issueId))return;
+ if(cloudOwnIssueHasLocalRisk()){
+  alert('이 기기에 미저장 변경 또는 확인되지 않은 초안이 있습니다. 먼저 저장 재시도·백업을 완료해 주세요.');
+  return;
+ }
+ if(!confirm('오류 발생 당시의 미저장 변경을 원래 기기에서 확인하고, 빠진 일정을 서버에 모두 반영했습니까?\n\n확인을 누르면 이 오류 보고만 해결 처리합니다. 미저장 일정이 자동 복구되는 기능은 아닙니다.'))return;
+ const valid=cloudSessionGuard(),mutation=cloud.mutationEpoch;
+ cloud.myIssueResolveBusy=true;button.disabled=true;
+ $('mySaveIssueFetchStatus').textContent='서버 연결 및 해결 상태를 확인하는 중…';
+ try{
+  const {data:snapshot,error:snapshotError}=await cloud.client.rpc('schedule_get_snapshot');
+  if(!valid())return;
+  if(snapshotError||!snapshot||!Array.isArray(snapshot.events))throw Error('서버 일정을 불러오지 못했습니다. 다시 확인해 주세요.');
+  if(mutation!==cloud.mutationEpoch||cloudOwnIssueHasLocalRisk())throw Error('확인 도중 일정 변경이 감지됐습니다. 저장을 먼저 완료해 주세요.');
+  const {data,error}=await cloud.client.rpc('schedule_my_save_issue_resolve',{p_issue_id:issueId});
+  if(!valid())return;
+  if(error||!data?.ok)throw Error(error?.message||'이 오류를 해결 처리할 수 없습니다.');
+  $('mySaveIssueFetchStatus').textContent='해결 보고가 정상 반영됐습니다.';
+  const resolved=cloud.myIssues.find(x=>x.id===issueId);
+  if(resolved?.issueKey)cloudIssueReporter()?.acknowledgeResolvedKey(resolved.issueKey);
+  cloud.myIssues=cloud.myIssues.filter(x=>x.id!==issueId);
+  cloudOwnIssueRender();
+  await cloudOwnIssueCheck();
+ }finally{if(valid()){cloud.myIssueResolveBusy=false;if(button.isConnected)button.disabled=false;}}
+}
 async function managerSaveIssueOpen(){
  if(!cloud.active||!['manager','director'].includes(cloud.identity?.role))return;
  const valid=cloudSessionGuard();let dlg=$('managerSaveIssueDialog');
@@ -1819,6 +1948,8 @@ async function cloudStartSession(){
   changeView(previous);
  }
  await alertPoll(true);if(epoch!==cloud.sessionEpoch||!cloud.active)return;
+  cloud.ownIssueReady=true;
+  await cloudOwnIssueCheck();if(epoch!==cloud.sessionEpoch||!cloud.active)return;
  arrivalRealtimeStart();
  pushRefresh().catch(()=>{});
  directorAbsFetch().catch(()=>{});
@@ -3903,13 +4034,14 @@ function alertLater(){
  alerts.snoozedUntil=Date.now()+30*60*1000;
  GoodJobNotificationPolicy.snooze(localStorage,cloud.identity?.name,alerts.snoozedUntil);
  $('alertDialog').close();
+ window.setTimeout(()=>cloudOwnIssuePopup(),0);
 }
 function alertInitialize(){
  if(alerts.initialized)return;alerts.initialized=true;
  $('alertTopButton').onclick=()=>{alertDraw();$('alertDialog').showModal()};
  $('managerSaveIssues').onclick=()=>managerSaveIssueOpen().catch(()=>{});
  window.addEventListener('online',()=>{if(cloud.active){
- cloudIssueReporter()?.flush();alertPoll(true);
+ cloudIssueReporter()?.flush();alertPoll(true);cloudOwnIssueCheck().catch(()=>{});
  if(cloud.needsSave&&!cloud.busy&&!cloud.queueBlocked&&!cloud.saveIssue){clearTimeout(cloud.timer);cloud.timer=setTimeout(()=>cloudCommit(),500);}
 }});
  $('alertClose').onclick=alertLater;$('alertLater').onclick=alertLater;
@@ -3938,6 +4070,8 @@ function alertInitialize(){
  window.addEventListener('focus',()=>{if(cloud.active)alertPoll(true)});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)alertPoll(true)});
  window.setInterval(()=>{if(cloud.active&&!document.hidden)alertPoll(true)},45000);
+ window.setInterval(()=>{if(cloud.active&&!document.hidden)cloudOwnIssueCheck().catch(()=>{})},60000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud.active)cloudOwnIssueCheck().catch(()=>{})});
 }
 
 /* Recovery-only route: do not enter schedule_claim_identity or calendar loading until the password has been changed. */
@@ -4200,6 +4334,24 @@ async function cloudBoot(){
  });
  $('cloudLogout').onclick=async()=>{if(cloud.needsSave){alert('아직 서버에 저장되지 않은 변경사항이 있어요. 상단 상태를 확인해 주세요.');return}try{const subscription=await pushExisting();if(subscription){await pushServer('unregister',{endpoint:subscription.endpoint});await subscription.unsubscribe()}}catch(e){console.warn('기기 알림 해제 지연',e?.message||'')}phonePush.enabled=false;pushLabel();calendarState.status=null;calendarState.ready=false;calendarState.feedUrl='';arrivalRealtimeStop();directorPreviewExit();await cloud.client.auth.signOut();cloudClearSession('로그아웃됨');};
 $('cloudResolve').onclick=()=>{if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});};
+ $('mySaveIssueOpen').onclick=()=>{
+  const dlg=$('mySaveIssueDialog');
+  if(dlg.open)return;
+  if([...document.querySelectorAll('dialog[open]')].some(x=>x!==dlg))return;
+  cloudOwnIssueRender();dlg.showModal();
+  for(const item of cloud.myIssues)cloud.myIssuePopupSeen.add(item.id);
+ };
+ $('mySaveIssueClose').onclick=()=>$('mySaveIssueDialog').close();
+ $('mySaveIssueRetry').onclick=()=>{
+  $('mySaveIssueDialog').close();
+  $('cloudRetry').click();
+  window.setTimeout(()=>cloudOwnIssueCheck().catch(()=>{}),3500);
+ };
+ $('mySaveIssueRefresh').onclick=()=>cloudOwnIssueCheck().catch(()=>{});
+ $('mySaveIssueBackup').onclick=()=>{
+  $('mySaveIssueDialog').close();
+  $('export').click();
+ };
 $('cloudRetry').onclick=()=>{
  if(cloud.saveIssue)cloudShowSaveIssue(cloud.saveIssue).catch(()=>{});
  else if(cloud.queueBlocked)cloudStatus('기기 백업이 실패하여 재시도가 중지되었습니다. 먼저 JSON 백업을 확보하고 기기 저장공간을 확인해 주세요.',true);
