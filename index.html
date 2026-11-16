@@ -5,7 +5,7 @@
 <meta name="referrer" content="no-referrer">
 <script src="./secure-backup.js"></script>
 <script src="./schedule-save-recovery.js?v=20261026-2"></script>
-<script src="./schedule-error-reporting.js?v=20261026-1"></script>
+<script src="./schedule-error-reporting.js?v=20261116-1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>좋은일자리 | 상담 일정관리</title><meta name="theme-color" content="#17324f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="상담 일정"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="stylesheet" href="./desktop-mini.css"><script>if(new URLSearchParams(location.search).get("mini")==="1"){document.documentElement.classList.add("desktop-mini");document.querySelector('link[rel="manifest"]').setAttribute("href","./mini.webmanifest")}</script>
 <style>
@@ -1375,7 +1375,7 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,recovering:false,initialPasswordChange:false};
+const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
@@ -1383,7 +1383,7 @@ function cloudClearSession(message='로그아웃되었습니다. 다시 로그�
  cloud.issueReporter=null;$('cloudIssueReportStatus').textContent='';$('managerSaveIssues').classList.add('hide');
  const reports=$('managerSaveIssueDialog');if(reports){if(reports.open)reports.close();reports.remove();}
  cloud.sessionEpoch=(cloud.sessionEpoch||0)+1;cloud.reloadSeq=(cloud.reloadSeq||0)+1;
- clearTimeout(cloud.timer);cloud.timer=null;cloud.active=false;cloud.identity=null;cloud.busy=false;cloud.needsSave=false;cloud.base=null;cloud.eventVersions=new Map();
+ clearTimeout(cloud.timer);cloud.timer=null;cloud.active=false;cloud.identity=null;cloud.busy=false;cloud.needsSave=false;cloud.retryCount=0;cloud.lastSaveError='';cloud.base=null;cloud.eventVersions=new Map();
  journalDirectPending=null;journalDirectBusy=false;journalBookingPending=null;
  arrivalRealtimeStop();directorPreviewExit();executiveClose(true);
  sharedState.open=false;sharedState.posts=[];sharedState.staff=[];sharedState.loading=false;
@@ -1459,7 +1459,12 @@ function cloudIssueReporter(){
 function cloudReportSaveIssue(message){
  try{
   const reporter=cloudIssueReporter();if(!reporter)return;
-  const count=cloud.base?ScheduleSaveRecovery.pending(cloudOwnRows(model.events),cloud.base.events).length:0;
+  const count=cloud.base?[
+   ScheduleSaveRecovery.pending(cloudOwnRows(model.events),cloud.base.events).length,
+   ScheduleSaveRecovery.pending(model.participants.filter(x=>x.center===cloud.identity.center&&x.owner===cloud.identity.name),cloud.base.people).length,
+   ScheduleSaveRecovery.pending(model.offs.filter(x=>!x.readonly),cloud.base.offs).length,
+   ScheduleSaveRecovery.pending(model.notices.filter(x=>!x.readonly),cloud.base.notices).length
+  ].reduce((a,b)=>a+b,0):0;
   $('cloudIssueReportStatus').textContent='팀장 오류 보고 전송 중…';
   Promise.resolve(reporter.open(message,count)).catch(()=>{});
  }catch{if(cloud.active)$('cloudIssueReportStatus').textContent='팀장 오류 보고 전송 대기 · 연결되면 자동 전송';}
@@ -1468,24 +1473,48 @@ function cloudResolveSaveReport(){try{Promise.resolve(cloudIssueReporter()?.reso
 async function managerSaveIssueOpen(){
  if(!cloud.active||!['manager','director'].includes(cloud.identity?.role))return;
  const valid=cloudSessionGuard();let dlg=$('managerSaveIssueDialog');
- if(!dlg){dlg=document.createElement('dialog');dlg.id='managerSaveIssueDialog';dlg.setAttribute('aria-label','직원 일정 저장 오류 보고');
-  dlg.innerHTML='<div class="modal"><div class="modal-head"><h2>직원 일정 저장 오류 보고</h2><button type="button" data-issue-close>닫기</button></div><p>읽음 처리와 해결 상태는 별개입니다. 상담사가 미저장 변경을 정상 저장하면 해결로 표시됩니다.</p><p data-issue-status role="status">불러오는 중…</p><div data-issue-list style="max-height:60vh;overflow:auto"></div><button type="button" data-issue-refresh>새로고침</button></div>';
-  document.body.appendChild(dlg);dlg.querySelector('[data-issue-close]').onclick=()=>dlg.close();dlg.querySelector('[data-issue-refresh]').onclick=()=>managerSaveIssueOpen().catch(()=>{});
+ if(!dlg){
+  dlg=document.createElement('dialog');dlg.id='managerSaveIssueDialog';dlg.setAttribute('aria-label','직원 일정 저장 오류 보고');
+  dlg.innerHTML='<div class="modal"><div class="modal-head"><h2>직원 일정 저장 오류 보고</h2><button type="button" data-issue-close>닫기</button></div><p>저장 실패 당시의 보고입니다. <b>읽음 처리와 해결 확인은 다릅니다.</b> 상담사가 서버 저장을 정상 완료해야 해결로 표시됩니다.</p><p class="hint">기존 오류 보고에는 상세 서버 로그가 포함되지 않아 정확한 원인을 단정할 수 없습니다.</p><p data-issue-status role="status">불러오는 중…</p><div data-issue-list style="max-height:60vh;overflow:auto"></div><button type="button" data-issue-refresh>최신 보고 새로고침</button></div>';
+  document.body.appendChild(dlg);
+  dlg.querySelector('[data-issue-close]').onclick=()=>dlg.close();
+  dlg.querySelector('[data-issue-refresh]').onclick=()=>managerSaveIssueOpen().catch(()=>{});
  }
  if(!dlg.open)dlg.showModal();
- try{const {data,error}=await cloud.client.rpc('schedule_save_issue_feed');if(error)throw error;
+ try{
+  const {data,error}=await cloud.client.rpc('schedule_save_issue_feed');if(error)throw error;
   if(!valid()||!dlg.isConnected)return;
   const items=Array.isArray(data?.items)?data.items:[];
   dlg.querySelector('[data-issue-status]').textContent='미해결 '+items.filter(x=>x.status==='open').length+'건 · 최근 해결 '+items.filter(x=>x.status==='resolved').length+'건';
   const list=dlg.querySelector('[data-issue-list]');list.replaceChildren();
-  for(const item of items){const card=document.createElement('section');card.className='notice';
-   const title=document.createElement('h3');title.textContent=item.title;card.appendChild(title);
-   const details=document.createElement('p');details.textContent=item.scope+' · '+item.detail+' · 발생 당시 미저장 일정 변경 '+item.pendingCount+'건';card.appendChild(details);
-   const date=document.createElement('p');const format=x=>new Date(x).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
-   date.textContent='보고 '+format(item.openedAt)+(item.resolvedAt?' / 해결 '+format(item.resolvedAt):' / 상담사 조치 필요');card.appendChild(date);list.appendChild(card);
+  const format=x=>{if(!x)return '시간 미확인';const d=new Date(x);return Number.isNaN(d.getTime())?'시간 미확인':d.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});};
+  for(const item of items){
+   const unresolved=item.status==='open';
+   const guide=ScheduleErrorReporting.guide(item.code||item.detail||'save',item.detail);
+   const card=document.createElement('section');card.className='notice';
+   const title=document.createElement('h3');title.textContent=(item.title||'직원 저장 오류')+(unresolved?' [미해결]':' [해결 보고]');card.appendChild(title);
+   const details=document.createElement('p');details.textContent=(item.scope||'센터 미확인')+' · '+(item.detail||'세부 원인 미수집')+' · 발생 당시 저장 대기 변경 '+(Number(item.pendingCount)||0)+'건';card.appendChild(details);
+   const date=document.createElement('p');date.textContent='보고 '+format(item.openedAt)+(item.resolvedAt?' / 해결 보고 '+format(item.resolvedAt):' / 상담사 확인 필요');card.appendChild(date);
+   const diagnosis=document.createElement('p');const strong=document.createElement('b');strong.textContent='원인 분류: '+guide.label;
+   diagnosis.appendChild(strong);diagnosis.appendChild(document.createTextNode(' — '+guide.description));card.appendChild(diagnosis);
+   if(unresolved){
+    const head=document.createElement('p');head.textContent='권장 조치';head.style.fontWeight='bold';card.appendChild(head);
+    const steps=document.createElement('ol');steps.style.paddingLeft='22px';
+    for(const step of guide.steps){const li=document.createElement('li');li.textContent=step;steps.appendChild(li);}card.appendChild(steps);
+    const note=document.createElement('p');note.className='hint';note.textContent='※ 현재 서버 반영 여부는 이 보고만으로 확인할 수 없습니다. 상담사 본인 계정에서 저장 상태를 확인해 주세요.';card.appendChild(note);
+    const copy=document.createElement('button');copy.type='button';copy.textContent='상담사에게 안내 문구 복사';
+    copy.onclick=async()=>{
+     const message=(item.title||'일정 저장 오류')+' 관련 안내\n원인 분류: '+guide.label+'\n'+guide.steps.map((step,i)=>(i+1)+'. '+step).join('\n')+'\n마지막으로 서버 저장 완료 표시를 확인해 주세요.';
+     try{await navigator.clipboard.writeText(message);copy.textContent='복사 완료';}
+     catch{prompt('아래 안내 문구를 복사해 전달하세요.',message);}
+    };card.appendChild(copy);
+   }else{
+    const note=document.createElement('p');note.className='hint';note.textContent='상담사 계정에서 해결 상태가 보고되었습니다.';card.appendChild(note);
+   }
+   list.appendChild(card);
   }
   if(!items.length)list.textContent='보고된 일정 저장 오류가 없습니다.';
- }catch{if(valid()&&dlg.isConnected)dlg.querySelector('[data-issue-status]').textContent='오류 보고를 불러오지 못했습니다. 새로고침을 눌러 주세요.';}
+ }catch(err){if(valid()&&dlg.isConnected)dlg.querySelector('[data-issue-status]').textContent='오류 보고 조회 실패: '+String(err?.message||err)+' · 새로고침을 눌러 주세요.';}
 }
 function cloudClearSaveIssue(){
  cloud.saveIssue=null;$('cloudResolve').classList.add('hide');
