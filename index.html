@@ -4029,6 +4029,7 @@ function alertLater(){
  alerts.snoozedUntil=Date.now()+30*60*1000;
  GoodJobNotificationPolicy.snooze(localStorage,cloud.identity?.name,alerts.snoozedUntil);
  $('alertDialog').close();
+ window.setTimeout(()=>cloudOwnIssuePopup(),0);
 }
 function alertInitialize(){
  if(alerts.initialized)return;alerts.initialized=true;
