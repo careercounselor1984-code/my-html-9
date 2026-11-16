@@ -1387,7 +1387,7 @@ const cloudAuthStorage={
  setItem(key,value){try{(cloudRemember()?localStorage:sessionStorage).setItem(key,value);}catch{}},
  removeItem(key){try{localStorage.removeItem(key);}catch{}try{sessionStorage.removeItem(key);}catch{}}
 };
-const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,ownIssueReady:false,recovering:false,initialPasswordChange:false};
+const cloud={client:null,identity:null,active:false,base:null,eventVersions:new Map(),timer:null,busy:false,needsSave:false,retryCount:0,lastSaveError:'',myIssues:[],myIssueCheckError:'',myIssuePopupSeen:new Set(),myIssueBusy:false,myIssueResolveBusy:false,ownIssueReady:false,recovering:false,initialPasswordChange:false};
 function cloudSessionGuard(){const epoch=cloud.sessionEpoch,id=cloud.identity?.id;return()=>cloud.active&&cloud.sessionEpoch===epoch&&cloud.identity?.id===id;}
 function cloudClearSession(message='로그아웃되었습니다. 다시 로그인해 주세요.'){
  cloudClearSaveIssue();
@@ -1489,7 +1489,7 @@ function cloudReportSaveIssue(message){
 function cloudResolveSaveReport(){try{Promise.resolve(cloudIssueReporter()?.resolve()).catch(()=>{});}catch{}}
 
 function cloudOwnIssueReset(){
- cloud.myIssues=[];cloud.myIssuePopupSeen=new Set();cloud.myIssueBusy=false;cloud.myIssueResolveBusy=false;cloud.ownIssueReady=false;
+ cloud.myIssues=[];cloud.myIssueCheckError='';cloud.myIssuePopupSeen=new Set();cloud.myIssueBusy=false;cloud.myIssueResolveBusy=false;cloud.ownIssueReady=false;
  const banner=$('mySaveIssueBanner'),dlg=$('mySaveIssueDialog');
  if(banner)banner.classList.add('hide');
  if(dlg?.open)dlg.close();
@@ -1511,10 +1511,13 @@ function cloudOwnIssueRender(){
  if(!cloud.active)return;
  const issues=cloud.myIssues;
  const banner=$('mySaveIssueBanner'),dlg=$('mySaveIssueDialog');
- banner.classList.toggle('hide',!issues.length);
+ banner.classList.toggle('hide',!issues.length&&!cloud.myIssueCheckError);
  if(!issues.length){
-  if(dlg.open)dlg.close();
   $('mySaveIssueList').replaceChildren();
+  if(cloud.myIssueCheckError){
+   $('mySaveIssueHeadline').textContent='⚠ 저장 오류 조회를 완료하지 못했습니다';
+   $('mySaveIssueBannerDetail').textContent='서버 연결 상태를 확인한 뒤 다시 조회해 주세요. 오류가 없다고 확인된 상태는 아닙니다.';
+  }else if(dlg.open)dlg.close();
   return;
  }
  $('mySaveIssueHeadline').textContent='⚠ 내 일정 저장 오류 미해결 '+issues.length+'건';
@@ -1558,13 +1561,15 @@ async function cloudOwnIssueCheck(){
   if(error||!data||!Array.isArray(data.items))throw Error(error?.message||'오류 조회 응답이 올바르지 않습니다.');
   cloud.myIssues=data.items.filter(x=>x&&/^[0-9a-f-]{36}$/i.test(x.id)&&x.code).slice(0,20)
    .map(x=>({id:x.id,issueKey:typeof x.issueKey==='string'?x.issueKey:'',code:String(x.code),openedAt:x.openedAt,pendingCount:Math.max(0,Math.min(10000,Number(x.pendingCount)||0))}));
+  cloud.myIssueCheckError='';
   $('mySaveIssueFetchStatus').textContent='';
   cloudOwnIssueRender();
   cloudOwnIssuePopup();
  }catch(err){
   if(valid()){
-   $('mySaveIssueFetchStatus').textContent='저장 오류 내역 확인 실패: '+String(err?.message||err);
-   if(cloud.myIssues.length)cloudOwnIssueRender();
+   cloud.myIssueCheckError=String(err?.message||err);
+   $('mySaveIssueFetchStatus').textContent='저장 오류 내역 확인 실패: '+cloud.myIssueCheckError;
+   cloudOwnIssueRender();
   }
  }finally{if(valid())cloud.myIssueBusy=false;}
 }
