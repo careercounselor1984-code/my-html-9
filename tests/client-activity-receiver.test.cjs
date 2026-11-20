@@ -61,7 +61,7 @@ const wait=()=>new Promise(r=>setTimeout(r,20));
  assert(replies.at(-1).ok,'idempotent resend accepted');
  assert.equal(history.filter(x=>x.activity_type==='consultation').length,1,'duplicate counseling suppressed');
  send('goodjob:client-consultation:v1',{regNo:reg,status:{value:'employed',date:'2026-11-20',reason:'실제 취업 확인',confirmed:true}});await wait();
- assert(replies.at(-1).ok,'explicit status update saved');
+ assert(replies.at(-1).ok,'explicit status update saved: '+JSON.stringify(replies.at(-1)));
  assert.equal(clients[0].payload.clientStatus,'employed');
  assert(history.some(x=>x.activity_type==='status_change'),'status change append-only evidence');
  const before=history.length;
