@@ -18,3 +18,21 @@
 .lifecycle-tools{display:flex;flex-wrap:wrap;gap:7px}.lifecycle-tools button{font-size:12px}#lifecycleSaveStatus:empty{display:none}#lifecycleSaveStatus{color:#ae4250}
 
 .client-sync-health{margin:0 0 16px;padding:12px 16px;border:1px solid #dce5f1;border-radius:10px;background:#fff;font-size:12px;color:#526783;line-height:1.7}.client-sync-health p{margin:4px 0}.client-sync-health summary{cursor:pointer;color:#835f2b}.client-sync-health li{margin:4px 0}.client-sync-health p:last-child{color:#7a6b54}
+
+
+/* Verified consultation history, not a substitute for Work24 official records. */
+.client-consult-watch{margin-top:13px;padding:15px 17px}
+.client-consult-watch h2{font-size:15px;line-height:1.5;margin:0 0 5px}
+.client-consult-watch>p{font-size:12px;color:#596f84;line-height:1.6;margin:0 0 11px}
+.consult-watch-metrics{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px}
+.consult-watch-metrics b{border-radius:9px;background:#edf4fc;color:#204f7d;padding:8px 12px;font-size:12px}
+.consult-watch-metrics b.warn{background:#fff1e6;color:#934a12}
+.consult-watch-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.consult-watch-person{border:1px solid #dfe7f0;border-radius:10px;padding:9px 11px;background:#fafcff;text-align:left}
+.consult-watch-person strong{display:block;font-size:13px}
+.consult-watch-person small{display:block;color:#60758a;font-size:11px;margin-top:4px}
+.consult-watch-person button{margin-top:7px;font-size:11px}
+.consult-watch-error{font-size:12px;color:#9a331f;background:#fff3ef;border-radius:8px;padding:10px}
+.person-consult{display:block;color:#4b6886;font-size:11px;margin-top:4px}
+.person-consult.due{color:#a45a12;font-weight:800}
+@media print{.client-consult-watch{display:none!important}}
