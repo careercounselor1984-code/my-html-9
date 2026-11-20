@@ -25,8 +25,9 @@ const recentByReg=(activity,today=todayLocal())=>{
 function attention(rows,activity,today=todayLocal(),threshold=21){
  if(!validDate(today)||!Number.isInteger(threshold)||threshold<1)throw Error('기준일 확인 필요');
  const {latest,count,latestByClient,countByClient}=recentByReg(activity,today);
+ const regsWithClientId=new Set((activity||[]).filter(e=>e.client_id).map(e=>normalizeReg(e.reg_no)));
  return (rows||[]).filter(row=>row.kind==='iap').map(row=>{
-  const p=row.payload||{},reg=normalizeReg(p.regNo),hasOwnerRecords=(activity||[]).some(e=>e.client_id&&e.reg_no===reg),entry=latestByClient.get(String(row.id))||(!hasOwnerRecords?latest.get(reg):null),last=entry?.activity_date||'',days=last?daysBetween(last,today):null;
+  const p=row.payload||{},reg=normalizeReg(p.regNo),hasOwnerRecords=regsWithClientId.has(reg),entry=latestByClient.get(String(row.id))||(!hasOwnerRecords?latest.get(reg):null),last=entry?.activity_date||'',days=last?daysBetween(last,today):null;
   const active=(!p.clientStatus||p.clientStatus==='active'),due=active&&days!==null&&days>=threshold;
   return {row,reg,last,days,registered:countByClient.get(String(row.id))||(hasOwnerRecords?0:count.get(reg)||0),status:!active?'inactive':!last?'unrecorded':due?'due':'recent',due};
  });
