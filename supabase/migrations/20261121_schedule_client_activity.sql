@@ -70,7 +70,7 @@ returns table (id uuid, kind text, item_date date, payload jsonb, updated_at tim
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $$
 declare
   v_before public.schedule_private_items%rowtype;
   v_after public.schedule_private_items%rowtype;
@@ -129,7 +129,7 @@ begin
   );
   return query select v_after.id,v_after.kind,v_after.item_date,v_after.payload,v_after.updated_at;
 end;
-$;
+$$;
 revoke all on function public.schedule_client_commit_and_audit(uuid,timestamptz,jsonb,date,text,jsonb)
   from public, anon, authenticated;
 grant execute on function public.schedule_client_commit_and_audit(uuid,timestamptz,jsonb,date,text,jsonb)
