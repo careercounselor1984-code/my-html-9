@@ -249,7 +249,7 @@ window.addEventListener('message',async e=>{
   if(staffError)throw staffError;
   if(!staff?.id||staff.id!==identity.id||staff.center!==identity.center||staff.mustChangePassword||token!==epoch)
    throw Error('직원 권한이 변경되어 중단했습니다.');
-  const regNo=A.normalizeReg(profileMessage?d.profile?.regNo:d.consultation?.regNo);
+  const regNo=A.normalizeReg(profileMessage?d.profile?.regNo:(d.consultation?.regNo||d.regNo));
   if(!A.validReg(regNo))throw Error('IAP 등록번호가 올바르지 않습니다.');
   if(d.consultation&&A.normalizeReg(d.consultation.regNo)!==regNo)throw Error('상담 이력과 내담자 등록번호가 다릅니다.');
   const {data:found,error:findError}=await client.from('schedule_private_items')
