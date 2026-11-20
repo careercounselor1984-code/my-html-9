@@ -17,5 +17,6 @@ jobs:
           node --check clients.js
           node tests/iap-auto-calendar-receiver.test.cjs
           node tests/client-activity-model.test.cjs
+          node tests/client-activity-receiver.test.cjs
           npm install --prefix /tmp/iap-auto-calendar-test jsdom@30.1.2 --no-audit --no-fund
           NODE_PATH=/tmp/iap-auto-calendar-test/node_modules node tests/iap-auto-calendar-dom.test.cjs
