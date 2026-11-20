@@ -174,28 +174,106 @@ async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
  try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
+
+async function recordActivity(item,uid,token){
+ if(token!==epoch||uid!==userId)throw Error('직원 계정이 변경되어 이력 저장을 중단했습니다.');
+ const entry={...item,user_id:uid};
+ const {error}=await client.from('schedule_client_activity').upsert(entry,{onConflict:'user_id,source_key',ignoreDuplicates:true});
+ if(error)throw Error('상담·변경 이력 저장 실패: '+error.message);
+ if(token!==epoch||uid!==userId)throw Error('로그아웃되어 이력 확인을 중단했습니다.');
+ const {data, error:readError}=await client.from('schedule_client_activity')
+  .select('id,user_id,reg_no,activity_type,activity_date,source_key,details,created_at')
+  .eq('user_id',uid).eq('source_key',item.source_key);
+ if(readError||data?.length!==1||A.normalizeReg(data[0].reg_no)!==A.normalizeReg(item.reg_no))
+  throw Error('상담·변경 이력 서버 저장 확인에 실패했습니다.');
+ activityRows=[data[0],...activityRows.filter(x=>x.id!==data[0].id)];
+ return data[0];
+}
+async function recordScheduleChange(before,after,rowId,reg,source,uid,token,revision=''){
+ const changes=A.fieldChanges(before,after);
+ if(!changes.length||!A.validReg(reg))return;
+ const previousKey=String(revision||crypto.randomUUID()).replace(/[^a-zA-Z0-9:_-]/g,'_');
+ const details={source,changes:changes.slice(0,24).map(c=>({field:c.field,from:c.from.slice(0,400),to:c.to.slice(0,400)}))};
+ const type=changes.some(c=>c.field==='clientStatus'||c.field==='statusDate')?'status_change':'date_change';
+ await recordActivity({
+  reg_no:A.normalizeReg(reg),activity_type:type,activity_date:keyDate(new Date()),
+  source_key:('change:'+rowId+':'+previousKey).slice(0,180),details
+ },uid,token);
+}
+function applyExplicitJournalStatus(before,payload,status){
+ if(!status)return payload;
+ const next=String(status.value||''),date=String(status.date||''),reason=String(status.reason||'').trim();
+ if(status.confirmed!==true||!Object.hasOwn(states,next)||!A.validDate(date)||date>keyDate(new Date())||reason.length<4||reason.length>300)
+  throw Error('상태 변경 확인·적용일·사유(4~300자)를 확인해 주세요.');
+ if(!before?.regNo)throw Error('내담자 일정에 먼저 연결한 후 상태를 변경해 주세요.');
+ const oldState=String(before.clientStatus||'active'),oldDate=String(before.statusDate||'');
+ if(oldState===next&&oldDate===date)return payload;
+ payload.clientStatus=next;payload.statusDate=date;payload.statusReason=reason;
+ payload.changeHistory=[...(Array.isArray(before.changeHistory)?before.changeHistory:[]),
+  {at:new Date().toISOString(),by:identity.id,from:oldState,to:next,effectiveDate:date,reason,summary:'상담일지에서 직접 확인한 상태 변경',changes:[]}];
+ if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500)
+  throw Error('상태 변경 이력이 기존 저장 용량을 초과했습니다. 내담자 일정관리에서 확인해 주세요.');
+ return payload;
+}
 let linking=false;
 window.addEventListener('message',async e=>{
- const d=e.data;if(e.source!==window.parent||window.parent===window||e.origin!=='https://careercounselor1984-code.github.io'||d?.type!=='goodjob:client-link:v1'||typeof d.requestId!=='string'||d.requestId.length>100)return;
+ const d=e.data;
+ const profileMessage=d?.type==='goodjob:client-link:v1',consultMessage=d?.type==='goodjob:client-consultation:v1';
+ if(e.source!==window.parent||window.parent===window||e.origin!=='https://careercounselor1984-code.github.io'||(!profileMessage&&!consultMessage)||typeof d.requestId!=='string'||d.requestId.length>100)return;
  const answer=(ok,message)=>e.source.postMessage({type:'goodjob:client-link-result:v1',requestId:d.requestId,ok,message},e.origin);
- if(linking){answer(false,'다른 저장을 처리 중입니다.');return}linking=true;
+ if(linking){answer(false,'일정표가 다른 저장을 처리 중입니다.');return}linking=true;
  try{
-  for(let i=0;i<40&&!loaded;i++)await new Promise(r=>setTimeout(r,200));
+  for(let n=0;n<40&&!loaded;n++)await new Promise(resolve=>setTimeout(resolve,200));
   if(!userId||!identity||!loaded||loading||busy)throw Error('일정표에서 직원 로그인 후 다시 시도해 주세요.');
-  const token=epoch,uid=userId,{data:sessionData,error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
-  const session=sessionData?.session;if(session?.user.id!==uid||String(session.user.email||'').toLowerCase()!==String(d.expectedEmail||'').toLowerCase())throw Error('통합본과 일정표의 로그인 직원이 다릅니다.');
-  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');if(staffError)throw staffError;
-  if(!staff?.id||staff.id!==identity.id||staff.center!==identity.center||staff.mustChangePassword||token!==epoch)throw Error('직원 권한이 변경되어 중단했습니다.');
-  const regNo=root.ClientLinkModel.reg(d.profile?.regNo);
-  const {data:found,error:findError}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').eq('payload->>regNo',regNo);if(findError)throw findError;
-  if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(found?.length>1)throw Error('중복 등록번호가 있어 자동 반영을 중단했습니다.');
-  const old=found?.[0],payload=root.ClientLinkSync.prepare(d.profile,old?.payload);if(!root.PrivatePlanner.validDate(payload.iapDate||''))throw Error('IAP 수립일이 확인되지 않아 자동 등록을 보류했습니다.');
-  const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);if(token!==epoch)throw Error('로그인 직원이 변경되었습니다.');
-  let query=client.from('schedule_private_items');query=old?query.update({payload,updated_at:new Date().toISOString()}).eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at):query.insert({id:insertId,kind:'iap',user_id:uid,item_date:payload.iapDate,payload});
-  const {data:saved,error}=await query.select('id,kind,item_date,payload,updated_at');if(error?.code==='23505'&&!old)throw Error('같은 내담자가 다른 창에서 먼저 등록되었습니다. 기존자료는 유지했습니다. 다시 반영해 주세요.');if(error)throw error;if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(saved?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
-  rows=rows.filter(r=>r.id!==saved[0].id);rows.push(saved[0]);paint();await autoSyncIap();answer(true,'내담자 연결 완료 · 날짜 자동 보완은 설정에 따라 적용');
- }catch(error){answer(false,error.message||'일정표 저장 실패');}finally{linking=false;}
+  const token=epoch,uid=userId,{data:sessionData,error:sessionError}=await client.auth.getSession();
+  if(sessionError)throw sessionError;
+  const session=sessionData?.session;
+  if(session?.user.id!==uid||String(session.user.email||'').toLowerCase()!==String(d.expectedEmail||'').toLowerCase())
+   throw Error('통합본과 일정표의 로그인 직원이 다릅니다.');
+  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');
+  if(staffError)throw staffError;
+  if(!staff?.id||staff.id!==identity.id||staff.center!==identity.center||staff.mustChangePassword||token!==epoch)
+   throw Error('직원 권한이 변경되어 중단했습니다.');
+  const regNo=A.normalizeReg(profileMessage?d.profile?.regNo:d.consultation?.regNo);
+  if(!A.validReg(regNo))throw Error('IAP 등록번호가 올바르지 않습니다.');
+  if(d.consultation&&A.normalizeReg(d.consultation.regNo)!==regNo)throw Error('상담 이력과 내담자 등록번호가 다릅니다.');
+  const {data:found,error:findError}=await client.from('schedule_private_items')
+   .select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').eq('payload->>regNo',regNo);
+  if(findError)throw findError;
+  if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+  if(found?.length>1)throw Error('중복 등록번호가 있어 자동 반영을 중단했습니다.');
+  const old=found?.[0];
+  if(!profileMessage&&!old)throw Error('내담자 일정 미등록입니다. IAP 저장 또는 내담자 등록을 먼저 완료하세요.');
+  let payload=profileMessage?root.ClientLinkSync.prepare(d.profile,old?.payload):{...old.payload};
+  if(profileMessage&&!A.validDate(payload.iapDate||''))throw Error('IAP 수립일이 확인되지 않아 신규 등록을 보류했습니다.');
+  if(d.status)payload=applyExplicitJournalStatus(old?.payload,payload,d.status);
+  const changed=!old||JSON.stringify(old.payload)!==JSON.stringify(payload);
+  let saved=old;
+  if(changed){
+   const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);
+   if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+   let query=client.from('schedule_private_items');
+   query=old?query.update({payload,updated_at:new Date().toISOString()})
+    .eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at)
+    :query.insert({id:insertId,kind:'iap',user_id:uid,item_date:payload.iapDate,payload});
+   const {data,error}=await query.select('id,kind,item_date,payload,updated_at');
+   if(error?.code==='23505'&&!old)throw Error('다른 창에서 먼저 등록되었습니다. 새로고침 후 확인해 주세요.');
+   if(error)throw error;
+   if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+   if(data?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
+   saved=data[0];rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
+  }
+  if(changed&&old)await recordScheduleChange(old.payload,payload,saved.id,regNo,'journal',uid,token,old.updated_at);
+  if(d.consultation)await recordActivity(A.consultation(d.consultation),uid,token);
+  if(token!==epoch||uid!==userId)throw Error('로그아웃되어 완료 확인이 취소되었습니다.');
+  paint();
+  if(profileMessage&&autoEnabled())await autoSyncIap();
+  answer(true,d.consultation?'내담자 정보·실제 상담일 서버 저장 확인':'내담자 연결 완료 · 날짜 자동 보완은 설정에 따라 적용');
+ }catch(error){
+  answer(false,error?.message||'일정표 저장 실패');
+ }finally{linking=false;}
 });
+
 function setButtons(disabled){$('saveClient').disabled=disabled;$('saveLifecycle').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled;if(!disabled)resumeAuto()}
 let customRange=null;function monthRange(){return customRange&&view==='list'?customRange:root.WorkPeriods.range(focusDate,view)}
 function syncPeriodControls(){const monthView=view==='list'||view==='month';$('month').value=focusDate.slice(0,7);$('clientDay').value=focusDate;$('clientMonthWrap').hidden=!monthView;$('clientDayWrap').hidden=monthView;$('clientWeekday').hidden=monthView;$('clientWeekday').textContent='('+['일','월','화','수','목','금','토'][new Date(focusDate+'T12:00:00').getDay()]+')';$('clientRange').textContent=customRange&&view==='list'?customRange[0]+' ~ '+customRange[1]:root.WorkPeriods.periodLabel(focusDate,view);$('thisMonth').textContent=monthView?'이번 달':view==='week'?'이번 주':'오늘';const unit=monthView?'달':view==='week'?'주':'날짜';$('prevMonth').setAttribute('aria-label','이전 '+unit);$('nextMonth').setAttribute('aria-label','다음 '+unit);document.querySelectorAll('[data-client-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clientView===view)));try{localStorage.setItem('goodjob_clients_view',view)}catch{}}
