@@ -161,6 +161,7 @@ function renderConsultWatch(today=keyDate(new Date())){
 }
 function renderConsultHistory(row){
  const list=$('consultHistoryList'),count=$('consultHistoryCount');if(!list||!count)return;
+ if(activityError){count.textContent='· 조회 불가';list.textContent=activityError;return}
  const reg=A.normalizeReg(row?.payload?.regNo||'');
  const history=activityRows.filter(x=>x.client_id?x.client_id===row?.id:A.normalizeReg(x.reg_no)===reg)
   .sort((a,b)=>String(b.activity_date).localeCompare(String(a.activity_date))||String(b.created_at).localeCompare(String(a.created_at)));
