@@ -3,6 +3,7 @@
 create table if not exists public.schedule_client_activity (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  client_id uuid not null references public.schedule_private_items(id) on delete cascade,
   reg_no text not null check (reg_no ~ '^A[0-9]{10,30}$'),
   activity_type text not null check (activity_type in ('consultation','date_change','status_change')),
   source_key text not null check (length(source_key) between 10 and 180),
@@ -15,7 +16,7 @@ create table if not exists public.schedule_client_activity (
   constraint schedule_client_activity_source_unique unique(user_id, source_key)
 );
 create index if not exists schedule_client_activity_owner_reg_date
-  on public.schedule_client_activity (user_id, reg_no, activity_date desc, created_at desc);
+  on public.schedule_client_activity (user_id, client_id, activity_date desc, created_at desc);
 create index if not exists schedule_client_activity_consult_date
   on public.schedule_client_activity (user_id, activity_date desc)
   where activity_type='consultation';
@@ -28,6 +29,10 @@ create policy schedule_client_activity_select on public.schedule_client_activity
   using (
     user_id=(select auth.uid())
     and exists (
+      select 1 from public.schedule_private_items c
+      where c.id=client_id and c.user_id=(select auth.uid()) and c.kind='iap'
+    )
+    and exists (
       select 1 from public.schedule_staff s
       where s.auth_user_id=(select auth.uid())
         and s.is_active and not s.must_change_password
@@ -38,6 +43,10 @@ create policy schedule_client_activity_insert on public.schedule_client_activity
   for insert to authenticated
   with check (
     user_id=(select auth.uid())
+    and exists (
+      select 1 from public.schedule_private_items c
+      where c.id=client_id and c.user_id=(select auth.uid()) and c.kind='iap'
+    )
     and exists (
       select 1 from public.schedule_staff s
       where s.auth_user_id=(select auth.uid())
