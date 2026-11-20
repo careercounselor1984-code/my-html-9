@@ -137,7 +137,7 @@ async function loadClientActivity(uid,token){
  try{
   for(let offset=0;offset<6000;offset+=200){
    const {data,error}=await client.from('schedule_client_activity')
-    .select('id,user_id,reg_no,activity_type,activity_date,source_key,details,created_at')
+    .select('id,user_id,client_id,reg_no,activity_type,activity_date,source_key,details,created_at')
     .eq('user_id',uid).order('activity_date',{ascending:false}).range(offset,offset+199);
    if(error)throw error;
    if(token!==epoch||uid!==userId)return;
@@ -163,7 +163,7 @@ function renderConsultWatch(today=keyDate(new Date())){
 function renderConsultHistory(row){
  const list=$('consultHistoryList'),count=$('consultHistoryCount');if(!list||!count)return;
  const reg=A.normalizeReg(row?.payload?.regNo||'');
- const history=activityRows.filter(x=>A.normalizeReg(x.reg_no)===reg)
+ const history=activityRows.filter(x=>x.client_id?x.client_id===row?.id:A.normalizeReg(x.reg_no)===reg)
   .sort((a,b)=>String(b.activity_date).localeCompare(String(a.activity_date))||String(b.created_at).localeCompare(String(a.created_at)));
  count.textContent=history.length?'· '+history.length+'건':'· 기록 없음';
  const labels={consultation:'실제 상담',date_change:'날짜 변경',status_change:'상태 변경'};
@@ -197,7 +197,7 @@ async function recordActivity(item,uid,token){
  if(error)throw Error('상담·변경 이력 저장 실패: '+error.message);
  if(token!==epoch||uid!==userId)throw Error('로그아웃되어 이력 확인을 중단했습니다.');
  const {data, error:readError}=await client.from('schedule_client_activity')
-  .select('id,user_id,reg_no,activity_type,activity_date,source_key,details,created_at')
+  .select('id,user_id,client_id,reg_no,activity_type,activity_date,source_key,details,created_at')
   .eq('user_id',uid).eq('source_key',item.source_key);
  if(readError||data?.length!==1||A.normalizeReg(data[0].reg_no)!==A.normalizeReg(item.reg_no))
   throw Error('상담·변경 이력 서버 저장 확인에 실패했습니다.');
@@ -208,10 +208,10 @@ async function recordScheduleChange(before,after,rowId,reg,source,uid,token,revi
  const changes=A.fieldChanges(before,after);
  if(!changes.length||!A.validReg(reg))return;
  const previousKey=String(revision||crypto.randomUUID()).replace(/[^a-zA-Z0-9:_-]/g,'_');
- const details={source,changes:changes.slice(0,24).map(c=>({field:c.field,from:c.from.slice(0,400),to:c.to.slice(0,400)}))};
+ const details={source,changes:changes.slice(0,10).map(c=>({field:c.field,from:c.from.slice(0,150),to:c.to.slice(0,150)}))};
  const type=changes.some(c=>c.field==='clientStatus'||c.field==='statusDate')?'status_change':'date_change';
  await recordActivity({
-  reg_no:A.normalizeReg(reg),activity_type:type,activity_date:keyDate(new Date()),
+  client_id:rowId,reg_no:A.normalizeReg(reg),activity_type:type,activity_date:keyDate(new Date()),
   source_key:('change:'+rowId+':'+previousKey).slice(0,180),details
  },uid,token);
 }
@@ -279,7 +279,7 @@ window.addEventListener('message',async e=>{
    saved=data[0];rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
   }
   if(changed&&old)await recordScheduleChange(old.payload,payload,saved.id,regNo,'journal',uid,token,old.updated_at);
-  if(d.consultation)await recordActivity(A.consultation(d.consultation),uid,token);
+  if(d.consultation)await recordActivity({...A.consultation(d.consultation),client_id:saved.id},uid,token);
   if(token!==epoch||uid!==userId)throw Error('로그아웃되어 완료 확인이 취소되었습니다.');
   paint();
   if(profileMessage&&autoEnabled())await autoSyncIap();
