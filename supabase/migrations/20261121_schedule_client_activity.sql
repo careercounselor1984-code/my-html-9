@@ -46,6 +46,7 @@ create policy schedule_client_activity_insert on public.schedule_client_activity
     and exists (
       select 1 from public.schedule_private_items c
       where c.id=client_id and c.user_id=(select auth.uid()) and c.kind='iap'
+        and upper(regexp_replace(coalesce(c.payload->>'regNo',''),'[[:space:]]','','g'))=reg_no
     )
     and exists (
       select 1 from public.schedule_staff s
