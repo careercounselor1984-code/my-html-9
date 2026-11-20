@@ -100,8 +100,7 @@ begin
     raise exception '다른 기기에서 자료를 수정했습니다. 새로고침 후 다시 확인해 주세요.';
   end if;
   v_reg := upper(regexp_replace(coalesce(p_payload->>'regNo',''),'[[:space:]]','','g'));
-  if v_reg !~ '^A[0-9]{10,30}
-
+  if v_reg !~ '^A[0-9]{10,30}$'
      or v_reg <> upper(regexp_replace(coalesce(v_before.payload->>'regNo',''),'[[:space:]]','','g')) then
     raise exception 'IAP 등록번호가 기존 내담자와 다릅니다.';
   end if;
