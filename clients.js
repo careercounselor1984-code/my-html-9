@@ -155,7 +155,7 @@ window.addEventListener('message',async e=>{
   const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);if(token!==epoch)throw Error('로그인 직원이 변경되었습니다.');
   let query=client.from('schedule_private_items');query=old?query.update({payload,updated_at:new Date().toISOString()}).eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at):query.insert({id:insertId,kind:'iap',user_id:uid,item_date:payload.iapDate,payload});
   const {data:saved,error}=await query.select('id,kind,item_date,payload,updated_at');if(error?.code==='23505'&&!old)throw Error('같은 내담자가 다른 창에서 먼저 등록되었습니다. 기존자료는 유지했습니다. 다시 반영해 주세요.');if(error)throw error;if(token!==epoch)throw Error('로그인 계정이 변경되었습니다.');if(saved?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
-  rows=rows.filter(r=>r.id!==saved[0].id);rows.push(saved[0]);paint();await autoSyncIap();answer(true,'내담자 연결 및 날짜 보완 완료');
+  rows=rows.filter(r=>r.id!==saved[0].id);rows.push(saved[0]);paint();await autoSyncIap();answer(true,'내담자 연결 완료 · 날짜 자동 보완은 설정에 따라 적용');
  }catch(error){answer(false,error.message||'일정표 저장 실패');}finally{linking=false;}
 });
 function setButtons(disabled){$('saveClient').disabled=disabled;$('saveLifecycle').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled;if(!disabled)resumeAuto()}
