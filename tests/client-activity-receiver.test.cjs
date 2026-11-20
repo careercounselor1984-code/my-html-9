@@ -5,12 +5,27 @@ const code=fs.readFileSync('clients.js','utf8');
 const start=code.indexOf('async function recordActivity('),end=code.indexOf('function setButtons(disabled)',start);
 assert(start>=0&&end>start);
 const clients=[{id:'client-1',user_id:'uid',kind:'iap',item_date:'2026-10-01',payload:{regNo:'A12345678901',name:'테스트 내담자',iapDate:'2026-10-01',clientStatus:'active'},updated_at:'t1'}];
-const history=[],replies=[];let version=1,listener,painted=0,epoch=0;
+const history=[],replies=[];let version=1,listener,painted=0,epoch=0,forceAuditFailure=false;
 const parent={postMessage:d=>replies.push(d)};
 const window={parent,addEventListener:(event,fn)=>{if(event==='message')listener=fn}};
 const client={
  auth:{getSession:async()=>({data:{session:{user:{id:'uid',email:'staff@example.com'}}}})},
- rpc:async()=>({data:{id:'staff',center:'북부센터',mustChangePassword:false}}),
+ rpc:async(name,args)=>{
+  if(name==='schedule_claim_identity')return {data:{id:'staff',center:'북부센터',mustChangePassword:false}};
+  assert.equal(name,'schedule_client_commit_and_audit');
+  const row=clients.find(r=>r.id===args.p_client_id&&r.user_id==='uid');
+  if(!row||row.updated_at!==args.p_expected_at)return {error:{message:'다른 기기에서 수정했습니다.'}};
+  if(forceAuditFailure)return {error:{message:'이력 기록 제한'}};
+  const changed=A.fieldChanges(row.payload,args.p_payload);
+  assert(changed.length,'atomic RPC called for meaningful changes');
+  const next={...row,payload:args.p_payload,item_date:args.p_item_date,updated_at:'t'+(++version)};
+  Object.assign(row,next);
+  history.push({id:'audit-'+(history.length+1),user_id:'uid',client_id:row.id,
+   reg_no:args.p_payload.regNo,activity_type:changed.some(c=>c.field==='clientStatus'||c.field==='statusDate')?'status_change':'date_change',
+   source_key:'change:'+row.id+':'+args.p_expected_at,activity_date:'2026-11-21',
+   details:{source:args.p_source,changes:args.p_changes},created_at:'2026-11-21T10:00:00Z'});
+  return {data:[next],error:null};
+ },
  from(table){
   const filters=[];let op='read',data;
   const q={
@@ -65,6 +80,12 @@ const wait=()=>new Promise(r=>setTimeout(r,20));
  assert.equal(clients[0].payload.clientStatus,'employed');
  assert(history.some(x=>x.activity_type==='status_change'),'status change append-only evidence');
  const before=history.length;
+ forceAuditFailure=true;
+ send('goodjob:client-consultation:v1',{regNo:reg,status:{value:'paused',date:'2026-11-21',reason:'일시 중지 확인',confirmed:true}});await wait();
+ assert.equal(replies.at(-1).ok,false,'audit failure must reject status update');
+ assert.equal(clients[0].payload.clientStatus,'employed','atomic RPC leaves status unchanged if audit fails');
+ assert.equal(history.length,before,'no partial audit on transaction failure');
+ forceAuditFailure=false;
  send('goodjob:client-consultation:v1',{regNo:reg,status:{value:'ended',date:'2026-11-21',reason:'',confirmed:false}});await wait();
  assert.equal(replies.at(-1).ok,false);
  assert.equal(clients[0].payload.clientStatus,'employed','unconfirmed status cannot overwrite');
