@@ -124,9 +124,8 @@ async function autoSyncIap(){
  const token=epoch,uid=userId,plan=D.planSaved(D.savedRecords(localStorage,rows,userEmail),rows,identity).filter(p=>p.action==='update'&&(!p.row.payload.clientStatus||p.row.payload.clientStatus==='active'));if(!plan.length)return;
  busy=true;loadSeq++;setButtons(true);let saved=0,conflicts=0;
  try{for(const entry of plan){if(token!==epoch||uid!==userId||!autoEnabled())break;const current=rows.find(r=>r.id===entry.row.id);if(!current||current.updated_at!==entry.row.updated_at){conflicts++;continue}const payload={...entry.payload,changeHistory:[...(entry.payload.changeHistory||[]),{at:new Date().toISOString(),by:identity.id,from:entry.payload.clientStatus||'active',to:entry.payload.clientStatus||'active',reason:'저장된 IAP 자동 보완',summary:entry.changes.map(c=>c.label).join(', '),changes:[]}]};if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500){conflicts++;continue}
-  const {data,error}=await client.from('schedule_private_items').update({payload,updated_at:new Date().toISOString()}).eq('id',entry.row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',entry.row.updated_at).select('id,kind,item_date,payload,updated_at');if(token!==epoch||uid!==userId)return;if(error||!data?.length){conflicts++;continue}rows=rows.map(r=>r.id===entry.row.id?data[0]:r);saved++;
-    try{await recordScheduleChange(current.payload,payload,current.id,current.payload.regNo,'iap_auto',uid,token,current.updated_at)}
-    catch(auditError){conflicts++;console.warn('IAP 날짜 변경 이력 기록 실패',auditError?.message||'확인 필요')}}
+  try{const next=await commitAuditedClientUpdate(current,payload,'iap_auto',uid,token);if(token!==epoch||uid!==userId)return;rows=rows.map(r=>r.id===entry.row.id?next:r);saved++;}
+   catch(commitError){conflicts++;console.warn('IAP 날짜 및 변경 이력 원자 저장 보류',commitError?.message||'확인 필요')}}
  }catch(error){if(token===epoch)message('IAP 자동 보완을 완료하지 못했습니다. 기존 날짜는 유지했습니다.',true)}finally{if(token===epoch){busy=false;setButtons(false);paint();if(saved||conflicts)message('IAP·전산정보에서 '+saved+'명 일정 자동 보완'+(conflicts?' · '+conflicts+'명은 다시 확인해 주세요.':''),!!conflicts)}}
 }
 
@@ -181,13 +180,10 @@ async function load(){
 }
 async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
- try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);
-    let auditError=false;
-    if(row&&record&&A.validReg(record.payload?.regNo))try{
-      await recordScheduleChange(row.payload,record.payload,row.id,record.payload.regNo,'calendar_manual',uid,token,row.updated_at);
-    }catch(error){auditError=true;console.warn('내담자 일정 변경 이력 기록 실패',error?.message||'확인 필요')}
-    message(auditError?'일정은 저장됐지만 변경 이력 별도 기록을 확인하지 못했습니다.':'서버 저장 완료 ✓',auditError);
-    paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
+ try{let data,error;const audit=!!(row&&record&&A.validReg(row.payload?.regNo)&&A.fieldChanges(row.payload,record.payload).length);
+    if(audit){try{data=[await commitAuditedClientUpdate(row,record.payload,'calendar_manual',uid,token,record.item_date)]}catch(e){error=e}}
+    else{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});({data,error}=await q.select('id,kind,item_date,payload,updated_at'));}
+    if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
 
 async function recordActivity(item,uid,token){
@@ -204,6 +200,27 @@ async function recordActivity(item,uid,token){
  activityRows=[data[0],...activityRows.filter(x=>x.id!==data[0].id)];
  return data[0];
 }
+
+async function commitAuditedClientUpdate(row,nextPayload,source,uid,token,nextItemDate=row.item_date){
+ if(token!==epoch||uid!==userId)throw Error('직원 계정이 변경되어 저장을 중단했습니다.');
+ if(!row?.id||!A.validReg(row.payload?.regNo)||!A.validReg(nextPayload?.regNo))
+  throw Error('IAP 등록번호가 확인되지 않아 변경 이력을 남길 수 없습니다.');
+ const changes=A.fieldChanges(row.payload,nextPayload);
+ if(!changes.length)throw Error('기록할 중요 날짜 또는 상태 변경이 없습니다.');
+ const summary=changes.slice(0,10).map(c=>({field:c.field,from:String(c.from||'').slice(0,120),to:String(c.to||'').slice(0,120)}));
+ const {data,error}=await client.rpc('schedule_client_commit_and_audit',{
+  p_client_id:row.id,p_expected_at:row.updated_at,p_payload:nextPayload,
+  p_item_date:nextItemDate,p_source:source,p_changes:summary
+ });
+ if(error)throw Error('일정과 변경 이력의 원자 저장 실패: '+error.message);
+ if(token!==epoch||uid!==userId)throw Error('계정이 변경되어 저장 확인을 중단했습니다.');
+ if(!Array.isArray(data)||data.length!==1||data[0]?.id!==row.id)
+  throw Error('일정과 변경 이력 저장을 확인하지 못했습니다. 새로고침 후 확인해 주세요.');
+ // The SQL function commits the calendar change AND the immutable audit together.
+ // Reload activity summaries on the next view; never report a failed audit as saved.
+ return data[0];
+}
+
 async function recordScheduleChange(before,after,rowId,reg,source,uid,token,revision=''){
  const changes=A.fieldChanges(before,after);
  if(!changes.length||!A.validReg(reg))return;
@@ -264,7 +281,10 @@ window.addEventListener('message',async e=>{
   if(d.status)payload=applyExplicitJournalStatus(old?.payload,payload,d.status);
   const changed=!old||JSON.stringify(old.payload)!==JSON.stringify(payload);
   let saved=old;
-  if(changed){
+  if(changed&&old&&A.fieldChanges(old.payload,payload).length){
+   saved=await commitAuditedClientUpdate(old,payload,'journal',uid,token,old.item_date);
+   rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
+  }else if(changed){
    const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);
    if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
    let query=client.from('schedule_private_items');
@@ -278,7 +298,7 @@ window.addEventListener('message',async e=>{
    if(data?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
    saved=data[0];rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
   }
-  if(changed&&old)await recordScheduleChange(old.payload,payload,saved.id,regNo,'journal',uid,token,old.updated_at);
+  // Changed existing dates/states have already been committed with their immutable audit in one transaction.
   if(d.consultation)await recordActivity({...A.consultation(d.consultation),client_id:saved.id},uid,token);
   if(token!==epoch||uid!==userId)throw Error('로그아웃되어 완료 확인이 취소되었습니다.');
   paint();
