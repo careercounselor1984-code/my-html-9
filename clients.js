@@ -299,7 +299,7 @@ function renderSyncHealth(){
  const summary=document.createElement('p');summary.textContent='연결 점검 · 이 브라우저의 저장 IAP '+saved.length+'건 · 명단 미연결 '+unlinked.length+'건 · 확인할 내용 '+issues.length+'건';box.append(summary);
  if(unlinked.length){const note=document.createElement('p');note.textContent='명단에 연결되지 않은 IAP는 일정표에 자동 반영되지 않습니다. ‘IAP에서 등록’에서 본인 담당 자료인지 확인한 뒤 연결하세요.';box.append(note);}
  if(issues.length){const details=document.createElement('details'),heading=document.createElement('summary'),list=document.createElement('ul');heading.textContent='기존 정보와 다른 내용·반영 보류 사유 보기';for(const issue of issues.slice(0,30)){const li=document.createElement('li');li.textContent=issue.name+' · '+issue.reason;list.append(li);}if(issues.length>30){const li=document.createElement('li');li.textContent='그 외 '+(issues.length-30)+'건 · IAP 일정 보완에서 확인하세요.';list.append(li);}details.append(heading,list);box.append(details);}
- const limits=document.createElement('p');limits.textContent='초기상담 기한·상담사관리 엑셀·취업·종료 정보는 아직 자동으로 들어오지 않습니다. 해당 정보는 별도로 확인하세요.';box.append(limits);
+ const limits=document.createElement('p');limits.textContent='초기상담 기한·상담사관리 엑셀·고용24의 공식 취업·종료 상태는 자동 조회하지 않습니다. 상담일지에서 실제 확인하고 명시적으로 선택한 상태만 이 일정관리에 연결합니다.';box.append(limits);
 }
 function paint(){
  if(!userId||!identity)return;renderSyncHealth();renderConsultWatch();const range=monthRange();if(!range)return;const today=keyDate(new Date()),search=$('search').value.trim().toLowerCase(),mine=rows.filter(r=>matches(r.payload,search)),events=eventsFor(mine),count=D.counts(events,today),needs=D.issues(mine);
