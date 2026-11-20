@@ -12,22 +12,23 @@ const daysBetween=(a,b)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T1
 const states={active:'참여 중',employed:'취업',paused:'일시 중지',ended:'종료·중단'};
 const consultMenus=new Set(['p01','p02','p03','p04','p05','p06','p07','p10','p11','p13','p16','p17','p21','p23','p30','p34']);
 const recentByReg=(activity,today=todayLocal())=>{
- const latest=new Map(),count=new Map();
+ const latest=new Map(),count=new Map(),latestByClient=new Map(),countByClient=new Map();
  for(const row of activity||[]){
   if(row.activity_type!=='consultation'||!validDate(row.activity_date)||row.activity_date>today||!validReg(row.reg_no))continue;
   const reg=normalizeReg(row.reg_no);
   if(!latest.has(reg)||latest.get(reg).activity_date<row.activity_date)latest.set(reg,row);
   count.set(reg,(count.get(reg)||0)+1);
+  if(row.client_id){const id=String(row.client_id);if(!latestByClient.has(id)||latestByClient.get(id).activity_date<row.activity_date)latestByClient.set(id,row);countByClient.set(id,(countByClient.get(id)||0)+1)}
  }
- return {latest,count};
+ return {latest,count,latestByClient,countByClient};
 };
 function attention(rows,activity,today=todayLocal(),threshold=21){
  if(!validDate(today)||!Number.isInteger(threshold)||threshold<1)throw Error('기준일 확인 필요');
- const {latest,count}=recentByReg(activity,today);
+ const {latest,count,latestByClient,countByClient}=recentByReg(activity,today);
  return (rows||[]).filter(row=>row.kind==='iap').map(row=>{
-  const p=row.payload||{},reg=normalizeReg(p.regNo),last=latest.get(reg)?.activity_date||'',days=last?daysBetween(last,today):null;
+  const p=row.payload||{},reg=normalizeReg(p.regNo),hasOwnerRecords=(activity||[]).some(e=>e.client_id&&e.reg_no===reg),entry=latestByClient.get(String(row.id))||(!hasOwnerRecords?latest.get(reg):null),last=entry?.activity_date||'',days=last?daysBetween(last,today):null;
   const active=(!p.clientStatus||p.clientStatus==='active'),due=active&&days!==null&&days>=threshold;
-  return {row,reg,last,days,registered:count.get(reg)||0,status:!active?'inactive':!last?'unrecorded':due?'due':'recent',due};
+  return {row,reg,last,days,registered:countByClient.get(String(row.id))||(hasOwnerRecords?0:count.get(reg)||0),status:!active?'inactive':!last?'unrecorded':due?'due':'recent',due};
  });
 }
 const scheduleFields=['iapDate','serviceEnd','jobCertExpire','rediagnosisStart','rediagnosisEnd','rediagnosisDate','actualDueDate'];
