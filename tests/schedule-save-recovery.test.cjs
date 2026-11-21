@@ -39,7 +39,7 @@ async function moveWithServerReply(reject){
  settle();await pending;
  assert.equal(alerts.some(message=>message.includes('변경되었습니다')),!reject);
  assert.equal(JSON.parse(cloud.base.events.get(a.id)).time,reject?'10:00':'10:30');
- if(reject)assert(statuses.some(message=>message.includes('일정 충돌')));
+ if(reject)assert(statuses.some(message=>message.includes('일정 버전 충돌')),'version conflict must be shown without auto-overwriting');
 }
 async function failure(message){
  const cloud={active:true,busy:false,needsSave:true,identity:{id:'test'},base:{events:new Map()}},timers=[],dialogs=[];
