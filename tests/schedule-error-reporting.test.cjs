@@ -21,7 +21,7 @@ const create=(staffId='fixture-a')=>api.create({staffId,storage,rpc,isCurrent:()
  const race=api.create({staffId:'race',storage,isCurrent:()=>true,uuid:()=> '00000001-0000-4000-8000-000000000001',rpc:async(n,p)=>{pending.push(p);if(pending.length===1)return new Promise(r=>complete=r);return {data:{ok:true}}}});
  const started=race.open('백업 실패',1);await race.resolve();complete({data:{ok:true}});await started;await race.flush();assert.deepEqual(pending.map(x=>x.p_resolved),[false,true]);
  current=false;const previous=calls.length;await reporter.open('failure',1);await reporter.resolve();await reporter.flush();assert.equal(calls.length,previous,'logout halts cross-session reporting');
- for(const code of ['overlap','version','validation','network','backup','save'])assert(Object.values({overlap:api.classify('중복'),version:api.classify('버전 충돌'),validation:api.classify('시각 확인'),network:api.classify('Failed to fetch'),backup:api.classify('백업 실패'),save:api.classify('database error')}).includes(code));
+ for(const [code,sample] of Object.entries({overlap:'기존 상담 또는 근무 일정과 시간이 중복',version:'버전 충돌',validation:'시각 확인',network:'Failed to fetch',backup:'백업 실패',save:'database error'}))assert.equal(api.classify(sample),code,'error classification: '+code);
  // Save pipeline calls the report on rejection and resolves it only after all writes succeed.
  assert(html.indexOf('cloudReportSaveIssue(message);')>html.indexOf('async function cloudCommit()'));
  assert(html.includes('if(!cloud.needsSave&&!cloud.unresolvedDraft&&!cloud.draftBackupFailed&&!cloud.queueBlocked)cloudResolveSaveReport();'));
