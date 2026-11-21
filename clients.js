@@ -36,6 +36,7 @@ const D=root.ClientDeadlines;
 const keyDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let client=null,identity=null,userId='',rows=[],editing=null,busy=false,loaded=false,loading=false,epoch=0,loadSeq=0,authSeq=0,userEmail='',filter='all',view='month',focusDate=keyDate(new Date());
 let autoPending=false;
+let activityRows=[],activityError='자료를 불러오는 중…';
 let importDroppedFile=null,importMode='recipient',queue='period';
 let importRecords=[],importPlan=[],importSheets=[],importReadSeq=0,importReviewEpoch=-1;
 function importMessage(text,error=false){$('clientImportStatus').textContent=text;$('clientImportStatus').classList.toggle('error',error)}
@@ -106,7 +107,7 @@ function initImport(){
 
 function message(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
 function gate(text){$('gate').hidden=false;$('workspace').hidden=true;$('gate').querySelector('h2').textContent='직원 로그인 필요';$('gateMessage').textContent=text}
-function clearPrivate(){autoPending=false;clearImport();epoch++;loadSeq++;userId='';userEmail='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientSyncHealth')?.replaceChildren();$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecyclePreview').textContent='';$('lifecycleSaveStatus').textContent='';$('lifecycleState').textContent='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();message('')}
+function clearPrivate(){autoPending=false;clearImport();epoch++;loadSeq++;userId='';userEmail='';identity=null;rows=[];editing=null;loaded=false;loading=false;busy=false;$('workspace').hidden=true;$('timeline').innerHTML='';$('roster').innerHTML='';$('filters').innerHTML='';$('identity').textContent='';$('savedIap').innerHTML='';$('trainingRows').innerHTML='';$('importantDateRows').innerHTML='';$('clientOverview').innerHTML='';$('clientAttention').innerHTML='';$('clientSyncHealth')?.replaceChildren();$('clientForm').reset();$('remainingEvents').innerHTML='';$('lifecyclePreview').textContent='';$('lifecycleSaveStatus').textContent='';$('lifecycleState').textContent='';$('lifecycleHistory').innerHTML='';if($('clientDialog').open)$('clientDialog').close();activityRows=[];activityError='';$('clientConsultWatchBody')?.replaceChildren();$('consultHistoryList')?.replaceChildren();message('')}
 async function authenticate(){
  const token=epoch,request=++authSeq;
  try{const {data,error}=await client.auth.getSession();if(error)throw error;const session=data?.session;if(token!==epoch||request!==authSeq)return;if(!session){clearPrivate();gate('상담일정표에서 직원 계정으로 로그인한 뒤 이 화면을 열어주세요.');return}
@@ -123,19 +124,192 @@ async function autoSyncIap(){
  const token=epoch,uid=userId,plan=D.planSaved(D.savedRecords(localStorage,rows,userEmail),rows,identity).filter(p=>p.action==='update'&&(!p.row.payload.clientStatus||p.row.payload.clientStatus==='active'));if(!plan.length)return;
  busy=true;loadSeq++;setButtons(true);let saved=0,conflicts=0;
  try{for(const entry of plan){if(token!==epoch||uid!==userId||!autoEnabled())break;const current=rows.find(r=>r.id===entry.row.id);if(!current||current.updated_at!==entry.row.updated_at){conflicts++;continue}const payload={...entry.payload,changeHistory:[...(entry.payload.changeHistory||[]),{at:new Date().toISOString(),by:identity.id,from:entry.payload.clientStatus||'active',to:entry.payload.clientStatus||'active',reason:'저장된 IAP 자동 보완',summary:entry.changes.map(c=>c.label).join(', '),changes:[]}]};if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500){conflicts++;continue}
-  const {data,error}=await client.from('schedule_private_items').update({payload,updated_at:new Date().toISOString()}).eq('id',entry.row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',entry.row.updated_at).select('id,kind,item_date,payload,updated_at');if(token!==epoch||uid!==userId)return;if(error||!data?.length){conflicts++;continue}rows=rows.map(r=>r.id===entry.row.id?data[0]:r);saved++;}
+  try{const next=await commitAuditedClientUpdate(current,payload,'iap_auto',uid,token);if(token!==epoch||uid!==userId)return;rows=rows.map(r=>r.id===entry.row.id?next:r);saved++;}
+   catch(commitError){conflicts++;console.warn('IAP 날짜 및 변경 이력 원자 저장 보류',commitError?.message||'확인 필요')}}
  }catch(error){if(token===epoch)message('IAP 자동 보완을 완료하지 못했습니다. 기존 날짜는 유지했습니다.',true)}finally{if(token===epoch){busy=false;setButtons(false);paint();if(saved||conflicts)message('IAP·전산정보에서 '+saved+'명 일정 자동 보완'+(conflicts?' · '+conflicts+'명은 다시 확인해 주세요.':''),!!conflicts)}}
 }
 
+
+const A=root.ClientActivityModel;
+async function loadClientActivity(uid,token){
+ const all=[];
+ try{
+  for(let offset=0;offset<6000;offset+=200){
+   const {data,error}=await client.from('schedule_client_activity')
+    .select('id,user_id,client_id,reg_no,activity_type,activity_date,source_key,details,created_at')
+    .eq('user_id',uid).order('activity_date',{ascending:false}).range(offset,offset+199);
+   if(error)throw error;
+   if(token!==epoch||uid!==userId)return;
+   all.push(...(data||[]));
+   if((data||[]).length<200)break;
+  }
+  if(token!==epoch||uid!==userId)return;
+  activityRows=all;activityError=all.length>=6000?'상담 이력이 많아 일부만 조회되었습니다. 서버 기록을 확인하세요.':'';
+ }catch(error){
+  if(token!==epoch||uid!==userId)return;
+  activityRows=[];activityError='상담 이력 서버에 접근하지 못했습니다. 일정표 관리자가 이력 테이블과 권한을 확인해야 합니다.';
+ }
+}
+function renderConsultWatch(today=keyDate(new Date())){
+ const host=$('clientConsultWatchBody');if(!host)return;
+ if(activityError){host.innerHTML='<p class="consult-watch-error">'+escape(activityError)+'</p>';return}
+ const data=A.attention(rows,activityRows,today),due=data.filter(e=>e.due),unknown=data.filter(e=>e.status==='unrecorded'),active=data.filter(e=>e.status!=='inactive');
+ host.innerHTML='<div class="consult-watch-metrics"><b class="warn">21일 이상 '+due.length+'명</b><b>실제 상담일 미등록 '+unknown.length+'명</b><b>참여 중 '+active.length+'명</b></div>'
+  +(due.length?'<div class="consult-watch-list">'+due.slice(0,16).map(e=>'<div class="consult-watch-person"><strong>'+escape(e.row.payload?.name||'이름 미입력')+'</strong><small>마지막 상담 '+escape(e.last)+' · '+e.days+'일 경과</small><button type="button" data-edit="'+escape(e.row.id)+'">이력·일정 확인</button></div>').join('')+'</div>':'<p>저장된 실제 상담일 기준으로 21일 이상 경과한 참여자가 없습니다.</p>')
+  +(due.length>16?'<small>그 외 '+(due.length-16)+'명은 전체 내담자 목록에서 확인하세요.</small>':'')
+  +(unknown.length?'<p class="client-queue-hint">미등록 '+unknown.length+'명은 상담을 실시하지 않았다는 뜻이 아닙니다. 과거 이력이 아직 연결되지 않았을 수 있습니다.</p>':'');
+}
+function renderConsultHistory(row){
+ const list=$('consultHistoryList'),count=$('consultHistoryCount');if(!list||!count)return;
+ if(activityError){count.textContent='· 조회 불가';list.textContent=activityError;return}
+ const reg=A.normalizeReg(row?.payload?.regNo||'');
+ const history=activityRows.filter(x=>x.client_id?x.client_id===row?.id:A.normalizeReg(x.reg_no)===reg)
+  .sort((a,b)=>String(b.activity_date).localeCompare(String(a.activity_date))||String(b.created_at).localeCompare(String(a.created_at)));
+ count.textContent=history.length?'· '+history.length+'건':'· 기록 없음';
+ const labels={consultation:'실제 상담',date_change:'날짜 변경',status_change:'상태 변경'};
+ list.innerHTML=history.length?history.slice(0,50).map(a=>{
+  const changes=(Array.isArray(a.details?.changes)?a.details.changes:[]).slice(0,12)
+   .map(c=>'<small> · '+escape(c.field)+': '+escape(c.from||'없음')+' → '+escape(c.to||'없음')+'</small>').join('');
+  return '<li><strong>'+escape(a.activity_date)+'</strong> · '+escape(labels[a.activity_type]||'기록')
+   +(a.activity_type==='consultation'?' · '+escape(a.details?.pageId||'상담'):'')+changes+'</li>';
+ }).join(''):'<li>서버에 연결된 상담·변경 이력이 없습니다.</li>';
+}
 async function load(){
  if(!userId||!identity||busy)return;const token=epoch,seq=++loadSeq,uid=userId;loading=true;loaded=false;message('내담자 일정 불러오는 중…');
- try{let all=[];for(let start=0;;start+=200){const {data,error}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').order('id').range(start,start+199);if(error)throw error;if(token!==epoch||seq!==loadSeq)return;all=all.concat(data||[]);if((data||[]).length<200)break}rows=all;loaded=true;message('본인 전용 · 서버 저장 자료');paint()}catch(error){if(token===epoch&&seq===loadSeq)message('불러오기 실패: '+error.message,true)}finally{if(token===epoch&&seq===loadSeq)loading=false}
+ try{let all=[];for(let start=0;;start+=200){const {data,error}=await client.from('schedule_private_items').select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').order('id').range(start,start+199);if(error)throw error;if(token!==epoch||seq!==loadSeq)return;all=all.concat(data||[]);if((data||[]).length<200)break}rows=all;loaded=true;message('본인 전용 · 서버 저장 자료');await loadClientActivity(uid,token);if(token===epoch&&seq===loadSeq)paint()}catch(error){if(token===epoch&&seq===loadSeq)message('불러오기 실패: '+error.message,true)}finally{if(token===epoch&&seq===loadSeq)loading=false}
  if(token===epoch&&loaded)await autoSyncIap();
 }
 async function mutate(record){
  if(busy||loading||!loaded||!userId)throw Error('계정과 저장 상태를 확인한 후 다시 시도하세요.');const token=epoch,uid=userId,row=editing;busy=true;loadSeq++;setButtons(true);message('저장 중…');
- try{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});const {data,error}=await q.select('id,kind,item_date,payload,updated_at');if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
+ try{let data,error;const audit=!!(row&&record&&A.validReg(row.payload?.regNo)&&A.fieldChanges(row.payload,record.payload).length);
+    if(audit){try{data=[await commitAuditedClientUpdate(row,record.payload,'calendar_manual',uid,token,record.item_date)]}catch(e){error=e}}
+    else{let q=client.from('schedule_private_items');if(row){q=record?q.update({...record,updated_at:new Date().toISOString()}):q.delete();q=q.eq('id',row.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',row.updated_at)}else q=q.insert({...record,user_id:uid});({data,error}=await q.select('id,kind,item_date,payload,updated_at'));}
+    if(error)throw error;if(token!==epoch)throw Error('계정이 변경되어 작업을 중단했습니다.');if(!data?.length)throw Error('다른 기기에서 수정된 자료입니다. 취소 후 새로고침해 주세요.');if(row)rows=rows.filter(r=>r.id!==row.id);if(record)rows.push(data[0]);message('서버 저장 완료 ✓');paint();$('clientDialog').close()}catch(error){if(token===epoch)message('저장 실패: '+error.message,true);throw error}finally{if(token===epoch){busy=false;setButtons(false)}}
 }
+
+async function recordActivity(item,uid,token){
+ if(token!==epoch||uid!==userId)throw Error('직원 계정이 변경되어 이력 저장을 중단했습니다.');
+ const entry={...item,user_id:uid};
+ const {error}=await client.from('schedule_client_activity').upsert(entry,{onConflict:'user_id,source_key',ignoreDuplicates:true});
+ if(error)throw Error('상담·변경 이력 저장 실패: '+error.message);
+ if(token!==epoch||uid!==userId)throw Error('로그아웃되어 이력 확인을 중단했습니다.');
+ const {data, error:readError}=await client.from('schedule_client_activity')
+  .select('id,user_id,client_id,reg_no,activity_type,activity_date,source_key,details,created_at')
+  .eq('user_id',uid).eq('source_key',item.source_key);
+ if(readError||data?.length!==1||A.normalizeReg(data[0].reg_no)!==A.normalizeReg(item.reg_no))
+  throw Error('상담·변경 이력 서버 저장 확인에 실패했습니다.');
+ activityRows=[data[0],...activityRows.filter(x=>x.id!==data[0].id)];
+ return data[0];
+}
+
+async function commitAuditedClientUpdate(row,nextPayload,source,uid,token,nextItemDate=row.item_date){
+ if(token!==epoch||uid!==userId)throw Error('직원 계정이 변경되어 저장을 중단했습니다.');
+ if(!row?.id||!A.validReg(row.payload?.regNo)||!A.validReg(nextPayload?.regNo))
+  throw Error('IAP 등록번호가 확인되지 않아 변경 이력을 남길 수 없습니다.');
+ const changes=A.fieldChanges(row.payload,nextPayload);
+ if(!changes.length)throw Error('기록할 중요 날짜 또는 상태 변경이 없습니다.');
+ const summary=changes.slice(0,10).map(c=>({field:c.field,from:String(c.from||'').slice(0,120),to:String(c.to||'').slice(0,120)}));
+ const {data,error}=await client.rpc('schedule_client_commit_and_audit',{
+  p_client_id:row.id,p_expected_at:row.updated_at,p_payload:nextPayload,
+  p_item_date:nextItemDate,p_source:source,p_changes:summary
+ });
+ if(error)throw Error('일정과 변경 이력의 원자 저장 실패: '+error.message);
+ if(token!==epoch||uid!==userId)throw Error('계정이 변경되어 저장 확인을 중단했습니다.');
+ if(!Array.isArray(data)||data.length!==1||data[0]?.id!==row.id)
+  throw Error('일정과 변경 이력 저장을 확인하지 못했습니다. 새로고침 후 확인해 주세요.');
+ // The SQL function commits the calendar change AND the immutable audit together.
+ // Reload activity summaries on the next view; never report a failed audit as saved.
+ return data[0];
+}
+
+async function recordScheduleChange(before,after,rowId,reg,source,uid,token,revision=''){
+ const changes=A.fieldChanges(before,after);
+ if(!changes.length||!A.validReg(reg))return;
+ const previousKey=String(revision||crypto.randomUUID()).replace(/[^a-zA-Z0-9:_-]/g,'_');
+ const details={source,changes:changes.slice(0,10).map(c=>({field:c.field,from:c.from.slice(0,150),to:c.to.slice(0,150)}))};
+ const type=changes.some(c=>c.field==='clientStatus'||c.field==='statusDate')?'status_change':'date_change';
+ await recordActivity({
+  client_id:rowId,reg_no:A.normalizeReg(reg),activity_type:type,activity_date:keyDate(new Date()),
+  source_key:('change:'+rowId+':'+previousKey).slice(0,180),details
+ },uid,token);
+}
+function applyExplicitJournalStatus(before,payload,status){
+ if(!status)return payload;
+ const next=String(status.value||''),date=String(status.date||''),reason=String(status.reason||'').trim();
+ if(status.confirmed!==true||!Object.hasOwn(states,next)||!A.validDate(date)||date>keyDate(new Date())||reason.length<4||reason.length>300)
+  throw Error('상태 변경 확인·적용일·사유(4~300자)를 확인해 주세요.');
+ if(!before?.regNo)throw Error('내담자 일정에 먼저 연결한 후 상태를 변경해 주세요.');
+ const oldState=String(before.clientStatus||'active'),oldDate=String(before.statusDate||'');
+ if(oldState===next&&oldDate===date)return payload;
+ payload.clientStatus=next;payload.statusDate=date;payload.statusReason=reason;
+ payload.changeHistory=[...(Array.isArray(before.changeHistory)?before.changeHistory:[]),
+  {at:new Date().toISOString(),by:identity.id,from:oldState,to:next,effectiveDate:date,reason,summary:'상담일지에서 직접 확인한 상태 변경',changes:[]}];
+ if(new TextEncoder().encode(JSON.stringify(payload)).length>=19500)
+  throw Error('상태 변경 이력이 기존 저장 용량을 초과했습니다. 내담자 일정관리에서 확인해 주세요.');
+ return payload;
+}
+let linking=false;
+window.addEventListener('message',async e=>{
+ const d=e.data;
+ const profileMessage=d?.type==='goodjob:client-link:v1',consultMessage=d?.type==='goodjob:client-consultation:v1';
+ if(e.source!==window.parent||window.parent===window||e.origin!=='https://careercounselor1984-code.github.io'||(!profileMessage&&!consultMessage)||typeof d.requestId!=='string'||d.requestId.length>100)return;
+ const answer=(ok,message)=>e.source.postMessage({type:'goodjob:client-link-result:v1',requestId:d.requestId,ok,message},e.origin);
+ if(linking){answer(false,'일정표가 다른 저장을 처리 중입니다.');return}linking=true;
+ try{
+  for(let n=0;n<40&&!loaded;n++)await new Promise(resolve=>setTimeout(resolve,200));
+  if(!userId||!identity||!loaded||loading||busy)throw Error('일정표에서 직원 로그인 후 다시 시도해 주세요.');
+  const token=epoch,uid=userId,{data:sessionData,error:sessionError}=await client.auth.getSession();
+  if(sessionError)throw sessionError;
+  const session=sessionData?.session;
+  if(session?.user.id!==uid||String(session.user.email||'').toLowerCase()!==String(d.expectedEmail||'').toLowerCase())
+   throw Error('통합본과 일정표의 로그인 직원이 다릅니다.');
+  const {data:staff,error:staffError}=await client.rpc('schedule_claim_identity');
+  if(staffError)throw staffError;
+  if(!staff?.id||staff.id!==identity.id||staff.center!==identity.center||staff.mustChangePassword||token!==epoch)
+   throw Error('직원 권한이 변경되어 중단했습니다.');
+  const regNo=A.normalizeReg(profileMessage?d.profile?.regNo:(d.consultation?.regNo||d.regNo));
+  if(!A.validReg(regNo))throw Error('IAP 등록번호가 올바르지 않습니다.');
+  if(d.consultation&&A.normalizeReg(d.consultation.regNo)!==regNo)throw Error('상담 이력과 내담자 등록번호가 다릅니다.');
+  const {data:found,error:findError}=await client.from('schedule_private_items')
+   .select('id,kind,item_date,payload,updated_at').eq('user_id',uid).eq('kind','iap').eq('payload->>regNo',regNo);
+  if(findError)throw findError;
+  if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+  if(found?.length>1)throw Error('중복 등록번호가 있어 자동 반영을 중단했습니다.');
+  const old=found?.[0];
+  if(!profileMessage&&!old)throw Error('내담자 일정 미등록입니다. IAP 저장 또는 내담자 등록을 먼저 완료하세요.');
+  let payload=profileMessage?root.ClientLinkSync.prepare(d.profile,old?.payload):{...old.payload};
+  if(profileMessage&&!A.validDate(payload.iapDate||''))throw Error('IAP 수립일이 확인되지 않아 신규 등록을 보류했습니다.');
+  if(d.status)payload=applyExplicitJournalStatus(old?.payload,payload,d.status);
+  const changed=!old||JSON.stringify(old.payload)!==JSON.stringify(payload);
+  let saved=old;
+  if(changed&&old&&A.fieldChanges(old.payload,payload).length){
+   saved=await commitAuditedClientUpdate(old,payload,'journal',uid,token,old.item_date);
+   rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
+  }else if(changed){
+   const insertId=old?old.id:await root.ClientImport.stableId(uid,regNo);
+   if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+   let query=client.from('schedule_private_items');
+   query=old?query.update({payload,updated_at:new Date().toISOString()})
+    .eq('id',old.id).eq('user_id',uid).eq('kind','iap').eq('updated_at',old.updated_at)
+    :query.insert({id:insertId,kind:'iap',user_id:uid,item_date:payload.iapDate,payload});
+   const {data,error}=await query.select('id,kind,item_date,payload,updated_at');
+   if(error?.code==='23505'&&!old)throw Error('다른 창에서 먼저 등록되었습니다. 새로고침 후 확인해 주세요.');
+   if(error)throw error;
+   if(token!==epoch||uid!==userId)throw Error('로그인 계정이 변경되었습니다.');
+   if(data?.length!==1)throw Error('다른 기기에서 수정되었습니다. 다시 확인해 주세요.');
+   saved=data[0];rows=rows.filter(r=>r.id!==saved.id);rows.push(saved);
+  }
+  // Changed existing dates/states have already been committed with their immutable audit in one transaction.
+  if(d.consultation)await recordActivity({...A.consultation(d.consultation),client_id:saved.id},uid,token);
+  if(token!==epoch||uid!==userId)throw Error('로그아웃되어 완료 확인이 취소되었습니다.');
+  paint();
+  if(profileMessage&&autoEnabled())await autoSyncIap();
+  answer(true,d.consultation?'내담자 정보·실제 상담일 서버 저장 확인':'내담자 연결 완료 · 날짜 자동 보완은 설정에 따라 적용');
+ }catch(error){
+  answer(false,error?.message||'일정표 저장 실패');
+ }finally{linking=false;}
+});
+
 function setButtons(disabled){$('saveClient').disabled=disabled;$('saveLifecycle').disabled=disabled;$('deleteClient').disabled=disabled;$('cancelEditor').disabled=disabled;$('closeEditor').disabled=disabled;if(!disabled)resumeAuto()}
 let customRange=null;function monthRange(){return customRange&&view==='list'?customRange:root.WorkPeriods.range(focusDate,view)}
 function syncPeriodControls(){const monthView=view==='list'||view==='month';$('month').value=focusDate.slice(0,7);$('clientDay').value=focusDate;$('clientMonthWrap').hidden=!monthView;$('clientDayWrap').hidden=monthView;$('clientWeekday').hidden=monthView;$('clientWeekday').textContent='('+['일','월','화','수','목','금','토'][new Date(focusDate+'T12:00:00').getDay()]+')';$('clientRange').textContent=customRange&&view==='list'?customRange[0]+' ~ '+customRange[1]:root.WorkPeriods.periodLabel(focusDate,view);$('thisMonth').textContent=monthView?'이번 달':view==='week'?'이번 주':'오늘';const unit=monthView?'달':view==='week'?'주':'날짜';$('prevMonth').setAttribute('aria-label','이전 '+unit);$('nextMonth').setAttribute('aria-label','다음 '+unit);document.querySelectorAll('[data-client-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clientView===view)));try{localStorage.setItem('goodjob_clients_view',view)}catch{}}
@@ -146,10 +320,11 @@ function renderSyncHealth(){
  const summary=document.createElement('p');summary.textContent='연결 점검 · 이 브라우저의 저장 IAP '+saved.length+'건 · 명단 미연결 '+unlinked.length+'건 · 확인할 내용 '+issues.length+'건';box.append(summary);
  if(unlinked.length){const note=document.createElement('p');note.textContent='명단에 연결되지 않은 IAP는 일정표에 자동 반영되지 않습니다. ‘IAP에서 등록’에서 본인 담당 자료인지 확인한 뒤 연결하세요.';box.append(note);}
  if(issues.length){const details=document.createElement('details'),heading=document.createElement('summary'),list=document.createElement('ul');heading.textContent='기존 정보와 다른 내용·반영 보류 사유 보기';for(const issue of issues.slice(0,30)){const li=document.createElement('li');li.textContent=issue.name+' · '+issue.reason;list.append(li);}if(issues.length>30){const li=document.createElement('li');li.textContent='그 외 '+(issues.length-30)+'건 · IAP 일정 보완에서 확인하세요.';list.append(li);}details.append(heading,list);box.append(details);}
- const limits=document.createElement('p');limits.textContent='초기상담 기한·상담사관리 엑셀·취업·종료 정보는 아직 자동으로 들어오지 않습니다. 해당 정보는 별도로 확인하세요.';box.append(limits);
+ const limits=document.createElement('p');limits.textContent='초기상담 기한·상담사관리 엑셀·고용24의 공식 취업·종료 상태는 자동 조회하지 않습니다. 상담일지에서 실제 확인하고 명시적으로 선택한 상태만 이 일정관리에 연결합니다.';box.append(limits);
 }
 function paint(){
- if(!userId||!identity)return;renderSyncHealth();const range=monthRange();if(!range)return;const today=keyDate(new Date()),search=$('search').value.trim().toLowerCase(),mine=rows.filter(r=>matches(r.payload,search)),events=eventsFor(mine),count=D.counts(events,today),needs=D.issues(mine);
+ if(!userId||!identity)return;renderSyncHealth();renderConsultWatch();const range=monthRange();if(!range)return;const today=keyDate(new Date()),search=$('search').value.trim().toLowerCase(),mine=rows.filter(r=>matches(r.payload,search)),events=eventsFor(mine),count=D.counts(events,today),needs=D.issues(mine);
+ const consultChecks=new Map(!activityError?A.attention(mine,activityRows,today).map(x=>[x.row.id,x]):[]);
  const pendingIap=D.planSaved(D.savedRecords(localStorage,mine,userEmail),mine,identity).filter(p=>p.action==='update').length;$('openIapImport').textContent='IAP 일정 보완'+(pendingIap?' · '+pendingIap+'명':'');$('openIapImport').title='이 브라우저에 저장된 IAP와 본인 전산도우미 정보에서 날짜·훈련을 비교합니다.';
  const summary=[['soon','오늘부터 7일',count.soon],['today','오늘',count.today],['past','지난 날짜',count.past],['missing','정보 보완',needs.length],['period','기간별 조회',null]];
  $('clientOverview').innerHTML=summary.map(([key,label,n])=>'<button type="button" data-client-queue="'+key+'" class="overview-card '+(queue===key?'selected':'')+'" aria-pressed="'+(queue===key)+'"><span>'+label+'</span>'+(n===null?'<b>달력 →</b>':'<b>'+n+'<small>'+(key==='missing'?'명':'건')+'</small></b>')+'</button>').join('');
@@ -162,7 +337,7 @@ function paint(){
  let html='',day='';for(const e of visible){if(day!==e.date){if(day)html+='</div></section>';day=e.date;const date=new Date(day+'T12:00:00');html+='<section class="day-group '+(day<today?'is-past':'')+'"><div class="day-heading"><strong>'+Number(day.slice(5,7))+'/'+Number(day.slice(-2))+'</strong><small>'+['일','월','화','수','목','금','토'][date.getDay()]+'요일</small>'+(day===today?'<small class="today">오늘</small>':'')+'</div><div class="event-list">'}html+='<div class="client-event '+(e.highlighted?' is-highlighted':'')+'"><div class="event-kind"><span class="badge '+e.kind+'">'+labels[e.kind]+'</span><small class="event-relative">'+escape(D.progress(today,e))+'</small></div><div class="event-person"><strong>'+escape(e.name)+'</strong><small>'+escape(e.regNo||'등록번호 미입력')+'</small></div><div class="detail">'+escape(e.detail)+(e.note?'<small class="event-note">'+escape(e.note)+'</small>':'')+origin(e)+'</div><div class="event-actions"><label class="event-highlight"><input type="checkbox" data-highlight-event="'+escape(e.key)+'" data-check-row="'+escape(e.rowId)+'" data-check-date="'+e.date+'" aria-label="'+escape(e.name+' '+labels[e.kind])+' 별표 표시" '+(e.highlighted?'checked':'')+' '+(busy?'disabled':'')+'>★ 표시</label><button type="button" data-edit="'+escape(e.rowId)+'">상세·수정</button><button type="button" class="client-add-task" data-link-client="'+escape(e.rowId)+'" data-link-key="'+escape(e.key)+'" data-link-date="'+e.date+'">＋ 할 일</button></div></div>'}if(day)html+='</div></section>';
  if(queue==='period'&&(view==='month'||view==='week'))html=root.WorkPeriods.calendar(focusDate,view,(date,inside)=>inside?visible.filter(e=>e.date===date).map(e=>'<button type="button" class="period-event '+(e.highlighted?' is-highlighted':'')+'" data-edit="'+escape(e.rowId)+'"><span class="badge '+e.kind+'">'+labels[e.kind]+'</span><strong>'+escape(e.name)+'</strong><small>'+escape(e.detail)+'</small></button><button type="button" class="client-period-task" data-link-client="'+escape(e.rowId)+'" data-link-key="'+escape(e.key)+'" data-link-date="'+e.date+'">＋ 할 일</button>').join(''):'');
  $('timeline').innerHTML=html||'<div class="empty">'+(loaded?'해당하는 일정이 없습니다.<br>다른 기간을 보거나 내담자의 날짜를 추가해 주세요.':'저장 자료를 불러오는 중입니다.')+'</div>';
- $('rosterTitle').textContent='전체 내담자 · '+mine.length+'명';$('roster').innerHTML=mine.slice().sort((a,b)=>String(a.payload.name||'').localeCompare(String(b.payload.name||''),'ko')).map(r=>{const p=r.payload||{},next=events.filter(e=>e.rowId===r.id&&e.date>=today)[0],past=events.filter(e=>e.rowId===r.id&&e.date<today).length;return '<div class="person-row"><div><strong>'+escape(p.name||'이름 미입력')+'</strong> <span class="client-state">'+escape(states[p.clientStatus]||states.active)+'</span>'+((p.clientStatus||'active')!=='active'?'<small class="person-status-date">'+escape(p.statusDate||'적용일 미입력')+'부터'+(p.statusReason?' · '+escape(p.statusReason):'')+'</small>':'')+'<small>'+(p.regNo?'IAP '+escape(p.regNo):'등록번호 미입력')+'</small></div><span class="person-next">'+(next?escape(root.WorkPeriods.dateLabel(next.date,true)+' · '+labels[next.kind]):'다가오는 등록일 없음')+(past?'<small>지난 날짜 '+past+'건</small>':'')+'</span><div class="person-actions"><button type="button" data-lifecycle="'+escape(r.id)+'">'+((p.clientStatus||'active')==='active'?'취업·중단 처리':'상태·일정 관리')+'</button><button type="button" data-edit="'+escape(r.id)+'">날짜·정보 수정</button></div></div>'}).join('')||'<div class="empty">수급자 목록을 가져오거나 내담자를 직접 등록해 주세요.</div>';
+ $('rosterTitle').textContent='전체 내담자 · '+mine.length+'명';$('roster').innerHTML=mine.slice().sort((a,b)=>String(a.payload.name||'').localeCompare(String(b.payload.name||''),'ko')).map(r=>{const p=r.payload||{},next=events.filter(e=>e.rowId===r.id&&e.date>=today)[0],past=events.filter(e=>e.rowId===r.id&&e.date<today).length;return '<div class="person-row"><div><strong>'+escape(p.name||'이름 미입력')+'</strong> <span class="client-state">'+escape(states[p.clientStatus]||states.active)+'</span>'+((p.clientStatus||'active')!=='active'?'<small class="person-status-date">'+escape(p.statusDate||'적용일 미입력')+'부터'+(p.statusReason?' · '+escape(p.statusReason):'')+'</small>':'')+'<small>'+(p.regNo?'IAP '+escape(p.regNo):'등록번호 미입력')+'</small></div><span class="person-next">'+(next?escape(root.WorkPeriods.dateLabel(next.date,true)+' · '+labels[next.kind]):'다가오는 등록일 없음')+(past?'<small>지난 날짜 '+past+'건</small>':'')+'</span>'+(function(){if(activityError)return '';const check=consultChecks.get(r.id);return check?.status==='due'?'<span class="person-consult due">마지막 상담 '+escape(check.last)+' · '+check.days+'일 경과</span>':check?.last?'<span class="person-consult">마지막 상담 '+escape(check.last)+'</span>':'<span class="person-consult">실제 상담일 미등록</span>'})()+'<div class="person-actions"><button type="button" data-lifecycle="'+escape(r.id)+'">'+((p.clientStatus||'active')==='active'?'취업·중단 처리':'상태·일정 관리')+'</button><button type="button" data-edit="'+escape(r.id)+'">날짜·정보 수정</button></div></div>'}).join('')||'<div class="empty">수급자 목록을 가져오거나 내담자를 직접 등록해 주세요.</div>';
 }
 function addImportantDate(value={}){
  const box=document.createElement('div');box.className='important-date-row';box.dataset.dateId=value.id||crypto.randomUUID();
@@ -181,7 +356,7 @@ function openEditor(row,showLifecycle=false){
  const saved=savedClientIaps(localStorage);$('savedIap').innerHTML='<option value="">직접 입력 / 저장된 등록번호 선택</option>'+saved.map((r,i)=>'<option value="'+i+'">'+escape(r.regNo)+' · '+escape(r.iapDate)+'</option>').join('');
  $('savedIap').onchange=()=>{const n=$('savedIap').value;if(n==='')return;const data=saved[Number(n)];if(!data)return;if(editing&&String(editing.payload.regNo||'')!==data.regNo){$('formStatus').textContent='기존 내담자와 등록번호가 다릅니다. 다른 내담자의 자료는 적용하지 않습니다.';$('savedIap').value='';return}if(!confirm('선택한 IAP의 비어 있는 날짜와 없는 훈련을 보완할까요? 기존에 입력한 날짜와 내용은 유지됩니다.'))return;$('regNo').value=data.regNo;if(!$('iapDate').value)$('iapDate').value=data.iapDate;if(!editing)$('clientType').value=data.type;if(!$('serviceEnd').value&&validDate(data.serviceEnd)){$('serviceEnd').value=data.serviceEnd;$('serviceEnd').dataset.iapSourceDate=data.serviceEnd;$('serviceEnd').dataset.iapSourceReg=data.regNo;}if(validDate(data.rediagnosisStart)&&validDate(data.rediagnosisEnd)&&data.rediagnosisStart<=data.rediagnosisEnd){for(const k of ['rediagnosisStart','rediagnosisEnd'])if(!$(k).value){$(k).value=data[k];$(k).dataset.iapSourceDate=data[k];$(k).dataset.iapSourceReg=data.regNo;}}if(data.type==='1'&&!Array.from({length:6},(_,i)=>$('cycle'+i).value).some(Boolean)){setCycles(Array.from({length:6},(_,i)=>root.PrivatePlanner.monthDate(data.iapDate,i)));for(let i=0;i<6;i++)$('cycle'+i).dataset.calculatedDate=$('cycle'+i).value}for(const t of data.trainings){if(![...$('trainingRows').querySelectorAll('.training-name')].some(n=>n.value===t.name))addTraining(t)}$('formStatus').textContent='빈 날짜와 새 훈련만 보완했습니다. 실제 날짜를 확인하고 저장하세요.';};
  if(row){const p=row.payload||{};$('personName').value=p.name||'';$('regNo').value=p.regNo||'';$('iapDate').value=validDate(p.iapDate)?p.iapDate:'';$('clientType').value=p.type||'1';$('serviceEnd').value=validDate(p.serviceEnd)?p.serviceEnd:'';$('memo').value=p.memo||'';setCycles(p.dates||[]);(Array.isArray(p.trainings)?p.trainings:[]).forEach(addTraining)}else setCycles([]);
- (Array.isArray(row?.payload?.importantDates)?row.payload.importantDates:[]).forEach(addImportantDate);$('jobCertExpire').value=row?.payload?.jobCertExpire||'';$('rediagnosisDate').value=row?.payload?.rediagnosisDate||'';for(const k of ['rediagnosisStart','rediagnosisEnd'])$(k).value=validDate(row?.payload?.[k])?row.payload[k]:'';$('clientStatus').value=row?.payload?.clientStatus||'active';$('statusDate').value=row?.payload?.statusDate||keyDate(new Date());$('changeReason').value='';$('lifecycleSection').open=showLifecycle||!!(row&&row.payload?.clientStatus&&row.payload.clientStatus!=='active');$('remainingEvents').innerHTML='';renderLifecycle();$('clientDialog').showModal();if(showLifecycle)$('clientStatus').focus();
+ (Array.isArray(row?.payload?.importantDates)?row.payload.importantDates:[]).forEach(addImportantDate);$('jobCertExpire').value=row?.payload?.jobCertExpire||'';$('rediagnosisDate').value=row?.payload?.rediagnosisDate||'';for(const k of ['rediagnosisStart','rediagnosisEnd'])$(k).value=validDate(row?.payload?.[k])?row.payload[k]:'';$('clientStatus').value=row?.payload?.clientStatus||'active';$('statusDate').value=row?.payload?.statusDate||keyDate(new Date());$('changeReason').value='';$('lifecycleSection').open=showLifecycle||!!(row&&row.payload?.clientStatus&&row.payload.clientStatus!=='active');$('remainingEvents').innerHTML='';renderLifecycle();renderConsultHistory(row);$('clientDialog').showModal();if(showLifecycle)$('clientStatus').focus();
 }
 function readForm(){
  const name=$('personName').value.trim(),regNo=$('regNo').value.trim(),iapDate=$('iapDate').value,serviceEnd=$('serviceEnd').value,type=$('clientType').value,dates=Array.from({length:6},(_,i)=>$('cycle'+i).value);

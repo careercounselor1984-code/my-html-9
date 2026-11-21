@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const recovery=require('../schedule-save-recovery.js');
+const ScheduleErrorReporting=require('../schedule-error-reporting.js');
 const html=fs.readFileSync('index.html','utf8');
 const row=(id,time='10:00',extra={})=>({id,date:'2026-10-26',center:'북부센터',owner:'테스트상담사',kind:'consult',type:'초기',time,end:time==='10:00'?'10:30':'11:00',title:'합성자료',...extra});
 const a=row('A'),b=row('B','10:00',{kind:'work',type:'회의'}),c=row('C','10:30');
@@ -25,7 +26,7 @@ async function moveWithServerReply(reject){
  const started=new Promise(resolve=>{markStarted=resolve});
  const model={events:[a],participants:[],offs:[],notices:[]};
  const cloud={active:true,busy:false,needsSave:false,identity:{id:'test'},base:{events:new Map(base),people:new Map()}};
- const ctx={cloud,model,$:id=>fields[id],editing:a.id,editorMode:'consult',withinSameDay:()=>true,confirm:()=>true,
+ const ctx={ScheduleErrorReporting,cloud,model,$:id=>fields[id],editing:a.id,editorMode:'consult',withinSameDay:()=>true,confirm:()=>true,
   alert:message=>alerts.push(message),cloudStatus:message=>statuses.push(message),cloudSessionGuard:()=>()=>true,
   saveEntry:async()=>{model.events=[{...a,time:fields.editor.elements.time.value}];cloud.needsSave=true;return true;},
   cloudSyncEvents:()=>new Promise((resolve,fail)=>{settle=()=>reject?fail(Error('일정 버전 충돌: 다른 기기에서 먼저 수정했습니다')):resolve(1);markStarted();}),
@@ -38,11 +39,11 @@ async function moveWithServerReply(reject){
  settle();await pending;
  assert.equal(alerts.some(message=>message.includes('변경되었습니다')),!reject);
  assert.equal(JSON.parse(cloud.base.events.get(a.id)).time,reject?'10:00':'10:30');
- if(reject)assert(statuses.some(message=>message.includes('일정 충돌')));
+ if(reject)assert(statuses.some(message=>message.includes('일정 버전 충돌')),'version conflict must be shown without auto-overwriting');
 }
 async function failure(message){
  const cloud={active:true,busy:false,needsSave:true,identity:{id:'test'},base:{events:new Map()}},timers=[],dialogs=[];
- const ctx={cloud,model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
+ const ctx={ScheduleErrorReporting,cloud,model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
   cloudReportSaveIssue:()=>{},cloudResolveSaveReport:()=>{},cloudSyncEvents:async()=>{throw Error(message)},ScheduleSaveRecovery:recovery,cloudShowSaveIssue:async text=>{cloud.saveIssue=text;dialogs.push(text)},cloudStatus:()=>{},clearTimeout:()=>{},setTimeout:(fn,ms)=>{timers.push(ms);return 1}};
  vm.createContext(ctx);vm.runInContext(commit,ctx);await ctx.cloudCommit();return {cloud,timers,dialogs,ctx};
 }
@@ -53,7 +54,7 @@ async function failure(message){
  await overlap.ctx.cloudCommit();assert.equal(overlap.dialogs.length,1,'same unresolved error does not reopen repeatedly');
  const network=await failure('Failed to fetch');assert.deepEqual(network.timers,[4000],'temporary network failures retain retry');assert.equal(network.dialogs.length,0);
  const alerts=[],removed=[];
- const success={cloud:{active:true,busy:false,needsSave:true,resolvingSaveIssue:true,identity:{id:'test'},base:{events:new Map(),people:new Map()}},
+ const success={ScheduleErrorReporting,cloud:{active:true,busy:false,needsSave:true,resolvingSaveIssue:true,identity:{id:'test'},base:{events:new Map(),people:new Map()}},
   model:{events:[],participants:[],offs:[],notices:[]},cloudSessionGuard:()=>()=>true,cloudOwnRows:x=>x,cloudClean:x=>x,
   cloudSyncEvents:async()=>0,cloudSyncList:async()=>0,cloudMap:rows=>new Map(rows.map(e=>[e.id,JSON.stringify(e)])),cloudDraftKey:()=> 'pending-test',localStorage:{removeItem:key=>removed.push(key)},
   cloudReportSaveIssue:()=>{},cloudResolveSaveReport:()=>{},cloudStatus:()=>{},alert:text=>alerts.push(text),calendarState:{},setTimeout:()=>1,clearTimeout:()=>{}};

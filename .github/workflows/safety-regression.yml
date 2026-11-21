@@ -33,6 +33,8 @@ jobs:
           node tests/visitor-output.test.cjs
           node tests/private-planner.test.cjs
           node tests/client-import.test.cjs
+          node --check clients.js
+          node tests/iap-auto-calendar-receiver.test.cjs
           node tests/clients.test.cjs
           node tests/client-deadlines.test.cjs
           node --test tests/reassessment-window.test.cjs

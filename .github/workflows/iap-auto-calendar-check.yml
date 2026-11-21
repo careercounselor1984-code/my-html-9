@@ -1,0 +1,45 @@
+name: IAP automatic calendar link checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          node --check clients.js
+          node tests/iap-auto-calendar-receiver.test.cjs
+          node tests/client-activity-model.test.cjs
+          node tests/client-activity-receiver.test.cjs
+          npm install --prefix /tmp/iap-auto-calendar-test jsdom@30.1.2 --no-audit --no-fund
+          NODE_PATH=/tmp/iap-auto-calendar-test/node_modules node tests/iap-auto-calendar-dom.test.cjs
+
+
+  activity_sql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: RLS, synthetic staff and atomic rollback on isolated PostgreSQL
+        run: |
+          docker run --rm --network host -v "$PWD:/app:ro" -w /app -e PGPASSWORD=synthetic-test-only \
+            postgres:17 psql -X -h 127.0.0.1 -U postgres -d postgres \
+            -v ON_ERROR_STOP=1 -f tests/client-activity-sql-regression.sql
