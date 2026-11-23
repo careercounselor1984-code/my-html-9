@@ -5657,6 +5657,26 @@ window.goodjobMiniBridge={
 };
 
 /* Calendar workspace: presentation-only access to the current authorized scope. */
+
+/* Initial counseling invitations: saved own appointments only; no participant data in links. */
+window.GoodJobInitialInvitation={
+ context(){const choice=resolveConsultationInput($('fperson').value,$('ftype').value,$('fperson').dataset.manualType==='1');return {consult:editorMode==='consult',type:choice.type===CUSTOM_TYPE?$('customType').value.trim():choice.type,editing:!!editing,own:!!(cloud.active&&cloud.identity&&$('fowner').value===cloud.identity.name)}},
+ async saveAndRead(){
+  const ctx=this.context();if(!ctx.consult||ctx.type!=='초기')throw Error('초기상담 일정에서만 안내를 만들 수 있습니다.');
+  if(!ctx.own)throw Error('담당 상담사가 본인 일정에서 이용해 주세요.');
+  if(cloud.busy||cloud.needsSave||cloud.queueBlocked||cloud.saveIssue)throw Error('기존 변경사항의 서버 저장이 완료된 후 다시 시도해 주세요.');
+  const staff=cloud.identity.id,editId=editing,previous=new Set(model.events.map(e=>e.id));
+  const f=$('editor'),expected={date:f.elements.date.value,time:f.elements.time.value,owner:$('fowner').value,center:$('fcenter').value};
+  const saved=await saveEntry();if(!saved||$('dlg').open)throw Error('일정 입력 내용을 확인한 뒤 다시 눌러 주세요.');
+  clearTimeout(cloud.timer);await cloudCommit();
+  if(!cloud.active||cloud.identity?.id!==staff||cloud.busy||cloud.needsSave||cloud.queueBlocked||cloud.saveIssue)throw Error('서버 저장을 완료하지 못했습니다. 저장 상태를 확인해 주세요.');
+  const e=model.events.find(x=>(editId?x.id===editId:!previous.has(x.id))&&x.owner===expected.owner&&x.center===expected.center&&x.date===expected.date&&x.time===expected.time&&x.type==='초기'&&isConsultEvent(x)&&!x.readonly);
+  if(!e)throw Error('저장된 초기상담 일정을 다시 열어 안내를 만들어 주세요.');
+  const place=e.energySchool?'에너지고':e.trip?'':e.center==='북부센터'?'울산광역시 북구 송내4길 14, 2층':'좋은일자리 '+e.center;
+  return {type:'초기',date:e.date,time:e.time,end:e.end||'',owner:e.owner,center:e.center,place};
+ }
+};
+
 window.GoodJobCalendarWorkspace={
  togetherScope(){return cloud.active&&cloud.identity&&!directorPreviewState.active&&!sharedState.open&&!executiveState.open&&['personalDay','personalWeek','personalMonth'].includes(currentView)&&currentOwner()===cloud.identity.name&&currentCenter()===cloud.identity.center?cloud.identity.id+'|'+cloud.sessionEpoch:'';},
  async togetherRows(){
@@ -5713,5 +5733,6 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
 <script src="./schedule-work-blocks.js?v=20261025-1"></script>
 <script src="./client-auto-background.js?v=20261025-1"></script>
 <script defer src="./center-board-link.js"></script>
+<script defer src="./initial-guide-link.js?v=1"></script><script defer src="./initial-guide-invitation.js?v=1"></script>
 </body></html>
 
