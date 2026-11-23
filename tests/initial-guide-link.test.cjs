@@ -25,3 +25,14 @@ function scope({type='초기',owner='직원',fail=false}={}){
 }
 test('new own initial appointment saves before producing the invitation',async()=>{const c=scope(),e=await c.window.GoodJobInitialInvitation.saveAndRead();assert.equal(e.time,'10:30');assert.equal(e.type,'초기');assert.equal(c.cloud.needsSave,false);assert.equal(e.title,undefined)});
 test('wrong type, another owner or failed server save cannot produce invitation',async()=>{for(const options of [{type:'해석'},{owner:'다른 직원'},{fail:true}])await assert.rejects(scope(options).window.GoodJobInitialInvitation.saveAndRead())});
+test('initial-only action copies directly without creating a dialog or sending',async()=>{
+ function element(){return {children:[],handlers:{},style:{},setAttribute(){},append(...items){this.children.push(...items)},addEventListener(name,fn){this.handlers[name]=fn},querySelector(key){return this.nodes[key]},nodes:{},showModal(){this.open=true}}}
+ const form=element(),actions=element();form.nodes['.actions']=actions;actions.before=box=>form.box=box;
+ let mode={consult:true,type:'초기',editing:false,own:true},copies=[],dialogs=[];
+ const ctx={window:{GoodJobInitialGuideLink:codec,GoodJobInitialInvitation:{context:()=>mode,saveAndRead:async()=>event}},document:{getElementById:id=>id==='editor'?form:element(),createElement:tag=>{const e=element();if(tag==='dialog'){for(const k of ['[data-close]','[data-summary]','[data-message]','[data-preview]','[data-status]','[data-copy]'])e.nodes[k]=element();dialogs.push(e)}return e},body:{append(){}}},MutationObserver:class{observe(){}},navigator:{clipboard:{writeText:async s=>copies.push(s)}},queueMicrotask,clearTimeout(){},setTimeout(){return 1},alert:message=>{throw Error(message)}};
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../initial-guide-invitation.js'),'utf8'),ctx);
+ assert.equal(form.box.hidden,false);mode={...mode,type:'해석'};form.handlers.change();assert.equal(form.box.hidden,true);
+ mode={...mode,type:'초기',own:false};form.handlers.change();assert.equal(form.box.children[0].disabled,true);
+ mode={...mode,own:true};form.handlers.change();await form.box.children[0].onclick();assert.equal(dialogs.length,0);
+ assert.equal(copies.length,1);assert.match(copies[0],/2026.11.25.*10:30/);assert.match(copies[0],/https:\/\/m.site.naver.com\/2lzNF#b=/);assert.ok(!copies[0].includes('PRIVATE'));
+});
