@@ -59,16 +59,18 @@ const context={
  paint:()=>{painted++},TextEncoder,crypto:{randomUUID:()=> 'unique-audit-key-0001'}
 };
 vm.runInNewContext(code.slice(start,end),context);
-const reg='A12345678901',send=(type,extra={})=>{
+const reg='A12345678901',send=(type,extra={},origin='https://careercounselor1984-code.github.io')=>{
  const id='req-'+(replies.length+1);
- listener({source:parent,origin:'https://careercounselor1984-code.github.io',
+ listener({source:parent,origin,
  data:{type,requestId:id,expectedEmail:'staff@example.com',...extra}});
  return id;
 };
 const wait=()=>new Promise(r=>setTimeout(r,20));
 (async()=>{
  const c={regNo:reg,date:'2026-10-29',pageId:'p05',sourceKey:'journal:p05:aaaa:2026-10-29:'+reg};
- send('goodjob:client-consultation:v1',{regNo:reg,consultation:c});await wait();
+ send('goodjob:client-consultation:v1',{regNo:reg,consultation:c},'https://other.workers.dev');await wait();
+ assert.equal(replies.length,0,'unlisted origin must be ignored');
+ send('goodjob:client-consultation:v1',{regNo:reg,consultation:c},'https://goodjob-north-journal.careercounselor1984.workers.dev');await wait();
  assert(replies.at(-1).ok,'consultation stored');
  assert.equal(history.filter(x=>x.activity_type==='consultation').length,1);
  assert.equal(history[0].client_id,'client-1');
