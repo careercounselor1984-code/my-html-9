@@ -252,7 +252,7 @@ let linking=false;
 window.addEventListener('message',async e=>{
  const d=e.data;
  const profileMessage=d?.type==='goodjob:client-link:v1',consultMessage=d?.type==='goodjob:client-consultation:v1';
- if(e.source!==window.parent||window.parent===window||e.origin!=='https://careercounselor1984-code.github.io'||(!profileMessage&&!consultMessage)||typeof d.requestId!=='string'||d.requestId.length>100)return;
+ if(e.source!==window.parent||window.parent===window||!['https://careercounselor1984-code.github.io','https://goodjob-north-journal.careercounselor1984.workers.dev'].includes(e.origin)||(!profileMessage&&!consultMessage)||typeof d.requestId!=='string'||d.requestId.length>100)return;
  const answer=(ok,message)=>e.source.postMessage({type:'goodjob:client-link-result:v1',requestId:d.requestId,ok,message},e.origin);
  if(linking){answer(false,'일정표가 다른 저장을 처리 중입니다.');return}linking=true;
  try{
