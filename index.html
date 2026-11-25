@@ -2337,7 +2337,7 @@ function initQuickAndMobile(){
    Authenticated appointments are inserted by a server RPC with idempotency and conflict checks.
    An untrusted local HTML file requires one-time approval before writing any calendar data. */
 let journalDirectPending=null,journalDirectBusy=false;
-const JOURNAL_TRUSTED_ORIGIN='https://careercounselor1984-code.github.io';
+const JOURNAL_TRUSTED_ORIGINS=new Set(['https://careercounselor1984-code.github.io','https://goodjob-north-journal.careercounselor1984.workers.dev']);
 function journalDirectReply(target,origin,data){
  try{target.postMessage({type:'goodjob:schedule-create-result:v2',...data},origin==='null'?'*':origin)}catch{}
 }
@@ -2372,7 +2372,7 @@ async function journalDirectProcess(){
 }
 window.addEventListener('message',async event=>{
  if(event.source!==window.parent||!event.data||event.data.type!=='goodjob:schedule-create:v2')return;
- if(event.origin!==JOURNAL_TRUSTED_ORIGIN&&event.origin!=='null')return;
+ if(!JOURNAL_TRUSTED_ORIGINS.has(event.origin)&&event.origin!=='null')return;
  const p=event.data.payload||{},requestId=String(p.requestId||'');
  const reply=(status,message)=>journalDirectReply(event.source,event.origin,{requestId,status,message});
  // file:// tests have opaque origins: never accept a write without explicit approval.
@@ -2405,7 +2405,7 @@ let journalBookingPending=null,journalBookingDisplayedKey='';
 function journalBookingAnnounce(){
  const status={type:'goodjob:schedule-ready:v1',loggedIn:!!cloud.active};
  for(const target of [window.parent!==window?window.parent:null,window.opener]){
-  try{target?.postMessage(status,JOURNAL_TRUSTED_ORIGIN)}catch{}
+  for(const origin of JOURNAL_TRUSTED_ORIGINS){try{target?.postMessage(status,origin)}catch{}}
  }
 }
 function journalBookingMaybeOpen(){
@@ -2433,7 +2433,7 @@ window.addEventListener('message',event=>{
  if(event.source!==window.parent&&event.source!==window.opener)return;
  const message=event.data;
  if(!message||message.type!=='goodjob:schedule-prefill:v1'||!message.payload)return;
- if(event.origin!==JOURNAL_TRUSTED_ORIGIN)return;
+ if(!JOURNAL_TRUSTED_ORIGINS.has(event.origin))return;
  const p=message.payload;
  const date=String(p.date||''),time=String(p.time||''),name=String(p.name||'').trim(),typ=String(p.consultType||'초기');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parseDate(date).valueOf())||!/^([01]\d|2[0-3]):(00|30)$/.test(time)||name.length<2||name.length>70)return;
@@ -3776,13 +3776,13 @@ function rememberEnergyPopup(items){
  }catch(error){console.warn('에너지고 팝업 중복 방지 기록 지연',error?.message||error)}
 }
 
-/* Alert bridge to the trusted organization counseling journal (same GitHub origin).
+/* Alert bridge to the explicitly trusted organization counseling journal origins.
    Never exposes auth tokens, client names, or request bodies. */
-const ALERT_BRIDGE_ORIGIN='https://careercounselor1984-code.github.io';
-let alertBridgeParent=null;
+let alertBridgeParent=null,alertBridgeParentOrigin=null;
 function alertBridgeSend(message){
  if(!alertBridgeParent)return;
- try{alertBridgeParent.postMessage(message,ALERT_BRIDGE_ORIGIN)}catch(e){}
+ if(!JOURNAL_TRUSTED_ORIGINS.has(alertBridgeParentOrigin))return;
+ try{alertBridgeParent.postMessage(message,alertBridgeParentOrigin)}catch(e){}
 }
 function alertBridgeUpdate(){
  if(!alertBridgeParent)return;
@@ -3800,28 +3800,28 @@ function alertBridgeUpdate(){
  alertBridgeSend({type:'goodjob:alert-feed:v1',authenticated:true,items});
 }
 window.addEventListener('message',async event=>{
- if(event.source!==window.parent||event.origin!==ALERT_BRIDGE_ORIGIN||!event.data)return;
+ if(event.source!==window.parent||!JOURNAL_TRUSTED_ORIGINS.has(event.origin)||!event.data)return;
  if(event.data.type==='goodjob:alert-subscribe:v1'){
-  alertBridgeParent=event.source;
+  alertBridgeParent=event.source;alertBridgeParentOrigin=event.origin;
   if(cloud.active)await alertPoll(false);
   else alertBridgeUpdate();
- }else if(event.data.type==='goodjob:alert-ack:v1'&&event.source===alertBridgeParent){
+ }else if(event.data.type==='goodjob:alert-ack:v1'&&event.source===alertBridgeParent&&event.origin===alertBridgeParentOrigin){
   if(!cloud.active)return;
   const keys=Array.isArray(event.data.keys)?event.data.keys.filter(x=>typeof x==='string'&&x.length<=180).slice(0,40):[];
   if(!keys.length)return;
   try{await alertAck(keys);alertBridgeUpdate()}
   catch(e){alertBridgeSend({type:'goodjob:alert-error:v1',message:'알림 읽음 저장에 실패했습니다.'})}
- }else if(event.data.type==='goodjob:alert-refresh:v1'&&event.source===alertBridgeParent){
+ }else if(event.data.type==='goodjob:alert-refresh:v1'&&event.source===alertBridgeParent&&event.origin===alertBridgeParentOrigin){
   if(cloud.active)await alertPoll(false);
  }
 });
 
 
-/* Approved same-origin journal: authenticated schedule account is the only actor
+/* Approved journal origins: authenticated schedule account is the only actor
    allowed to register a journal service-worker push subscription.
    Journal authentication is separate; name equality prevents accidental cross-account pairing. */
 window.addEventListener('message',async event=>{
- if(event.source!==window.parent||event.origin!=='https://careercounselor1984-code.github.io')return;
+ if(event.source!==window.parent||!JOURNAL_TRUSTED_ORIGINS.has(event.origin))return;
  const msg=event.data;
  if(!msg||msg.type!=='goodjob:journal-push:v1')return;
  const reply=(success,detail={})=>{
