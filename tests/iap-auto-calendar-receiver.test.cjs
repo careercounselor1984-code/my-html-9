@@ -14,7 +14,7 @@ assert.throws(()=>S.prepare(profile,{...existing,regNo:'A99999999999'}),/번호 
 assert.throws(()=>S.prepare({...profile,regNo:''},null),/등록번호/);
 const code=fs.readFileSync('clients.js','utf8');
 for(const term of [
- "e.source!==window.parent","e.origin!=='https://careercounselor1984-code.github.io'",
+ "e.source!==window.parent","!['https://careercounselor1984-code.github.io','https://goodjob-north-journal.careercounselor1984.workers.dev'].includes(e.origin)",
  "session?.user.id!==uid","staff.center!==identity.center",
  ".eq('user_id',uid)",".eq('kind','iap')",".eq('updated_at',old.updated_at)",
  "root.ClientImport.stableId(uid,regNo)","await autoSyncIap()"
